@@ -22,14 +22,15 @@
  * if the user so wish or the `mpi::` namespace for some reason already exists.
  * @since 1.0
  */
-#define MPIWCPP17_BEGIN_NAMESPACE               \
-    namespace MPIWCPP17_NAMESPACE {             \
-        inline namespace v1 {
+#define MPIWCPP17_BEGIN_NAMESPACE   \
+    namespace MPIWCPP17_NAMESPACE { \
+        inline namespace v1 {       \
+            namespace mpiw = MPIWCPP17_NAMESPACE;
 
 /**
  * This macro is used to close the MPIwCPP17 namespace block and must not be in
  * any way overriden.
  * @since 1.0
  */
-#define MPIWCPP17_END_NAMESPACE                 \
+#define MPIWCPP17_END_NAMESPACE     \
     }}
