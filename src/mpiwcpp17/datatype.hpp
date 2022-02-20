@@ -14,7 +14,8 @@
 #include <utility>
 
 #include <mpiwcpp17/environment.hpp>
-#include <mpiwcpp17/exception.hpp>
+#include <mpiwcpp17/guard.hpp>
+
 #include <mpiwcpp17/detail/tuple.hpp>
 #include <mpiwcpp17/detail/reflection.hpp>
 
@@ -127,7 +128,7 @@ namespace datatype
     inline size_t size(datatype::id type)
     {
         int result;
-        verify(MPI_Type_size(type, &result));
+        guard(MPI_Type_size(type, &result));
         return static_cast<size_t>(result);
     }
 
@@ -171,8 +172,8 @@ namespace datatype
             datatype::id types[count] = {identify<typename std::remove_extent<T>::type>()...};
             const MPI_Aint *offsets = array.data();
 
-            verify(MPI_Type_create_struct(count, blocks, offsets, types, &result));
-            verify(MPI_Type_commit(&result));
+            guard(MPI_Type_create_struct(count, blocks, offsets, types, &result));
+            guard(MPI_Type_commit(&result));
 
             return result;
         }
@@ -225,7 +226,7 @@ namespace datatype
      */
     inline void descriptor::destroy()
     {
-        for (auto& type : typeids) verify(MPI_Type_free(&type));
+        for (auto& type : typeids) guard(MPI_Type_free(&type));
     }
 }
 

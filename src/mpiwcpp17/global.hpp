@@ -13,9 +13,9 @@
 #include <utility>
 
 #include <mpiwcpp17/environment.hpp>
-#include <mpiwcpp17/exception.hpp>
 #include <mpiwcpp17/communicator.hpp>
 #include <mpiwcpp17/datatype.hpp>
+#include <mpiwcpp17/guard.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
 
@@ -102,7 +102,7 @@ inline auto init(thread_support required) -> thread_support
 inline auto init(int *argc, char ***argv, thread_support required) -> thread_support
 {
     int32_t provided;
-    verify(MPI_Init_thread(argc, argv, static_cast<int32_t>(required), &provided));
+    guard(MPI_Init_thread(argc, argv, static_cast<int32_t>(required), &provided));
     new (&detail::world::concrete) communicator (MPI_COMM_WORLD);
     return static_cast<thread_support>(provided);
 }
@@ -115,7 +115,7 @@ inline void finalize()
 {
     for (auto& defer : detail::deferred) defer();
     detail::world::concrete.~communicator();
-    verify(MPI_Finalize());
+    guard(MPI_Finalize());
 }
 
 MPIWCPP17_END_NAMESPACE

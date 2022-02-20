@@ -11,7 +11,7 @@
 #include <utility>
 
 #include <mpiwcpp17/environment.hpp>
-#include <mpiwcpp17/exception.hpp>
+#include <mpiwcpp17/guard.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
 
@@ -25,11 +25,11 @@ namespace detail::communicator
     {
         if (target != MPI_COMM_NULL) {
             int compare_world, compare_self;
-            verify(MPI_Comm_compare(target, MPI_COMM_WORLD, &compare_world));
-            verify(MPI_Comm_compare(target, MPI_COMM_SELF, &compare_self));
+            guard(MPI_Comm_compare(target, MPI_COMM_WORLD, &compare_world));
+            guard(MPI_Comm_compare(target, MPI_COMM_SELF, &compare_self));
 
             if (compare_world != MPI_IDENT && compare_self != MPI_IDENT) {
-                verify(MPI_Comm_free(&target));
+                guard(MPI_Comm_free(&target));
             }
         }
     }

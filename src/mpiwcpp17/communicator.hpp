@@ -12,8 +12,8 @@
 #include <utility>
 
 #include <mpiwcpp17/environment.hpp>
-#include <mpiwcpp17/exception.hpp>
 #include <mpiwcpp17/process.hpp>
+#include <mpiwcpp17/guard.hpp>
 
 #include <mpiwcpp17/detail/communicator.hpp>
 
@@ -49,7 +49,7 @@ class communicator
           , size {other.size}
         {
             if (!other.empty()) {
-                verify(MPI_Comm_dup(other.m_comm, &m_comm));
+                guard(MPI_Comm_dup(other.m_comm, &m_comm));
             }
         }
 
@@ -73,9 +73,9 @@ class communicator
           : m_comm {comm}
         {
             if (!empty()) {
-                verify(MPI_Comm_rank(m_comm, const_cast<process::rank*>(&rank)));
-                verify(MPI_Comm_size(m_comm, const_cast<int32_t*>(&size)));
-                verify(MPI_Comm_set_errhandler(m_comm, MPI_ERRORS_RETURN));
+                guard(MPI_Comm_rank(m_comm, const_cast<process::rank*>(&rank)));
+                guard(MPI_Comm_size(m_comm, const_cast<int32_t*>(&size)));
+                guard(MPI_Comm_set_errhandler(m_comm, MPI_ERRORS_RETURN));
             }
         }
 
@@ -139,7 +139,7 @@ class communicator
         inline static communicator duplicate(const communicator& comm)
         {
             raw_type new_comm;
-            verify(MPI_Comm_dup(comm.m_comm, &new_comm));
+            guard(MPI_Comm_dup(comm.m_comm, &new_comm));
             return communicator(new_comm);
         }
 
@@ -154,7 +154,7 @@ class communicator
         inline static communicator split(const communicator& comm, int color, process::rank key = process::any)
         {
             raw_type new_comm;
-            verify(MPI_Comm_split(comm.m_comm, color, key, &new_comm));
+            guard(MPI_Comm_split(comm.m_comm, color, key, &new_comm));
             return communicator(new_comm);
         }
 };
