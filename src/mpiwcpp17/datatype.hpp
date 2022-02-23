@@ -66,6 +66,8 @@ namespace datatype
             inline descriptor(datatype::id) noexcept;
     };
 
+MPIWCPP17_DISABLE_GCC_WARNING_BEGIN("-Wreturn-type")
+
     /**
      * Describes a type and allows it to be sent to different processes via MPI.
      * @tparam T The type to be described.
@@ -97,11 +99,12 @@ namespace datatype
     template <typename T>
     inline descriptor describe()
     {
-        static_assert(
-            !std::is_void<T>::value && std::is_void<T>::value
-          , "no descriptor was found to the requested type so it cannot be used with MPI");
+        constexpr bool invalid = !std::is_void<T>::value && std::is_void<T>::value;
+        static_assert(invalid, "no descriptor was found to the requested type so it cannot be used with MPI");
     }
   #endif
+
+MPIWCPP17_DISABLE_GCC_WARNING_END("-Wreturn-type")
 
     /**
      * Identifies the given type by retrieving its raw datatype identifier.
@@ -213,6 +216,11 @@ namespace datatype
         typeids.push_back(type);
     }
 
+    /**
+     * Exposes the underlying raw MPI datatype identifier, allowing a descriptor
+     * to be used seamlessly with native MPI functions.
+     * @return The internal MPI datatype identifier.
+     */
     inline descriptor::operator datatype::id() const noexcept
     {
         return m_typeid;
