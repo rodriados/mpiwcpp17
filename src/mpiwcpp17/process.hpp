@@ -27,17 +27,17 @@ namespace process
     inline constexpr process::rank any = MPI_ANY_SOURCE;
 
     /**
-     * Defines a special process identifier to indicate the root of a communicator.
-     * @since 1.0
-     */
-    inline constexpr process::rank root = MPI_ROOT;
-
-    /**
      * Defines a special process identifier to indicate that some communication
      * must not perform any effect.
      * @since 1.0
      */
     inline constexpr process::rank null = MPI_PROC_NULL;
+
+    /**
+     * Defines a special process identifier to indicate the root of a communicator.
+     * @since 1.0
+     */
+    enum : process::rank { root = 0 };
 }
 
 MPIWCPP17_END_NAMESPACE

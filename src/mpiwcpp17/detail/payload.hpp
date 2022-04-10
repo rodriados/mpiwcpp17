@@ -73,7 +73,7 @@ namespace detail
          * @param count The total number of elements in message.
          */
         template <typename U>
-        inline payload(std::shared_ptr<U>& ptr, size_t count = 1) noexcept
+        inline payload(const std::shared_ptr<U>& ptr, size_t count = 1) noexcept
           : ptr (std::static_pointer_cast<element_type>(ptr))
           , type (datatype::identify<element_type>())
           , count (count)
@@ -152,6 +152,16 @@ namespace detail
         inline operator const pointer_type() const noexcept
         {
             return ptr.get();
+        }
+
+        /**
+         * Creates a new payload by allocating a message of given number of elements.
+         * @param count The total amount of elements in the message to be allocated.
+         * @return The newly created payload.
+         */
+        inline static payload create(size_t count = 1)
+        {
+            return {std::shared_ptr<element_type[]>(new element_type[count]), count};
         }
     };
 
