@@ -6,7 +6,7 @@
  */
 #pragma once
 
-#include <cstdint>
+#include <utility>
 #include <memory>
 
 #include <mpiwcpp17/environment.hpp>
@@ -36,11 +36,12 @@ namespace detail
     {
         typedef T element_type;
         typedef element_type *pointer_type;
-        typedef payload<T> return_type;
 
-        pointer_type ptr;
-        size_t count = 1;
+        using return_type = payload<T>;
+
+        std::shared_ptr<element_type> ptr;
         datatype::id type;
+        size_t count = 1;
 
         inline payload() noexcept = delete;
         inline payload(const payload&) noexcept = default;
@@ -55,18 +56,67 @@ namespace detail
         {}
 
         /**
-         * Wraps a raw pointer into a message payload.
+         * Wraps a raw non-owning pointer into a message payload.
          * @param ptr The raw message buffer pointer.
          * @param count The total number of elements in message.
          */
         inline payload(pointer_type ptr, size_t count = 1) noexcept
-          : ptr (ptr)
-          , count (count)
+          : ptr (ptr, [](auto) { /* pointer is not owned */ })
           , type (datatype::identify<element_type>())
+          , count (count)
+        {}
+
+        /**
+         * Wraps an owning pointer into a message payload.
+         * @tparam U The original owning shared pointer type.
+         * @param ptr The raw message owning pointer.
+         * @param count The total number of elements in message.
+         */
+        template <typename U>
+        inline payload(std::shared_ptr<U>& ptr, size_t count = 1) noexcept
+          : ptr (std::static_pointer_cast<element_type>(ptr))
+          , type (datatype::identify<element_type>())
+          , count (count)
         {}
 
         inline payload& operator=(const payload&) = default;
         inline payload& operator=(payload&&) = default;
+
+        /**
+         * The payload's message buffer initial iterator position.
+         * @return The pointer to the start of the message.
+         */
+        inline pointer_type begin() noexcept
+        {
+            return ptr.get();
+        }
+
+        /**
+         * The payload's message buffer initial const-qualified iterator position.
+         * @return The pointer to the start of the const-qualified message.
+         */
+        inline const pointer_type begin() const noexcept
+        {
+            return ptr.get();
+        }
+
+        /**
+         * The payload's message final iterator position.
+         * @return The pointer to the end of the message.
+         */
+        inline pointer_type end() noexcept
+        {
+            return ptr.get() + count;
+        }
+
+        /**
+         * The payload's message final const-qualified iterator position.
+         * @return The pointer to the end of the const-qualified message.
+         */
+        inline const pointer_type end() const noexcept
+        {
+            return ptr.get() + count;
+        }
 
         /**
          * Seamlessly converts the payload into its message contents.
@@ -87,39 +137,21 @@ namespace detail
         }
 
         /**
-         * The payload's message buffer initial iterator position.
-         * @return The pointer to the start of the message.
+         * Converts the payload into a pointer to its message contents.
+         * @return The pointer to the payload's message contents.
          */
-        inline pointer_type begin() noexcept
+        inline operator pointer_type() noexcept
         {
-            return ptr;
+            return ptr.get();
         }
 
         /**
-         * The payload's message buffer initial const-qualified iterator position.
-         * @return The pointer to the start of the const-qualified message.
+         * Converts the payload into a const-qualified pointer to its message contents.
+         * @return The const-qualified pointer to the payload's message contents.
          */
-        inline const pointer_type begin() const noexcept
+        inline operator const pointer_type() const noexcept
         {
-            return ptr;
-        }
-
-        /**
-         * The payload's message final iterator position.
-         * @return The pointer to the end of the message.
-         */
-        inline pointer_type end() noexcept
-        {
-            return ptr + count;
-        }
-
-        /**
-         * The payload's message final const-qualified iterator position.
-         * @return The pointer to the end of the const-qualified message.
-         */
-        inline const pointer_type end() const noexcept
-        {
-            return ptr + count;
+            return ptr.get();
         }
     };
 
@@ -152,6 +184,8 @@ namespace detail
      */
     template <typename T> payload(T*, size_t = 1) -> payload<T>;
     template <typename T> payload(T&, size_t = 1) -> payload<T>;
+    template <typename T> payload(std::shared_ptr<T>&, size_t = 1) -> payload<T>;
+    template <typename T> payload(std::shared_ptr<T[]>&, size_t = 1) -> payload<T>;
 }
 
 MPIWCPP17_END_NAMESPACE
