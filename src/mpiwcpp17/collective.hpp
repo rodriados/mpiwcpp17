@@ -8,3 +8,6 @@
 
 #include <mpiwcpp17/collective/barrier.hpp>
 #include <mpiwcpp17/collective/broadcast.hpp>
+#include <mpiwcpp17/collective/probe.hpp>
+#include <mpiwcpp17/collective/send.hpp>
+#include <mpiwcpp17/collective/receive.hpp>
