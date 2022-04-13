@@ -27,12 +27,12 @@ inline namespace collective
      * @param comm The communicator this operation applies to.
      * @return The inspected message status.
      */
-    inline status::raw probe(
+    inline status::raw_type probe(
         process::rank source = process::any
       , tag::id tagg = tag::any
       , const communicator& comm = world
     ) {
-        status::raw s; guard(MPI_Probe(source, tagg, comm, &s));
+        status::raw_type s; guard(MPI_Probe(source, tagg, comm, &s));
         return s;
     }
 }

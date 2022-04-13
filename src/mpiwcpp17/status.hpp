@@ -26,20 +26,20 @@ namespace status
      * of a reception or a non-blocking operation.
      * @since 1.0
      */
-    using raw = MPI_Status;
+    using raw_type = MPI_Status;
 
     /**
      * The status of the last executed operation.
      * @since 1.0
      */
-    inline static status::raw last;
+    inline static status::raw_type last;
 
     /**
      * Retrieves the error code of an operation status.
      * @param raw The target operation status instance.
      * @return The MPI operation status error code.
      */
-    inline auto error(const status::raw& raw = status::last) noexcept -> error::code
+    inline auto error(const status::raw_type& raw = status::last) noexcept -> error::code
     {
         return raw.MPI_ERROR;
     }
@@ -49,7 +49,7 @@ namespace status
      * @param raw The target operation status instance.
      * @return The MPI operation's source process.
      */
-    inline auto source(const status::raw& raw = status::last) noexcept -> process::rank
+    inline auto source(const status::raw_type& raw = status::last) noexcept -> process::rank
     {
         return raw.MPI_SOURCE;
     }
@@ -59,7 +59,7 @@ namespace status
      * @param raw The target operation status instance.
      * @return The MPI operation's message tag.
      */
-    inline auto tag(const status::raw& raw = status::last) noexcept -> tag::id
+    inline auto tag(const status::raw_type& raw = status::last) noexcept -> tag::id
     {
         return raw.MPI_TAG;
     }
@@ -70,7 +70,7 @@ namespace status
      * @param raw The target operation status instance.
      * @return The number of elements within operation's message.
      */
-    inline auto count(const datatype::id& type, const status::raw& raw = status::last) -> int32_t
+    inline auto count(const datatype::id& type, const status::raw_type& raw = status::last) -> int32_t
     {
         int count; guard(MPI_Get_count(&raw, type, &count));
         return count != MPI_UNDEFINED ? count : -1;
@@ -83,7 +83,7 @@ namespace status
      * @return The number of elements within operation's message.
      */
     template <typename T>
-    inline auto count(const status::raw& raw = status::last) -> int32_t
+    inline auto count(const status::raw_type& raw = status::last) -> int32_t
     {
         return status::count(datatype::identify<T>(), raw);
     }
@@ -93,7 +93,7 @@ namespace status
      * @param raw The target operation status instance.
      * @return Has the message been cancelled?
      */
-    inline auto cancelled(const status::raw& raw) -> bool
+    inline auto cancelled(const status::raw_type& raw) -> bool
     {
         int flag; guard(MPI_Test_cancelled(&raw, &flag));
         return (flag != 0);
