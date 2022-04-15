@@ -15,6 +15,7 @@
 #include <mpiwcpp17/environment.hpp>
 #include <mpiwcpp17/communicator.hpp>
 #include <mpiwcpp17/datatype.hpp>
+#include <mpiwcpp17/functor.hpp>
 #include <mpiwcpp17/guard.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
@@ -73,6 +74,7 @@ namespace detail
      */
     inline static constexpr const auto deferred = std::array {
         &datatype::descriptor::destroy,
+        &functor::registry::destroy
     };
 }
 
