@@ -8,6 +8,8 @@
 
 #include <mpi.h>
 
+#include <tuple>
+
 #include <mpiwcpp17/environment.hpp>
 #include <mpiwcpp17/communicator.hpp>
 #include <mpiwcpp17/process.hpp>
@@ -33,14 +35,14 @@ inline namespace collective
      * @return The message that has been received.
      */
     template <typename T>
-    inline typename detail::payload<T>::return_type receive(
+    inline std::tuple<status, typename detail::payload<T>::return_type> receive(
         const detail::payload<T>& msg
       , process::rank source = process::any
       , tag::id tagg = tag::any
       , const communicator& comm = world
     ) {
-        guard(MPI_Recv(msg, msg.count, msg.type, source, tagg, comm, &status::last));
-        return msg;
+        status stt; guard(MPI_Recv(msg, msg.count, msg.type, source, tagg, comm, stt));
+        return std::make_tuple(stt, msg);
     }
 
     /**
@@ -52,7 +54,7 @@ inline namespace collective
      * @return The message that has been received.
      */
     template <typename T>
-    inline typename detail::payload<T>::return_type receive(
+    inline std::tuple<status, typename detail::payload<T>::return_type> receive(
         process::rank source = process::any
       , tag::id tagg = tag::any
       , const communicator& comm = world
