@@ -6,6 +6,8 @@
  */
 #pragma once
 
+#include <mpi.h>
+
 #include <utility>
 #include <vector>
 

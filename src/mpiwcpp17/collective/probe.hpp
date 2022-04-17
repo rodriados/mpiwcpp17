@@ -32,8 +32,8 @@ inline namespace collective
       , tag::id tagg = tag::any
       , const communicator& comm = world
     ) {
-        status s; guard(MPI_Probe(source, tagg, comm, s));
-        return s;
+        status stt; guard(MPI_Probe(source, tagg, comm, stt));
+        return stt;
     }
 }
 
