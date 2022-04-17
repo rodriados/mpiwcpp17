@@ -40,7 +40,7 @@ namespace collective::utility
     -> typename std::enable_if<
         std::is_class<F>::value &&
         std::is_default_constructible<F>::value &&
-        std::is_assignable<T&, std::invoke_result_t<F, const T&, const T&>>::value
+        std::is_invocable_r<T, F, const T&, const T&>::value
       , functor::id
     >::type
     {
@@ -48,33 +48,30 @@ namespace collective::utility
     }
 
     /**
-     * Mapping between the a datatype identifier and a type-erased operator functor.
-     * This is used solely for injecting operators into reduce or scan operations.
-     * @since 1.0
-     */
-    inline static std::map<datatype::id, void*> fmap;
-
-    /**
      * Resolves an operator functor by a callable operator function.
      * @tparam T The type the operator works over.
+     * @tparam F The operator implementation type.
      * @param f The operator's raw implementation.
      * @return The resolved functor identifier.
      */
-    template <typename T>
-    inline auto resolvef(T (*f)(const T&, const T&)) -> functor::id
+    template <typename T, typename F>
+    inline auto resolvef(const F& f)
+    -> typename std::enable_if<
+        !std::is_default_constructible<F>::value &&
+        std::is_invocable_r<T, F, const T&, const T&>::value
+      , functor::id
+    >::type
     {
-        struct wrapperf {
-            using F = T(const T&, const T&);
+        static typename std::conditional<std::is_function<F>::value, F*, F>::type lambda = f;
 
-            F *lambda;
-            datatype::id tid = datatype::identify<T>();
-
-            inline wrapperf() noexcept : lambda (reinterpret_cast<F*>(fmap[tid])) {}
-            inline wrapperf(F* f) noexcept { fmap[tid] = reinterpret_cast<void*>(f); }
-            inline T operator()(const T& a, const T& b) { return (lambda)(a, b); }
+        using wrapperf = struct {
+            inline T operator()(const T& a, const T& b) {
+                return (lambda)(a, b);
+            }
         };
 
-        return utility::resolvef<T>(wrapperf(f));
+        new (&lambda) decltype(lambda) {f};
+        return utility::resolvef<T>(wrapperf());
     }
 }
 

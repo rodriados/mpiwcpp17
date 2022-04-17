@@ -12,3 +12,4 @@
 #include <mpiwcpp17/collective/send.hpp>
 #include <mpiwcpp17/collective/receive.hpp>
 #include <mpiwcpp17/collective/allreduce.hpp>
+#include <mpiwcpp17/collective/reduce.hpp>

@@ -40,10 +40,10 @@ namespace detail
         using return_type = payload<T>;
 
         std::shared_ptr<element_type> ptr;
-        datatype::id type;
-        size_t count = 1;
+        datatype::id type = datatype::identify<element_type>();
+        size_t count = 0;
 
-        inline payload() noexcept = delete;
+        inline payload() = default;
         inline payload(const payload&) noexcept = default;
         inline payload(payload&&) noexcept = default;
 
@@ -62,7 +62,6 @@ namespace detail
          */
         inline payload(pointer_type ptr, size_t count = 1) noexcept
           : ptr (ptr, [](auto) { /* pointer is not owned */ })
-          , type (datatype::identify<element_type>())
           , count (count)
         {}
 
@@ -75,7 +74,6 @@ namespace detail
         template <typename U>
         inline payload(const std::shared_ptr<U>& ptr, size_t count = 1) noexcept
           : ptr (std::static_pointer_cast<element_type>(ptr))
-          , type (datatype::identify<element_type>())
           , count (count)
         {}
 
