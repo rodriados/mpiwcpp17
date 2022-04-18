@@ -13,3 +13,4 @@
 #include <mpiwcpp17/collective/receive.hpp>
 #include <mpiwcpp17/collective/allreduce.hpp>
 #include <mpiwcpp17/collective/reduce.hpp>
+#include <mpiwcpp17/collective/allgather.hpp>

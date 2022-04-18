@@ -39,7 +39,7 @@ namespace detail
 
         using return_type = payload<T>;
 
-        std::shared_ptr<element_type> ptr;
+        std::shared_ptr<element_type[]> ptr;
         datatype::id type = datatype::identify<element_type>();
         size_t count = 0;
 
@@ -73,7 +73,7 @@ namespace detail
          */
         template <typename U>
         inline payload(const std::shared_ptr<U>& ptr, size_t count = 1) noexcept
-          : ptr (std::static_pointer_cast<element_type>(ptr))
+          : ptr (std::static_pointer_cast<element_type[]>(ptr))
           , count (count)
         {}
 
@@ -122,7 +122,7 @@ namespace detail
          */
         inline operator element_type&() noexcept
         {
-            return *ptr;
+            return *ptr.get();
         }
 
         /**
@@ -131,7 +131,7 @@ namespace detail
          */
         inline operator const element_type&() const noexcept
         {
-            return *ptr;
+            return *ptr.get();
         }
 
         /**
