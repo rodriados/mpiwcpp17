@@ -6,16 +6,14 @@
  */
 #pragma once
 
-#include <map>
 #include <utility>
 
 #include <mpiwcpp17/environment.hpp>
-#include <mpiwcpp17/datatype.hpp>
 #include <mpiwcpp17/functor.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
 
-namespace collective::utility
+namespace detail::collective
 {
     /**
      * Resolves an operator functor by an already created identifier.
@@ -24,7 +22,7 @@ namespace collective::utility
      * @return The resolved functor identifier.
      */
     template <typename T>
-    inline auto resolvef(functor::id f) noexcept -> functor::id
+    inline auto resolve_functor(functor::id f) noexcept -> functor::id
     {
         return f;
     }
@@ -36,7 +34,7 @@ namespace collective::utility
      * @return The resolved functor identifier.
      */
     template <typename T, typename F>
-    inline auto resolvef(const F&)
+    inline auto resolve_functor(const F&)
     -> typename std::enable_if<
         std::is_class<F>::value &&
         std::is_default_constructible<F>::value &&
@@ -55,7 +53,7 @@ namespace collective::utility
      * @return The resolved functor identifier.
      */
     template <typename T, typename F>
-    inline auto resolvef(const F& f)
+    inline auto resolve_functor(const F& f)
     -> typename std::enable_if<
         !std::is_default_constructible<F>::value &&
         std::is_invocable_r<T, F, const T&, const T&>::value
@@ -71,7 +69,7 @@ namespace collective::utility
         };
 
         new (&lambda) decltype(lambda) {f};
-        return utility::resolvef<T>(wrapperf());
+        return detail::collective::resolve_functor<T>(wrapperf());
     }
 }
 

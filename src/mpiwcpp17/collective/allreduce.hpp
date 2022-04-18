@@ -8,15 +8,13 @@
 
 #include <mpi.h>
 
-#include <utility>
-
 #include <mpiwcpp17/environment.hpp>
 #include <mpiwcpp17/communicator.hpp>
 #include <mpiwcpp17/global.hpp>
 #include <mpiwcpp17/guard.hpp>
 
 #include <mpiwcpp17/detail/payload.hpp>
-#include <mpiwcpp17/collective/utility.hpp>
+#include <mpiwcpp17/detail/collective.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
 
@@ -38,7 +36,7 @@ inline namespace collective
       , const communicator& comm = world
     ) {
         using R = typename detail::payload<T>::element_type;
-        auto f = collective::utility::resolvef<R>(lambda);
+        auto f = detail::collective::resolve_functor<R>(lambda);
         auto out = detail::payload<T>::create(in.count);
         guard(MPI_Allreduce(in, out, in.count, in.type, f, comm));
         return out;
