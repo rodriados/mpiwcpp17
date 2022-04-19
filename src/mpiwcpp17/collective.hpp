@@ -15,3 +15,4 @@
 #include <mpiwcpp17/collective/reduce.hpp>
 #include <mpiwcpp17/collective/allgather.hpp>
 #include <mpiwcpp17/collective/gather.hpp>
+#include <mpiwcpp17/collective/scatter.hpp>
