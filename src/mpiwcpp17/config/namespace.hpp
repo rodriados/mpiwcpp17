@@ -25,7 +25,7 @@
 #define MPIWCPP17_BEGIN_NAMESPACE   \
     namespace MPIWCPP17_NAMESPACE { \
         inline namespace v1 {       \
-            namespace mpiw = MPIWCPP17_NAMESPACE;
+            namespace mpiwcpp17 = MPIWCPP17_NAMESPACE;
 
 /**
  * This macro is used to close the MPIwCPP17 namespace block and must not be in

@@ -54,17 +54,17 @@ namespace detail
              * The concrete world-communicator instance.
              * @since 1.0
              */
-            inline static mpiw::communicator concrete;
+            inline static mpiwcpp17::communicator concrete;
 
         public:
             /**
              * The const-qualified reference to the world-communicator instance.
              * @since 1.0
              */
-            inline static constexpr const mpiw::communicator& ref = concrete;
+            inline static constexpr const mpiwcpp17::communicator& ref = concrete;
 
-        friend auto mpiw::init(int*, char***, thread_support) -> thread_support;
-        friend void mpiw::finalize();
+        friend auto mpiwcpp17::init(int*, char***, thread_support) -> thread_support;
+        friend void mpiwcpp17::finalize();
     };
 
     /**

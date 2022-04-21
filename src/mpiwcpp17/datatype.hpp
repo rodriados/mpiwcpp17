@@ -54,7 +54,7 @@ namespace datatype
             inline descriptor(U T::*...);
 
             template <size_t ...I, typename ...T>
-            inline descriptor(const mpiw::detail::tuple<std::index_sequence<I...>, T...>&);
+            inline descriptor(const mpiwcpp17::detail::tuple<std::index_sequence<I...>, T...>&);
 
             inline descriptor& operator=(const descriptor&) noexcept = delete;
             inline descriptor& operator=(descriptor&&) noexcept = delete;
@@ -201,7 +201,7 @@ MPIWCPP17_DISABLE_GCC_WARNING_END("-Wreturn-type")
      * @param tuple A type-describing tuple instance.
      */
     template <size_t ...I, typename ...T>
-    inline descriptor::descriptor(const mpiw::detail::tuple<std::index_sequence<I...>, T...>& t)
+    inline descriptor::descriptor(const mpiwcpp17::detail::tuple<std::index_sequence<I...>, T...>& t)
       : descriptor (detail::describe<T...>({(char*) &t.template get<I>() - (char*) &t.template get<0>()...}))
     {}
 
