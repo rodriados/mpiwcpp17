@@ -110,6 +110,16 @@ inline auto init(int *argc, char ***argv, thread_support required) -> thread_sup
 }
 
 /**
+ * Forcebly terminates the entire MPI application abruptly informing an error code.
+ * @param code The exit code to be returned by each aborting process.
+ */
+inline void abort(int code = 1)
+{
+    for (auto& defer : detail::deferred) defer();
+    guard(MPI_Abort(world, code));
+}
+
+/**
  * Terminates MPI execution and cleans up all MPI state.
  * @see mpi::init
  */
