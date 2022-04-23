@@ -15,7 +15,7 @@
 
 MPIWCPP17_BEGIN_NAMESPACE
 
-inline namespace collective
+namespace collective
 {
     /**
      * Blocks execution until all processes within the given communicator have reached
@@ -27,5 +27,11 @@ inline namespace collective
         guard(MPI_Barrier(comm));
     }
 }
+
+/*
+ * Exposing the above-defined collective operation into the project's root namespace,
+ * allowing it be called with decreased verbosity.
+ */
+using collective::barrier;
 
 MPIWCPP17_END_NAMESPACE

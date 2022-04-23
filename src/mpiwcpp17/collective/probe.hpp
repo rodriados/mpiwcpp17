@@ -18,7 +18,7 @@
 
 MPIWCPP17_BEGIN_NAMESPACE
 
-inline namespace collective
+namespace collective
 {
     /**
      * Inspects an incoming message and retrieves its status.
@@ -36,5 +36,11 @@ inline namespace collective
         return stt;
     }
 }
+
+/*
+ * Exposing the above-defined collective operation into the project's root namespace,
+ * allowing it be called with decreased verbosity.
+ */
+using collective::probe;
 
 MPIWCPP17_END_NAMESPACE
