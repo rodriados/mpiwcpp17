@@ -10,16 +10,16 @@
 
 #include <mpiwcpp17/environment.hpp>
 #include <mpiwcpp17/communicator.hpp>
+#include <mpiwcpp17/payload.hpp>
 #include <mpiwcpp17/process.hpp>
 #include <mpiwcpp17/global.hpp>
 #include <mpiwcpp17/guard.hpp>
 
-#include <mpiwcpp17/detail/payload.hpp>
 #include <mpiwcpp17/detail/collective.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
 
-inline namespace collective
+namespace collective
 {
     /**
      * Reduces messages into one process using an operator.
@@ -32,17 +32,17 @@ inline namespace collective
      * @return The resulting reduced message.
      */
     template <typename T, typename F>
-    inline typename detail::payload<T>::return_type reduce(
-        const detail::payload<T>& in
+    inline typename payload<T>::return_type reduce(
+        const payload<T>& in
       , const F& lambda = {}
       , process::rank root = process::root
       , const communicator& comm = world
     ) {
-        using R = typename detail::payload<T>::element_type;
+        using R = typename payload<T>::element_type;
         auto f = detail::collective::resolve_functor<R>(lambda);
         auto out = (root != comm.rank)
-            ? typename detail::payload<T>::return_type ()
-            : detail::payload<T>::create(in.count);
+            ? typename payload<T>::return_type ()
+            : payload<T>::create(in.count);
         guard(MPI_Reduce(in, out, in.count, in.type, f, root, comm));
         return out;
     }
@@ -59,15 +59,15 @@ inline namespace collective
      * @return The resulting reduced message.
      */
     template <typename T, typename F>
-    inline typename detail::payload<T>::return_type reduce(
+    inline typename payload<T>::return_type reduce(
         T *data
       , size_t count
       , const F& lambda = {}
       , process::rank root = process::root
       , const communicator& comm = world
     ) {
-        auto payload = detail::payload(data, count);
-        return collective::reduce<T>(payload, lambda, root, comm);
+        auto msg = payload(data, count);
+        return collective::reduce<T>(msg, lambda, root, comm);
     }
 
     /**
@@ -81,15 +81,21 @@ inline namespace collective
      * @return The resulting reduced message.
      */
     template <typename T, typename F>
-    inline typename detail::payload<T>::return_type reduce(
+    inline typename payload<T>::return_type reduce(
         T& data
       , const F& lambda = {}
       , process::rank root = process::root
       , const communicator& comm = world
     ) {
-        auto payload = detail::payload(data);
-        return collective::reduce<T>(payload, lambda, root, comm);
+        auto msg = payload(data);
+        return collective::reduce<T>(msg, lambda, root, comm);
     }
 }
+
+/*
+ * Exposing the above-defined collective operation into the project's root namespace,
+ * allowing it be called with decreased verbosity.
+ */
+using collective::reduce;
 
 MPIWCPP17_END_NAMESPACE

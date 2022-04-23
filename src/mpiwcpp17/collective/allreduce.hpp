@@ -10,15 +10,15 @@
 
 #include <mpiwcpp17/environment.hpp>
 #include <mpiwcpp17/communicator.hpp>
+#include <mpiwcpp17/payload.hpp>
 #include <mpiwcpp17/global.hpp>
 #include <mpiwcpp17/guard.hpp>
 
-#include <mpiwcpp17/detail/payload.hpp>
 #include <mpiwcpp17/detail/collective.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
 
-inline namespace collective
+namespace collective
 {
     /**
      * Reduces messages from and to all processes using an operator.
@@ -30,14 +30,14 @@ inline namespace collective
      * @return The resulting reduced message.
      */
     template <typename T, typename F>
-    inline typename detail::payload<T>::return_type allreduce(
-        const detail::payload<T>& in
+    inline typename payload<T>::return_type allreduce(
+        const payload<T>& in
       , const F& lambda = {}
       , const communicator& comm = world
     ) {
-        using R = typename detail::payload<T>::element_type;
+        using R = typename payload<T>::element_type;
         auto f = detail::collective::resolve_functor<R>(lambda);
-        auto out = detail::payload<T>::create(in.count);
+        auto out = payload<T>::create(in.count);
         guard(MPI_Allreduce(in, out, in.count, in.type, f, comm));
         return out;
     }
@@ -53,14 +53,14 @@ inline namespace collective
      * @return The resulting reduced message.
      */
     template <typename T, typename F>
-    inline typename detail::payload<T>::return_type allreduce(
+    inline typename payload<T>::return_type allreduce(
         T *data
       , size_t count
       , const F& lambda = {}
       , const communicator& comm = world
     ) {
-        auto payload = detail::payload(data, count);
-        return collective::allreduce<T>(payload, lambda, comm);
+        auto msg = payload(data, count);
+        return collective::allreduce<T>(msg, lambda, comm);
     }
 
     /**
@@ -73,14 +73,20 @@ inline namespace collective
      * @return The resulting reduced message.
      */
     template <typename T, typename F>
-    inline typename detail::payload<T>::return_type allreduce(
+    inline typename payload<T>::return_type allreduce(
         T& data
       , const F& lambda = {}
       , const communicator& comm = world
     ) {
-        auto payload = detail::payload(data);
-        return collective::allreduce<T>(payload, lambda, comm);
+        auto msg = payload(data);
+        return collective::allreduce<T>(msg, lambda, comm);
     }
 }
+
+/*
+ * Exposing the above-defined collective operation into the project's root namespace,
+ * allowing it be called with decreased verbosity.
+ */
+using collective::allreduce;
 
 MPIWCPP17_END_NAMESPACE
