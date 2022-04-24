@@ -6,6 +6,8 @@
  */
 #pragma once
 
+#include <mpiwcpp17/flag.hpp>
+
 #include <mpiwcpp17/collective/barrier.hpp>
 #include <mpiwcpp17/collective/broadcast.hpp>
 #include <mpiwcpp17/collective/probe.hpp>
