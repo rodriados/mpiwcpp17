@@ -90,7 +90,7 @@ namespace collective
       , const communicator& comm = world
       , flag::payload::varying = {}
     ) {
-        auto [uniform, count, displ] = detail::get_displacements(in, comm);
+        auto [uniform, count, displ] = detail::calculate_natural_displacements(in.count, comm);
         return uniform
             ? collective::gather<T>(in, root, comm, flag::payload::uniform())
             : collective::gather<T>(in, count, displ, root, comm, flag::payload::varying());

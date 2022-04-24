@@ -70,18 +70,15 @@ namespace collective
     {
         /**
          * Calculates the natural displacement of elements to be gathered.
-         * @param in The message payload to be gathered among all processes.
+         * @param total The amount of elements to be sent by each process.
          * @param comm The communicator the operation applies to.
          * @return A tuple of payload elements' quantity and displacement.
          */
-        template <typename T>
-        inline auto get_displacements(
-            const payload<T>& in
-          , const communicator& comm
-        ) {
+        inline auto calculate_natural_displacements(size_t total, const communicator& comm)
+        {
             bool uniform = true;
             auto displacement = payload<int>::create(comm.size);
-            auto count = collective::allgather<int>({(int)in.count}, comm, flag::payload::uniform());
+            auto count = collective::allgather<int>({(int)total}, comm, flag::payload::uniform());
 
             for (int32_t i = 0; i < comm.size; ++i) {
                 uniform = uniform && (count[0] == count[1]);
@@ -104,7 +101,7 @@ namespace collective
       , const communicator& comm = world
       , flag::payload::varying = {}
     ) {
-        auto [uniform, count, displ] = detail::get_displacements(in, comm);
+        auto [uniform, count, displ] = detail::calculate_natural_displacements(in.count, comm);
         return uniform
             ? collective::allgather<T>(in, comm, flag::payload::uniform())
             : collective::allgather<T>(in, count, displ, comm, flag::payload::varying());
