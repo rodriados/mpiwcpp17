@@ -2,13 +2,8 @@ name: docker-container-ci
 
 on:
   push:
-    branches:
-      - 'master'
     tags:
       - 'v*'
-  pull_request:
-    branches:
-      - 'master'
 
 jobs:
   build:
@@ -28,6 +23,6 @@ jobs:
         file: ./Dockerfile
         builder: ${{ steps.buildx.outputs.name }}
         push: true
-        tags: ${{ secrets.DOCKER_HUB_USERNAME }}/mpiwcpp17:latest
-        cache-from: type=registry,ref=${{ secrets.DOCKER_HUB_USERNAME }}/mpiwcpp17:buildcache
-        cache-to: type=registry,ref=${{ secrets.DOCKER_HUB_USERNAME }}/mpiwcpp17:buildcache,mode=max
+        tags: rodriados/mpiwcpp17:latest,rodriados/mpiwcpp17:${{ github.ref_name}}
+        cache-from: type=registry,ref=rodriados/mpiwcpp17:buildcache
+        cache-to: type=registry,ref=rodriados/mpiwcpp17:buildcache,mode=max
