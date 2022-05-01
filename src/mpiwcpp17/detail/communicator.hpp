@@ -11,9 +11,12 @@
 #include <utility>
 
 #include <mpiwcpp17/environment.hpp>
+#include <mpiwcpp17/global.hpp>
 #include <mpiwcpp17/guard.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
+
+inline bool finalized();
 
 namespace detail::communicator
 {
@@ -23,7 +26,7 @@ namespace detail::communicator
      */
     inline void safe_free(MPI_Comm target)
     {
-        if (target != MPI_COMM_NULL) {
+        if (target != MPI_COMM_NULL && !mpiwcpp17::finalized()) {
             int compare_world, compare_self;
             guard(MPI_Comm_compare(target, MPI_COMM_WORLD, &compare_world));
             guard(MPI_Comm_compare(target, MPI_COMM_SELF, &compare_self));

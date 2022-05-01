@@ -37,7 +37,9 @@ enum class thread_support : int32_t
  */
 inline auto init(thread_support = thread_support::single) -> thread_support;
 inline auto init(int*, char***, thread_support = thread_support::single) -> thread_support;
+inline bool initialized();
 inline void finalize();
+inline bool finalized();
 
 namespace detail
 {
@@ -104,9 +106,23 @@ inline auto init(thread_support required) -> thread_support
 inline auto init(int *argc, char ***argv, thread_support required) -> thread_support
 {
     int32_t provided;
-    guard(MPI_Init_thread(argc, argv, static_cast<int32_t>(required), &provided));
+
+    if (initialized()) guard(MPI_Query_thread(&provided));
+    else guard(MPI_Init_thread(argc, argv, static_cast<int32_t>(required), &provided));
+
     new (&detail::world::concrete) communicator (MPI_COMM_WORLD);
     return static_cast<thread_support>(provided);
+}
+
+/**
+ * Checks whether the MPI machinery has already been initialized.
+ * @return Was MPI already initialized?
+ */
+inline auto initialized() -> bool
+{
+    int32_t initialized;
+    guard(MPI_Initialized(&initialized));
+    return (bool) initialized;
 }
 
 /**
@@ -125,9 +141,22 @@ inline void abort(int code = 1)
  */
 inline void finalize()
 {
-    for (auto& defer : detail::deferred) defer();
-    detail::world::concrete.~communicator();
-    guard(MPI_Finalize());
+    if (finalized()) {
+        for (auto& defer : detail::deferred) defer();
+        detail::world::concrete.~communicator();
+        guard(MPI_Finalize());
+    }
+}
+
+/**
+ * Checks whether the MPI machinery has already been finalized.
+ * @return Was MPI already finalized?
+ */
+inline auto finalized() -> bool
+{
+    int32_t finalized;
+    guard(MPI_Finalized(&finalized));
+    return (bool) finalized;
 }
 
 MPIWCPP17_END_NAMESPACE
