@@ -1,3 +1,5 @@
+test/catch.hpp
 test.c
 test.cpp
 run
+runtest
