@@ -16,6 +16,7 @@ jobs:
           docker cp . test-runner:/home/mpiwcpp17
       - name: Building and running test cases
         run: |
+          docker exec test-runner make clean
           docker exec test-runner make runtest np=4
           docker cp test-runner:/home/mpiwcpp17/coverage.info .
       - uses: coverallsapp/github-action@master
