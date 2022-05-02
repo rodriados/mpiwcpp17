@@ -16,11 +16,8 @@ jobs:
           docker cp . test-runner:/home/mpiwcpp17
       - name: Building and running test cases
         run: |
-          docker exec test-runner mpic++ -fprofile-arcs -ftest-coverage -std=c++17 -Isrc -o runtest test/*.cpp
-          docker exec test-runner mpirun --host localhost:4 -np 4 ./runtest
-          docker exec test-runner lcov -c -d . --no-external --exclude "/home/mpiwcpp17/test/*" -o coverage.info
+          docker exec test-runner make runtest np=4
           docker cp test-runner:/home/mpiwcpp17/coverage.info .
-          sed -i 's|SF:/home/mpiwcpp17/|SF:|g' coverage.info
       - uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
