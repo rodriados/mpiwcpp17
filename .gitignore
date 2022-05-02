@@ -1,5 +1,4 @@
 bin/
-coverage.info
 test/catch.hpp
 test.c
 test.cpp
@@ -7,3 +6,4 @@ run
 runtest
 *.gcda
 *.gcno
+*.info

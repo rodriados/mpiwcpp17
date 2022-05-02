@@ -25,7 +25,8 @@ all: testing
 
 install: $(TGTDIR)
 
-testing: override FLAGS = --coverage
+testing: override FLAGS = --coverage -g -O0 -fno-inline -fno-inline-small-functions \
+	-fno-default-inline -fno-elide-constructors -fprofile-generate -fkeep-inline-functions
 testing: install $(TGTDIR)/runtest.o
 
 runtest: testing coverage.info
@@ -33,7 +34,7 @@ runtest: testing coverage.info
 clean:
 	@rm -rf $(TGTDIR)
 	@rm -f *.gcno *.gcda *.gcov
-	@rm -f coverage.info
+	@rm -f *.info
 
 $(TGTDIR):
 	@mkdir -p $@

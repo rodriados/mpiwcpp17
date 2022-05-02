@@ -19,7 +19,7 @@ TEST_CASE("can broadcast a scalar value", "[global]")
         value = 20;
     }
 
-    int32_t result = mpi::broadcast(value, root);
+    int32_t result = mpi::broadcast(&value, 1, root);
 
     REQUIRE(result == 20);
 }
