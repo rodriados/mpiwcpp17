@@ -1,3 +1,9 @@
+/**
+ * A thin C++17 wrapper for MPI.
+ * @file The main file for running the defined unit tests.
+ * @author Rodrigo Siqueira <rodriados@gmail.com>
+ * @copyright 2022-present Rodrigo Siqueira
+ */
 #include <mpi.h>
 #include <cstdint>
 #include <cstddef>
