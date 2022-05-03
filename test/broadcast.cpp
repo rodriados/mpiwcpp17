@@ -10,6 +10,10 @@
 #include <catch.hpp>
 #include <mpiwcpp17.h>
 
+/**
+ * Tests whether a scalar can be seamlessly broadcast between processes.
+ * @since 1.0
+ */
 TEST_CASE("can broadcast a scalar value", "[global]")
 {
     enum { root };
@@ -24,7 +28,12 @@ TEST_CASE("can broadcast a scalar value", "[global]")
     REQUIRE(result == 20);
 }
 
-TEST_CASE("can broadcast simple data structures", "[global]")
+/**
+ * Tests whether simple data structures can be broadcast between processes using
+ * type reflection to represent the structure automatically within MPI.
+ * @since 1.0
+ */
+TEST_CASE("can broadcast simple data structures with reflection", "[global]")
 {
     enum { root };
     struct point { int32_t x, y; };
@@ -45,10 +54,14 @@ TEST_CASE("can broadcast simple data structures", "[global]")
     REQUIRE(result.bottomleft.y == 25);
 }
 
+/**
+ * Tests whether a container can be successfully broadcast between processes.
+ * @since 1.0
+ */
 TEST_CASE("can broadcast containers", "[global]")
 {
     enum { root };
-    std::vector<int32_t> values;
+    std::vector<uint16_t> values;
 
     if (mpi::world.rank == root) {
         values.push_back(10);

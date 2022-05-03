@@ -7,6 +7,11 @@
 #include <catch.hpp>
 #include <mpiwcpp17.h>
 
+/**
+ * Tests whether all processes can synchronize and wait for all others to reach
+ * the same point of execution within the code.
+ * @since 1.0
+ */
 TEST_CASE("can synchronize processes", "[global]")
 {
     mpi::barrier();

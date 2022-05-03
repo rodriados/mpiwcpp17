@@ -19,6 +19,9 @@ jobs:
           docker exec test-runner make clean
           docker exec test-runner make runtest np=4
           docker cp test-runner:/home/mpiwcpp17/coverage.info .
+      - name: Reporting coverage file contents
+        run: |
+          cat coverage.info
       - uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
