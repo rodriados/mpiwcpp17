@@ -25,8 +25,7 @@ all: testing
 
 install: $(TGTDIR)
 
-testing: override FLAGS = --coverage -g -O0 -fno-inline -fno-inline-small-functions \
-	-fno-default-inline -fno-elide-constructors -fkeep-inline-functions
+testing: override FLAGS = --coverage -g -O0 -fno-inline -fno-inline-small-functions
 testing: install $(TGTDIR)/runtest.o
 
 runtest: testing coverage.info
@@ -44,7 +43,7 @@ $(TGTDIR)/runtest.o: $(TESTFILES)
 
 coverage.info: $(TGTDIR)/runtest.o
 	mpirun --host localhost:$(np) -np $(np) $< $(scenario)
-	lcov -c -d . --no-external --exclude "$(PWD)/test/*" -o $@
+	geninfo --no-external --exclude "$(PWD)/test/*" -o $@ .
 	@sed -i 's|SF:$(PWD)/|SF:|g' $@
 
 .PHONY: all install testing runtest clean
