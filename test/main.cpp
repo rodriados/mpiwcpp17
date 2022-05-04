@@ -21,6 +21,10 @@ static int communicatorSize = -1;
 static MPI_Datatype totals_datatype;
 static MPI_Op totals_sum_op;
 
+/**
+ * Tests whether the world communicator's info is correctly set up.
+ * @since 1.0
+ */
 TEST_CASE("world communicator has correct info", "[global]")
 {
     REQUIRE(mpi::world.rank == processRank);
@@ -167,7 +171,11 @@ int main(int argc, char **argv)
     MPI_Type_free(&counts_datatype);
     MPI_Op_free(&totals_sum_op);
 
-    MPI_Finalize();
+    mpi::finalize();
+
+    int finalized;
+    MPI_Finalized(&finalized);
+    if (!finalized) MPI_Finalize();
 
     return result;
 }
