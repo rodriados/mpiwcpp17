@@ -1,7 +1,6 @@
 # MPI-wrapper for C++17
 ![license MIT](https://img.shields.io/badge/license-MIT-lightgrey.svg)
-![version beta](https://img.shields.io/badge/version-1.0-green.svg)
-[![Coverage Status](https://coveralls.io/repos/github/rodriados/mpiwcpp17/badge.svg?branch=master)](https://coveralls.io/github/rodriados/mpiwcpp17?branch=master)
+![version beta](https://img.shields.io/badge/version-beta-green.svg)
 
 A thin and modern C++17 wrapper around the pure-C implementation for the
 [Message Passing Interface](https://www.mpi-forum.org/) (MPI) standard.

@@ -9,8 +9,6 @@ SRCDIR  = src
 TGTDIR  = bin
 TESTDIR = test
 
-PWD = $(shell pwd)
-
 GCPP   ?= mpic++
 STDCPP ?= c++17
 
@@ -25,10 +23,11 @@ all: testing
 
 install: $(TGTDIR)
 
-testing: override FLAGS = --coverage -g -O0 -fno-inline -fno-inline-small-functions
+testing: override FLAGS = -g -O0
 testing: install $(TGTDIR)/runtest.o
 
-runtest: testing coverage.info
+runtest: testing
+	mpirun --host localhost:$(np) -np $(np) $(TGTDIR)/runtest.o $(scenario)
 
 clean:
 	@rm -rf $(TGTDIR)
@@ -41,10 +40,4 @@ $(TGTDIR):
 $(TGTDIR)/runtest.o: $(TESTFILES)
 	$(GCPP) $(GCPPFLAGS) $^ -o $@
 
-coverage.info: $(TGTDIR)/runtest.o
-	mpirun --host localhost:$(np) -np $(np) $< $(scenario)
-	geninfo --no-external --exclude "$(PWD)/test/*" -o $@ .
-	@sed -i 's|SF:$(PWD)/|SF:|g' $@
-
 .PHONY: all install testing runtest clean
-.PHONY: coverage.info
