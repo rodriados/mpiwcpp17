@@ -141,7 +141,7 @@ inline void abort(int code = 1)
  */
 inline void finalize()
 {
-    if (finalized()) {
+    if (!finalized()) {
         for (auto& defer : detail::deferred) defer();
         detail::world::concrete.~communicator();
         guard(MPI_Finalize());

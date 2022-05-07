@@ -116,7 +116,6 @@ MPIWCPP17_DISABLE_GCC_WARNING_END("-Wreturn-type")
     {
         static_assert(!std::is_union<T>::value, "union types cannot be used with MPI");
         static_assert(!std::is_reference<T>::value, "references cannot be used with MPI");
-        static_assert(std::is_trivial<T>::value, "only trivial types can be used with MPI");
 
         static auto description = describe<T>();
         return (datatype::id) description;
