@@ -33,37 +33,31 @@ enum class thread_support : int32_t
 };
 
 /*
- * Forward declaration of initialization and finalization rountines.
+ * Forward declaration of initialization and finalization rountines for the global
+ * MPI state and processes communication.
  */
 inline auto init(thread_support = thread_support::single) -> thread_support;
 inline auto init(int*, char***, thread_support = thread_support::single) -> thread_support;
 inline bool initialized();
+inline auto thread_mode() -> thread_support;
 inline void finalize();
 inline bool finalized();
 
 namespace detail
 {
     /**
-     * A wrapper for the global, world-communicator. The wrapper exposes the
+     * A wrapper for the global world-communicator. The wrapper exposes the
      * world-communicator through a const-qualified reference, so that it can
-     * only be modified one of the declared friend functions.
+     * only be modified when initializing the global MPI state.
      * @since 1.0
      */
     class world
     {
         private:
-            /**
-             * The concrete world-communicator instance.
-             * @since 1.0
-             */
-            inline static mpiwcpp17::communicator concrete;
+            inline static mpiwcpp17::communicator s_comm;
 
         public:
-            /**
-             * The const-qualified reference to the world-communicator instance.
-             * @since 1.0
-             */
-            inline static constexpr const mpiwcpp17::communicator& ref = concrete;
+            inline static constexpr const mpiwcpp17::communicator& comm = s_comm;
 
         friend auto mpiwcpp17::init(int*, char***, thread_support) -> thread_support;
         friend void mpiwcpp17::finalize();
@@ -75,8 +69,8 @@ namespace detail
      * @see mpi::finalize
      */
     inline static constexpr const auto deferred = std::array {
-        &datatype::descriptor::destroy,
-        &functor::registry::destroy
+        &datatype::descriptor::destroy
+      , &functor::registry::destroy
     };
 }
 
@@ -84,45 +78,58 @@ namespace detail
  * The public reference to the global world-communicator instance.
  * @since 1.0
  */
-inline constexpr const communicator& world = detail::world::ref;
+inline constexpr const communicator& world = detail::world::comm;
 
-/**
- * Initializes the internal MPI machinery and nodes communication.
- * @param required The desired thread support level.
- * @return The provided thread support level.
- */
-inline auto init(thread_support required) -> thread_support
+namespace global
 {
-    return init(nullptr, nullptr, required);
+    /**
+     * The public reference to the current process's rank within world-communicator.
+     * @since 1.0
+     */
+    inline constexpr const process::rank& rank = world.rank;
+
+    /**
+     * The public reference to number of processes within the world-communicator.
+     * @since 1.0
+     */
+    inline constexpr const int32_t& size = world.size;
 }
 
 /**
- * Initializes the internal MPI machinery and nodes communication.
+ * Initializes the internal MPI state and processes communication.
+ * @param mode The desired process thread support level.
+ * @return The provided thread support level.
+ */
+inline auto init(thread_support mode) -> thread_support
+{
+    return init(nullptr, nullptr, mode);
+}
+
+/**
+ * Initializes the internal MPI state and processes communication.
  * @param argc The number of arguments received via command-line.
  * @param argv The program's command-line arguments.
- * @param required The desired thread support level.
+ * @param mode The desired process thread support level.
  * @return The provided thread support level.
  */
-inline auto init(int *argc, char ***argv, thread_support required) -> thread_support
+inline auto init(int *argc, char ***argv, thread_support mode) -> thread_support
 {
-    int32_t provided;
+    if (initialized()) { return thread_mode(); }
 
-    if (initialized()) guard(MPI_Query_thread(&provided));
-    else guard(MPI_Init_thread(argc, argv, static_cast<int32_t>(required), &provided));
-
-    new (&detail::world::concrete) communicator (MPI_COMM_WORLD);
-    return static_cast<thread_support>(provided);
+    int r; guard(MPI_Init_thread(argc, argv, static_cast<int>(mode), &r));
+    new (&detail::world::s_comm) communicator (MPI_COMM_WORLD);
+    return static_cast<thread_support>(r);
 }
 
 /**
- * Checks whether the MPI machinery has already been initialized.
+ * Checks whether the MPI global state and processes communication has been initialized.
  * @return Was MPI already initialized?
+ * @see mpiwcpp17::init
  */
 inline auto initialized() -> bool
 {
-    int32_t initialized;
-    guard(MPI_Initialized(&initialized));
-    return (bool) initialized;
+    int r; guard(MPI_Initialized(&r));
+    return (bool) r;
 }
 
 /**
@@ -131,32 +138,42 @@ inline auto initialized() -> bool
  */
 inline void abort(int code = 1)
 {
-    for (auto& defer : detail::deferred) defer();
+    for (auto& deferred : detail::deferred) { deferred(); }
     guard(MPI_Abort(world, code));
 }
 
 /**
- * Terminates MPI execution and cleans up all MPI state.
- * @see mpi::init
+ * Queries the thread support level provided by the current MPI execution.
+ * @return The provided thread support level.
  */
-inline void finalize()
+inline auto thread_mode() -> thread_support
 {
-    if (!finalized()) {
-        for (auto& defer : detail::deferred) defer();
-        detail::world::concrete.~communicator();
-        guard(MPI_Finalize());
-    }
+    int r; guard(MPI_Query_thread(&r));
+    return static_cast<thread_support>(r);
 }
 
 /**
- * Checks whether the MPI machinery has already been finalized.
+ * Terminates MPI execution, cleans up all MPI state and closes processes communication.
+ * @see mpiwcpp17::init
+ */
+inline void finalize()
+{
+    if (finalized()) { return; }
+
+    for (auto& deferred : detail::deferred) { deferred(); }
+    detail::world::s_comm.~communicator();
+    guard(MPI_Finalize());
+}
+
+/**
+ * Checks whether the MPI state and processes communication has already been finalized.
  * @return Was MPI already finalized?
+ * @see mpiwcpp17::finalize
  */
 inline auto finalized() -> bool
 {
-    int32_t finalized;
-    guard(MPI_Finalized(&finalized));
-    return (bool) finalized;
+    int r; guard(MPI_Finalized(&r));
+    return (bool) r;
 }
 
 MPIWCPP17_END_NAMESPACE
