@@ -32,7 +32,7 @@ struct payload;
  * @since 1.0
  */
 template <typename T>
-struct payload<T, typename std::enable_if<!std::is_union<T>() && std::is_trivial<T>()>::type>
+struct payload<T, typename std::enable_if<!std::is_union<T>() && std::is_trivially_copyable<T>()>::type>
 {
     typedef T element_type;
     typedef element_type *pointer_type;

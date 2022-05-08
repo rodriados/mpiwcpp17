@@ -22,14 +22,14 @@ namespace collective
 {
     /**
      * Reduces messages from and to all processes using an operator.
-     * @tparam T The message's contents or container type.
      * @tparam F The operator functor's implementation type.
+     * @tparam T The message's contents or container type.
      * @param in The message payload to be reduced across processes.
      * @param lambda The operator functor to reduce messages with.
      * @param comm The communicator this operation applies to.
      * @return The resulting reduced message.
      */
-    template <typename T, typename F>
+    template <typename F, typename T>
     inline typename payload<T>::return_type allreduce(
         const payload<T>& in
       , const F& lambda = {}
@@ -44,15 +44,15 @@ namespace collective
 
     /**
      * Reduces generic messages from and to all processes using an operator.
-     * @tparam T The message's contents type.
      * @tparam F The operator functor's implementation type.
+     * @tparam T The message's contents type.
      * @param data The message to be reduced into all processes.
      * @param count The number of elements to be reduced.
      * @param lambda The operator functor to reduce messages with.
      * @param comm The communicator this operation applies to.
      * @return The resulting reduced message.
      */
-    template <typename T, typename F>
+    template <typename F, typename T>
     inline typename payload<T>::return_type allreduce(
         T *data
       , size_t count
@@ -60,26 +60,26 @@ namespace collective
       , const communicator& comm = world
     ) {
         auto msg = payload(data, count);
-        return collective::allreduce<T>(msg, lambda, comm);
+        return collective::allreduce<F,T>(msg, lambda, comm);
     }
 
     /**
      * Reduces containers from and to all processes using an operator.
-     * @tparam T The type of container to be reduced.
      * @tparam F The operator functor's implementation type.
+     * @tparam T The type of container to be reduced.
      * @param data The container to be reduced into all processes.
      * @param lambda The operator functor to reduce messages with.
      * @param comm The communicator this operation applies to.
      * @return The resulting reduced message.
      */
-    template <typename T, typename F>
+    template <typename F, typename T>
     inline typename payload<T>::return_type allreduce(
         T& data
       , const F& lambda = {}
       , const communicator& comm = world
     ) {
         auto msg = payload(data);
-        return collective::allreduce<T>(msg, lambda, comm);
+        return collective::allreduce<F,T>(msg, lambda, comm);
     }
 }
 

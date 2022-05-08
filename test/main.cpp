@@ -31,11 +31,8 @@ struct MPIConsoleReporter : Catch::ConsoleReporter
      */
     void testRunEnded(const Catch::TestRunStats& stats) override
     {
-        Catch::Totals reducedTotals;
-        auto typeId = mpi::datatype::identify<Catch::Totals>();
-        auto functorId = mpi::functor::create<Catch::Totals, AccumulateTotals>();
-
-        mpi::guard(MPI_Reduce(&stats.totals, &reducedTotals, 1, typeId, functorId, 0, mpi::world));
+        Catch::Totals totals = stats.totals;
+        auto reducedTotals = mpi::reduce(totals, AccumulateTotals());
 
         if (mpi::global::rank != 0)
             return;
@@ -80,14 +77,33 @@ struct MPIConsoleReporter : Catch::ConsoleReporter
     struct AccumulateTotals
     {
         /**
+         * Accumulates two test result count instances.
+         * @param a The first result instance to be accumulated.
+         * @param b The second result instance to be accumulated.
+         * @return The resulting accumulated instance.
+         */
+        inline static Catch::Counts addCounts(const Catch::Counts& a, const Catch::Counts& b)
+        {
+            return Catch::Counts {
+                a.passed + b.passed
+              , a.failed + b.failed
+              , a.failedButOk + b.failedButOk
+            };
+        }
+
+        /**
          * The accumulate operator implementation.
          * @param a The first instance to accumulated.
          * @param b The second instance to accumulated.
          * @return The resulting accumulated instance.
          */
-        inline Catch::Totals& operator()(Catch::Totals& a, Catch::Totals& b)
+        inline Catch::Totals operator()(const Catch::Totals& a, const Catch::Totals& b)
         {
-            return b += a;
+            return Catch::Totals {
+                a.error + b.error
+              , addCounts(a.assertions, b.assertions)
+              , addCounts(a.testCases, b.testCases)
+            };
         }
     };
 };
@@ -143,7 +159,7 @@ inline mpi::datatype::descriptor mpi::datatype::describe<Catch::Totals>()
  */
 int main(int argc, char **argv)
 {
-    mpi::initiator m (&argc, &argv);
+    mpi::initiator m (&argc, &argv, mpi::thread_support::serialized);
 
     // Starting the test run session and running the tests according to the given
     // command line arguments. Each MPI process runs its own session and the results

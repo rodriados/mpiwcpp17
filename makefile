@@ -6,6 +6,7 @@ NAME = mpiwcpp17
 
 INCDIR  = src
 SRCDIR  = src
+OBJDIR  = obj
 TGTDIR  = bin
 TESTDIR = test
 
@@ -15,13 +16,17 @@ STDCPP ?= c++17
 # Defining macros inside code at compile time. This can be used to enable or disable
 # certain features on code or affect the projects compilation.
 FLAGS ?=
+GCPPFLAGS ?= -std=$(STDCPP) -I$(INCDIR) $(FLAGS)
+LINKFLAGS ?= $(FLAGS)
 
-GCPPFLAGS  = -std=$(STDCPP) -I$(INCDIR) $(FLAGS)
 TESTFILES := $(shell find $(TESTDIR) -name '*.cpp')
+TESTDEPS = $(TESTFILES:$(TESTDIR)/%.cpp=$(OBJDIR)/%.test.o)
 
 all: testing
 
-install: $(TGTDIR)
+install:
+	@mkdir -p $(TGTDIR)
+	@mkdir -p $(OBJDIR)
 
 testing: override FLAGS = -g -O0
 testing: install $(TGTDIR)/runtest.o
@@ -31,13 +36,18 @@ runtest: testing
 
 clean:
 	@rm -rf $(TGTDIR)
-	@rm -f *.gcno *.gcda *.gcov
-	@rm -f *.info
+	@rm -rf $(OBJDIR)
 
-$(TGTDIR):
-	@mkdir -p $@
+# Creates dependency on header files. This is valuable so that whenever a header
+# file is changed, all objects depending on it will be recompiled.
+ifneq ($(wildcard $(OBJDIR)/.),)
+-include $(shell find $(OBJDIR) -name '*.d')
+endif
 
-$(TGTDIR)/runtest.o: $(TESTFILES)
-	$(GCPP) $(GCPPFLAGS) $^ -o $@
+$(TGTDIR)/runtest.o: $(TESTDEPS)
+	$(GCPP) $(LINKFLAGS) $^ -o $@
+
+$(OBJDIR)/%.test.o: $(TESTDIR)/%.cpp
+	$(GCPP) $(GCPPFLAGS) -MMD -c $< -o $@
 
 .PHONY: all install testing runtest clean
