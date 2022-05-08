@@ -10,71 +10,67 @@
 #include <catch.hpp>
 #include <mpiwcpp17.h>
 
-/**
- * Tests whether a scalar can be seamlessly broadcast between processes.
- * @since 1.0
- */
-TEST_CASE("can broadcast a scalar value", "[global]")
-{
-    enum { root };
-    int32_t value = 0;
+#include "fixture/point.hpp"
 
-    if (mpi::world.rank == root) {
-        value = 20;
+using namespace Catch;
+
+SCENARIO("broadcast values between processes", "[collective][broadcast]")
+{
+    auto root = GENERATE(range(0, mpi::global::size));
+
+    /**
+     * Tests whether a single scalar value can be seamlessly broadcast to all processes
+     * from any process as the root for the operation.
+     * @since 1.0
+     */
+    GIVEN("a single scalar value") {
+        int value = (root == mpi::global::rank)
+            ? (mpi::global::rank + 1) * 2
+            : 0;
+
+        int result = mpi::broadcast(&value, 1, root);
+
+        THEN("all processes have same value") {
+            REQUIRE(result == (root + 1) * 2);
+        }
     }
 
-    int32_t result = mpi::broadcast(&value, 1, root);
+    /**
+     * Tests whether a container of scalar values can be broadcast to all processes
+     * from any process as the root for the operation.
+     * @since 1.0
+     */
+    GIVEN("a container of scalar values") {
+        constexpr int quantity = 4;
+        std::vector<int> value;
 
-    REQUIRE(result == 20);
-}
+        if (root == mpi::global::rank) for (int i = 1; i <= quantity; ++i)
+            value.push_back(10 * i + mpi::global::rank);
 
-/**
- * Tests whether simple data structures can be broadcast between processes using
- * type reflection to represent the structure automatically within MPI.
- * @since 1.0
- */
-TEST_CASE("can broadcast simple data structures with reflection", "[global]")
-{
-    enum { root };
-    struct point { int32_t x, y; };
-    struct rectangle { point topright, bottomleft; };
+        auto result = mpi::broadcast(value, root);
 
-    rectangle value;
-
-    if (mpi::world.rank == root) {
-        value.topright = point {10, 15};
-        value.bottomleft = point {20, 25};
+        THEN("all processes have same values") {
+            REQUIRE(result.count == quantity);
+            for (int i = 0; i < quantity; ++i)
+                REQUIRE(result[i] == (10 * (i+1) + root));
+        }
     }
 
-    rectangle result = mpi::broadcast(value, root);
+    /**
+     * Tests whether simple data structures can be broadcast between processes using
+     * type reflection or a type description to represent the structure within MPI.
+     * @since 1.0
+     */
+    GIVEN("a single default-copyable structure instance") {
+        point<int> value = (root == mpi::global::rank)
+            ? point<int> {mpi::global::rank + 1, mpi::global::rank + 2}
+            : point<int> {0, 0};
 
-    REQUIRE(result.topright.x == 10);
-    REQUIRE(result.topright.y == 15);
-    REQUIRE(result.bottomleft.x == 20);
-    REQUIRE(result.bottomleft.y == 25);
-}
+        point<int> result = mpi::broadcast(&value, 1, root);
 
-/**
- * Tests whether a container can be successfully broadcast between processes.
- * @since 1.0
- */
-TEST_CASE("can broadcast containers", "[global]")
-{
-    enum { root };
-    std::vector<uint16_t> values;
-
-    if (mpi::world.rank == root) {
-        values.push_back(10);
-        values.push_back(20);
-        values.push_back(30);
-        values.push_back(40);
+        THEN("all processes have same value") {
+            REQUIRE(result.x == root + 1);
+            REQUIRE(result.y == root + 2);
+        }
     }
-
-    auto result = mpi::broadcast(values, root);
-
-    REQUIRE(result.count == 4);
-    REQUIRE(result[0] == 10);
-    REQUIRE(result[1] == 20);
-    REQUIRE(result[2] == 30);
-    REQUIRE(result[3] == 40);
 }

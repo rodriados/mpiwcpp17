@@ -12,7 +12,7 @@
  * the same point of execution within the code.
  * @since 1.0
  */
-TEST_CASE("can synchronize processes", "[global]")
+TEST_CASE("can synchronize processes", "[collective][barrier]")
 {
     mpi::barrier();
     SUCCEED("processes were successfully synchronized");
