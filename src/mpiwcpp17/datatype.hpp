@@ -151,6 +151,7 @@ MPIWCPP17_DISABLE_GCC_WARNING_END("-Wreturn-type")
     template <> inline datatype::id identify<uint16_t>() { return MPI_UINT16_T; };
     template <> inline datatype::id identify<uint32_t>() { return MPI_UINT32_T; };
     template <> inline datatype::id identify<uint64_t>() { return MPI_UINT64_T; };
+    template <> inline datatype::id identify<wchar_t>()  { return MPI_WCHAR; };
     /**#@-*/
 
     namespace detail
