@@ -10,72 +10,79 @@
 #include <catch.hpp>
 #include <mpiwcpp17.h>
 
-/**
- * Test whether a uniform scalar value can be gathered into the a process.
- * @since 1.0
- */
-TEST_CASE("can gather uniform scalars into a process", "[global]")
+using namespace Catch;
+
+SCENARIO("gather values from all processes", "[collective][gather]")
 {
-    enum { root };
-    uint64_t value = (mpi::world.rank + 1) * 2;
+    auto root = GENERATE(range(0, mpi::global::size));
 
-    auto result = mpi::gather(&value, 1, root, mpi::flag::uniform());
+    /**
+     * Tests whether a single scalar value can be gathered from all processes into
+     * any process as the root for the operation.
+     * @since 1.0
+     */
+    GIVEN("a single scalar value") {
+        int value = mpi::global::rank + 1;
+        auto result = mpi::gather(&value, 1, root, mpi::flag::uniform());
 
-    if (mpi::world.rank == root) {
-        REQUIRE(result.count == mpi::world.size);
-        for (int i = 0; i < mpi::world.size; ++i)
-            REQUIRE(result[i] == (i + 1) * 2);
-    } else {
-        REQUIRE(result.count == 0);
+        if (root == mpi::global::rank) THEN("root has all processes' values") {
+            REQUIRE(result.count == mpi::global::size);
+            for (int i = 0; i < mpi::global::size; ++i)
+                REQUIRE(result[i] == (i + 1));
+        }
+
+        else THEN("other processes have no values") {
+            REQUIRE(result.count == 0);
+        }
     }
-}
 
-/**
- * Test whether a varying scalar value can be gathered into a process.
- * @since 1.0
- */
-TEST_CASE("can gather varying scalars into a process", "[global]")
-{
-    enum { root };
+    /**
+     * Tests whether a container with an uniform amount of elements across all processes
+     * can be gathered into any process as the root for the operation.
+     * @since 1.0
+     */
+    GIVEN("a uniform container of scalar values") {
+        constexpr int quantity = 4;
+        std::vector<int> value (quantity);
 
-    uint32_t base = (mpi::world.rank + 1) * 2;
-    uint32_t value[] = { base, base + 1 };
-    auto quantity = mpi::world.rank == root ? 1 : 2;
+        for (int i = 0; i < quantity; ++i)
+            value[i] = 10 * mpi::global::rank + i;
 
-    auto result = mpi::gather(value, quantity, root, mpi::flag::varying());
+        auto result = mpi::gather(value, root, mpi::flag::uniform());
 
-    if (mpi::world.rank == root) {
-        REQUIRE(result.count == (mpi::world.size * 2 - 1));
-        REQUIRE(result[0] == 2);
-        for (int i = 1; i < mpi::world.size; ++i)
-            for (int j = 0; j < 2; ++j)
-                REQUIRE(result[i * 2 + j - 1] == ((i + 1) * 2 + j));
-    } else {
-        REQUIRE(result.count == 0);
+        if (root == mpi::global::rank) THEN("root has all processes' values") {
+            REQUIRE(result.count == (quantity * mpi::global::size));
+            for (int i = 0, k = 0; i < mpi::global::size; ++i) for (int j = 0; j < quantity; ++j, ++k)
+                REQUIRE(result[k] == (10 * i + j));
+        }
+
+        else THEN("other processes have no values") {
+            REQUIRE(result.count == 0);
+        }
     }
-}
 
-/**
- * Test whether a varying container can be gathered into a process.
- * @since 1.0
- */
-TEST_CASE("can gather varying containers into a process", "[global]")
-{
-    enum { root };
-    std::vector<int16_t> values;
+    /**
+     * Tests whether a container with a varying amount of elements between processes
+     * can be gathered into any process as the root for the operation.
+     * @since 1.0
+     */
+    GIVEN("a varying container of scalar values") {
+        std::vector<int> value (mpi::global::rank + 1);
 
-    for (int i = 0; i < mpi::world.rank + 1; ++i)
-        values.push_back(i);
+        for (int i = 0; i <= mpi::global::rank; ++i)
+            value[i] = 100 * root + mpi::global::rank * 10 + i;
 
-    auto result = mpi::gather(values, root);
+        auto result = mpi::gather(value, root, mpi::flag::varying());
 
-    if (mpi::world.rank == root) {
-        auto size = mpi::world.size;
-        REQUIRE(result.count == ((size * (size + 1)) / 2));
-        for (int i = 0, k = 0; i < size; ++i)
-            for (int j = 0; j <= i; ++j, ++k)
-                REQUIRE(result[k] == j);
-    } else {
-        REQUIRE(result.count == 0);
+        if (root == mpi::global::rank) THEN("root has all processes' values") {
+            auto size = mpi::global::size;
+            REQUIRE(result.count == (size * (size + 1) / 2));
+            for (int i = 0, k = 0; i < mpi::global::size; ++i) for (int j = 0; j <= i; ++j, ++k)
+                REQUIRE(result[k] == (100 * mpi::global::rank + i * 10 + j));
+        }
+
+        else THEN("other processes have no values") {
+            REQUIRE(result.count == 0);
+        }
     }
 }

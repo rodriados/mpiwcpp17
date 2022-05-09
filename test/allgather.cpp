@@ -10,60 +10,62 @@
 #include <catch.hpp>
 #include <mpiwcpp17.h>
 
-/**
- * Test whether a uniform scalar value can be gathered into all processes.
- * @since 1.0
- */
-TEST_CASE("can gather uniform scalars to all processes", "[global]")
+SCENARIO("gather values into all processes", "[collective][allgather]")
 {
-    enum { root };
-    uint32_t value = (mpi::world.rank + 1) * 2;
+    /**
+     * Tests whether a single scalar value can be gathered into all processes.
+     * @since 1.0
+     */
+    GIVEN("a single scalar value") {
+        int value = mpi::global::rank + 1;
+        auto result = mpi::allgather(&value, 1, mpi::flag::uniform());
 
-    auto result = mpi::allgather(&value, 1, mpi::flag::uniform());
+        THEN("all processes have all values") {
+            REQUIRE(result.count == mpi::global::size);
+            for (int i = 0; i < mpi::global::size; ++i)
+                REQUIRE(result[i] == (i + 1));
+        }
+    }
 
-    REQUIRE(result.count == mpi::world.size);
-    for (int i = 0; i < mpi::world.size; ++i)
-        REQUIRE(result[i] == (i + 1) * 2);
-}
+    /**
+     * Tests whether a container with an uniform amount of elements across all processes
+     * can be gathered into all processes.
+     * @since 1.0
+     */
+    GIVEN("a uniform container of scalar values") {
+        constexpr int quantity = 4;
+        std::vector<int> value (quantity);
 
-/**
- * Test whether a varying scalar value can be gathered into all processes.
- * @since 1.0
- */
-TEST_CASE("can gather varying scalars to all processes", "[global]")
-{
-    enum { root };
+        for (int i = 0; i < quantity; ++i)
+            value[i] = 10 * mpi::global::rank + i;
 
-    uint32_t base = (mpi::world.rank + 1) * 2;
-    uint32_t value[] = { base, base + 1 };
-    auto quantity = mpi::world.rank == root ? 1 : 2;
+        auto result = mpi::allgather(value, mpi::flag::uniform());
 
-    auto result = mpi::allgather(value, quantity, mpi::flag::varying());
+        THEN("all processes have all values") {
+            REQUIRE(result.count == (quantity * mpi::global::size));
+            for (int i = 0, k = 0; i < mpi::global::size; ++i) for (int j = 0; j < quantity; ++j, ++k)
+                REQUIRE(result[k] == (10 * i + j));
+        }
+    }
 
-    REQUIRE(result.count == (mpi::world.size * 2 - 1));
-    REQUIRE(result[0] == 2);
-    for (int i = 1, k = 1; i < mpi::world.size; ++i)
-        for (int j = 0; j < 2; ++j, ++k)
-            REQUIRE(result[k] == ((i + 1) * 2 + j));
-}
+    /**
+     * Tests whether a container with a varying amount of elements between processes
+     * can be gathered into all processes.
+     * @since 1.0
+     */
+    GIVEN("a varying container of scalar values") {
+        std::vector<int> value (mpi::global::rank + 1);
 
-/**
- * Test whether a varying container can be gathered into all processes.
- * @since 1.0
- */
-TEST_CASE("can gather varying containers to all processes", "[global]")
-{
-    enum { root };
-    std::vector<int16_t> values;
+        for (int i = 0; i <= mpi::global::rank; ++i)
+            value[i] = mpi::global::rank * 10 + i;
 
-    for (int i = 0; i < mpi::world.rank + 1; ++i)
-        values.push_back(i);
+        auto result = mpi::allgather(value, mpi::flag::varying());
 
-    auto result = mpi::allgather(values);
-
-    auto size = mpi::world.size;
-    REQUIRE(result.count == ((size * (size + 1)) / 2));
-    for (int i = 0, k = 0; i < size; ++i)
-        for (int j = 0; j <= i; ++j, ++k)
-            REQUIRE(result[k] == j);
+        THEN("all processes have all values") {
+            auto size = mpi::global::size;
+            REQUIRE(result.count == (size * (size + 1) / 2));
+            for (int i = 0, k = 0; i < mpi::global::size; ++i) for (int j = 0; j <= i; ++j, ++k)
+                REQUIRE(result[k] == (i * 10 + j));
+        }
+    }
 }
