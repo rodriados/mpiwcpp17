@@ -14,7 +14,7 @@
 #include <mpiwcpp17/environment.hpp>
 #include <mpiwcpp17/guard.hpp>
 
-#include <mpiwcpp17/detail/communicator/basic.hpp>
+#include <mpiwcpp17/detail/communicator/base.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
 
@@ -24,10 +24,17 @@ MPIWCPP17_BEGIN_NAMESPACE
  * identifies it within such communicator.
  * @since 1.0
  */
-struct communicator : public detail::communicator::basic
+class communicator : public detail::communicator::base
 {
-    using detail::communicator::basic::basic;
-    using detail::communicator::basic::operator=;
+    protected:
+        using base_type = detail::communicator::base;
+
+    public:
+        using base_type::base;
+        using base_type::operator=;
+
+    //using graph = detail::communicator::graph;
+    //template <size_t N = 2> using cartesian = detail::communicator::cartesian<N>;
 };
 
 MPIWCPP17_END_NAMESPACE
