@@ -9,7 +9,7 @@
 #include <mpiwcpp17/version.h>
 #include <mpiwcpp17/environment.hpp>
 
-#include <mpiwcpp17/global.hpp>
+#include <mpiwcpp17/world.hpp>
 #include <mpiwcpp17/initiator.hpp>
 
 #include <mpiwcpp17/collective.hpp>

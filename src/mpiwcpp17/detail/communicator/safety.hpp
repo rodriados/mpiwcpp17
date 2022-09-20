@@ -11,7 +11,6 @@
 #include <utility>
 
 #include <mpiwcpp17/environment.hpp>
-#include <mpiwcpp17/global.hpp>
 #include <mpiwcpp17/guard.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE

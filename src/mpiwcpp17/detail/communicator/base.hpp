@@ -32,7 +32,7 @@ namespace detail::communicator
             using raw_type = MPI_Comm;
 
         protected:
-            const raw_type m_comm = MPI_COMM_NULL;
+            raw_type m_comm = MPI_COMM_NULL;
 
         public:
             const process::rank rank = 0;

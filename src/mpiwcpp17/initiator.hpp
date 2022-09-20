@@ -9,7 +9,7 @@
 #include <mpi.h>
 
 #include <mpiwcpp17/environment.hpp>
-#include <mpiwcpp17/global.hpp>
+#include <mpiwcpp17/world.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
 
@@ -33,7 +33,7 @@ struct initiator
      * @param mode The desired process thread support level.
      */
     inline initiator(thread_support mode = thread_support::single)
-      : thread_mode (mpiwcpp17::init(mode))
+      : thread_mode (mpiwcpp17::initialize(mode))
     {}
 
     /**
@@ -43,7 +43,7 @@ struct initiator
      * @param mode The desired process thread support level.
      */
     inline initiator(int *argc, char ***argv, thread_support mode = thread_support::single)
-      : thread_mode (mpiwcpp17::init(argc, argv, mode))
+      : thread_mode (mpiwcpp17::initialize(argc, argv, mode))
     {}
 
     /**
