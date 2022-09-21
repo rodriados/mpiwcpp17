@@ -11,9 +11,9 @@
 #include <mpiwcpp17/environment.hpp>
 #include <mpiwcpp17/communicator.hpp>
 #include <mpiwcpp17/process.hpp>
-#include <mpiwcpp17/global.hpp>
 #include <mpiwcpp17/status.hpp>
 #include <mpiwcpp17/guard.hpp>
+#include <mpiwcpp17/world.hpp>
 #include <mpiwcpp17/tag.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
