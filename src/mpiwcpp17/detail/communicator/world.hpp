@@ -9,8 +9,7 @@
 #include <mpi.h>
 
 #include <mpiwcpp17/environment.hpp>
-
-#include <mpiwcpp17/detail/communicator/base.hpp>
+#include <mpiwcpp17/communicator.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
 
@@ -22,7 +21,7 @@ namespace detail::communicator
      * initializing the global MPI state.
      * @since 1.0
      */
-    struct world final : public detail::communicator::base
+    struct world final : public mpiwcpp17::communicator
     {
         inline constexpr world() noexcept = default;
 
@@ -31,7 +30,7 @@ namespace detail::communicator
          * @see mpiwcpp17::initialize
          */
         inline explicit world(int)
-          : base (MPI_COMM_WORLD)
+          : mpiwcpp17::communicator (MPI_COMM_WORLD)
         {}
     };
 }
