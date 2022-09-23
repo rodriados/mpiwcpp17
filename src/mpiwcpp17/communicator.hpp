@@ -119,6 +119,7 @@ inline constexpr communicator::communicator(const raw_type& comm, process::rank 
  */
 inline communicator& communicator::operator=(const communicator& other)
 {
+    if (m_comm == other.m_comm) { return *this; }
     detail::communicator::safety::free(m_comm);
     return *new (this) communicator (other);
 }
@@ -130,6 +131,7 @@ inline communicator& communicator::operator=(const communicator& other)
  */
 inline communicator& communicator::operator=(communicator&& other)
 {
+    if (m_comm == other.m_comm) { return *this; }
     detail::communicator::safety::free(m_comm);
     return *new (this) communicator (std::forward<decltype(other)>(other));
 }
