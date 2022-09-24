@@ -12,11 +12,10 @@
 #include <cstdint>
 
 #include <mpiwcpp17/environment.hpp>
+#include <mpiwcpp17/communicator.hpp>
 #include <mpiwcpp17/datatype.hpp>
 #include <mpiwcpp17/functor.hpp>
 #include <mpiwcpp17/guard.hpp>
-
-#include <mpiwcpp17/detail/communicator/world.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
 
@@ -45,18 +44,39 @@ inline auto finalized() -> bool;
 namespace detail::world
 {
     /**
-     * A wrapper for the globally available world-communicator. The wrapper exposes
-     * the world-communicator through a const-qualified reference, so that it can
-     * only be modified when initializing the global MPI state.
+     * A wrapper for the globally available world communicator. This wrapper protects
+     * the world-communicator so that it can only be instantiated and modified when
+     * initializing or finalizing the global MPI state.
      * @since 1.0
      */
-    class communicator
+    struct communicator final : public mpiwcpp17::communicator
+    {
+        inline constexpr communicator() noexcept = default;
+
+        /**
+         * Instantiates the globally available world communicator.
+         * @see mpi::initialize
+         */
+        inline explicit communicator(int)
+          : mpiwcpp17::communicator (MPI_COMM_WORLD)
+        {}
+
+        using mpiwcpp17::communicator::operator=;
+    };
+
+    /**
+     * A wrapper for the world-communicator singleton instance. The wrapper exposes
+     * the world-communicator through a const-qualified reference, so that it can
+     * only be modified within selected scopes.
+     * @since 1.0
+     */
+    class instance
     {
         private:
-            inline static mpiwcpp17::detail::communicator::world s_comm;
+            inline static detail::world::communicator s_world;
 
         public:
-            inline static constexpr const mpiwcpp17::detail::communicator::world& ref = s_comm;
+            inline static constexpr const detail::world::communicator& ref = s_world;
 
         friend auto mpiwcpp17::initialize(int*, char***, thread_support) -> thread_support;
         friend auto mpiwcpp17::finalize() -> void;
@@ -77,8 +97,7 @@ namespace detail::world
  * The public reference to the global world-communicator instance.
  * @since 1.0
  */
-inline constexpr const detail::communicator::world& world =
-    detail::world::communicator::ref;
+inline constexpr const detail::world::communicator& world = detail::world::instance::ref;
 
 namespace global
 {
@@ -116,7 +135,7 @@ inline auto initialize(int *argc, char ***argv, thread_support mode) -> thread_s
 {
     if (int m; !initialized()) {
         guard(MPI_Init_thread(argc, argv, static_cast<int>(mode), &m));
-        new (&detail::world::communicator::s_comm) detail::communicator::world (0);
+        new (&detail::world::instance::s_world) detail::world::communicator (0);
         return static_cast<thread_support>(m);
     } else {
         return thread_mode();
@@ -126,7 +145,7 @@ inline auto initialize(int *argc, char ***argv, thread_support mode) -> thread_s
 /**
  * Checks whether the MPI global state and processes communication has been initialized.
  * @return Was MPI already initialized?
- * @see mpiwcpp17::initialize
+ * @see mpi::initialize
  */
 inline auto initialized() -> bool
 {
@@ -156,13 +175,13 @@ inline auto thread_mode() -> thread_support
 
 /**
  * Terminates MPI execution, cleans up all MPI state and closes processes communication.
- * @see mpiwcpp17::initialize
+ * @see mpi::initialize
  */
 inline auto finalize() -> void
 {
     if (!finalized()) {
         for (auto& deferred : detail::world::deferred) { deferred(); }
-        detail::world::communicator::s_comm.~world();
+        detail::world::instance::s_world = std::move(communicator());
         guard(MPI_Finalize());
     }
 }
@@ -170,7 +189,7 @@ inline auto finalize() -> void
 /**
  * Checks whether the MPI state and processes communication has already been finalized.
  * @return Was MPI already finalized?
- * @see mpiwcpp17::finalize
+ * @see mpi::finalize
  */
 inline auto finalized() -> bool
 {

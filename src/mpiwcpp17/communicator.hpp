@@ -15,7 +15,7 @@
 #include <mpiwcpp17/process.hpp>
 #include <mpiwcpp17/guard.hpp>
 
-#include <mpiwcpp17/detail/communicator/safety.hpp>
+#include <mpiwcpp17/detail/communicator.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
 
@@ -29,10 +29,6 @@ struct communicator
 {
     protected:
         using raw_type = MPI_Comm;
-
-    public:
-        struct graph;
-        template <size_t N = 2> struct cartesian;
 
     protected:
         raw_type m_comm = MPI_COMM_NULL;
@@ -120,7 +116,7 @@ inline constexpr communicator::communicator(const raw_type& comm, process::rank 
 inline communicator& communicator::operator=(const communicator& other)
 {
     if (m_comm == other.m_comm) { return *this; }
-    detail::communicator::safety::free(m_comm);
+    detail::communicator::safety_free(m_comm);
     return *new (this) communicator (other);
 }
 
@@ -132,7 +128,7 @@ inline communicator& communicator::operator=(const communicator& other)
 inline communicator& communicator::operator=(communicator&& other)
 {
     if (m_comm == other.m_comm) { return *this; }
-    detail::communicator::safety::free(m_comm);
+    detail::communicator::safety_free(m_comm);
     return *new (this) communicator (std::forward<decltype(other)>(other));
 }
 
@@ -152,7 +148,7 @@ inline communicator::operator const raw_type() const
  */
 inline communicator::~communicator()
 {
-    detail::communicator::safety::free(m_comm);
+    detail::communicator::safety_free(m_comm);
     m_comm = MPI_COMM_NULL;
 }
 
@@ -189,7 +185,3 @@ inline bool communicator::empty() const
 }
 
 MPIWCPP17_END_NAMESPACE
-
-// #include <mpiwcpp17/detail/communicator/cartesian.hpp>
-// #include <mpiwcpp17/detail/communicator/graph.hpp>
-#include <mpiwcpp17/detail/communicator/world.hpp>

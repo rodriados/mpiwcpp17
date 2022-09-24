@@ -48,7 +48,7 @@ struct initiator
 
     /**
      * Terminates the global MPI state and communication between processes.
-     * @see mpiwcpp17::finalize
+     * @see mpi::finalize
      */
     inline ~initiator()
     {

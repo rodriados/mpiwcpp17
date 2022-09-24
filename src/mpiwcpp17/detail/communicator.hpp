@@ -17,13 +17,13 @@ MPIWCPP17_BEGIN_NAMESPACE
 
 inline bool finalized();
 
-namespace detail::communicator::safety
+namespace detail::communicator
 {
     /**
      * Verifies whether a communicator can be freed and, if so, frees it.
      * @param target The communicator to be freed if possible.
      */
-    inline void free(MPI_Comm target)
+    inline void safety_free(MPI_Comm target)
     {
         if (target != MPI_COMM_NULL && !mpiwcpp17::finalized()) {
             int compare_world, compare_self;
