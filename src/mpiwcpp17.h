@@ -14,6 +14,7 @@
 
 #include <mpiwcpp17/collective.hpp>
 #include <mpiwcpp17/communicator.hpp>
+#include <mpiwcpp17/topology.hpp>
 #include <mpiwcpp17/datatype.hpp>
 #include <mpiwcpp17/error.hpp>
 #include <mpiwcpp17/exception.hpp>
