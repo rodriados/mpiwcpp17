@@ -11,91 +11,57 @@
 #include <set>
 #include <vector>
 #include <cstdint>
-#include <numeric>
 #include <utility>
 
 #include <mpiwcpp17/environment.hpp>
-#include <mpiwcpp17/communicator.hpp>
 #include <mpiwcpp17/process.hpp>
-#include <mpiwcpp17/world.hpp>
+
+#include <mpiwcpp17/detail/topology.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
 
 namespace topology
 {
     /**
-     * A graph topology communicator. This communicator allows the use of neighbor
-     * operations, so that data is only sent to and from neighboring processes.
-     * @since 1.0
-     */
-    class graph : public communicator
-    {
-        protected:
-            using node_type = process::rank;
-            using edge_type = std::pair<node_type, node_type>;
-
-        public:
-            class blueprint;
-
-        public:
-            inline constexpr graph() noexcept = default;
-            inline graph(const graph&) = default;
-            inline graph(graph&&) noexcept = default;
-
-            inline graph(const raw_type&, const blueprint&, bool = true);
-
-            inline graph& operator=(const graph&) = default;
-            inline graph& operator=(graph&&) = default;
-
-            inline blueprint topology() const;
-    };
-
-    /**
      * A graph topology blueprint responsible for describing the connections between
      * the processes of a graph-topology communicator.
      * @see mpiwcpp17::topology::graph
      * @since 1.0
      */
-    class graph::blueprint
+    class graph : public detail::topology::blueprint
     {
         private:
-            int32_t m_count = 0;
+            using node_type = process::rank;
+            using edge_type = std::pair<node_type, node_type>;
+            using underlying_type = detail::topology::blueprint;
+
+        private:
             std::vector<std::set<node_type>> m_adjacency = {};
 
         public:
-            inline blueprint() = default;
-            inline blueprint(const blueprint&) = default;
-            inline blueprint(blueprint&&) = default;
+            inline graph() = default;
+            inline graph(const graph&) = default;
+            inline graph(graph&&) = default;
 
-            inline blueprint(int32_t);
-            inline blueprint(int32_t, std::initializer_list<edge_type>);
+            inline graph(int32_t);
+            inline graph(int32_t, const std::initializer_list<edge_type>&);
 
-            inline blueprint& operator=(const blueprint&) = default;
-            inline blueprint& operator=(blueprint&&) = default;
+            inline graph& operator=(const graph&) = default;
+            inline graph& operator=(graph&&) = default;
 
             inline void add(node_type, node_type);
             inline void remove(node_type, node_type);
 
-            inline raw_type commit(const raw_type&, bool = true) const;
+            inline void extract(const raw_type&) override;
+            inline raw_type commit(const raw_type&, bool = true) const override;
     };
-
-    /**
-     * Initializes a new graph-topology communicator from a previously created communicator
-     * and a topology blueprint to apply over the communicator.
-     * @param comm The previously created and base communicator.
-     * @param topology The graph blueprint to apply over the communicator.
-     * @param reorder May the processes' ranks be reordered in the new communicator?
-     */
-    inline graph::graph(const raw_type& comm, const blueprint& topology, bool reorder)
-      : communicator (topology.commit(comm, reorder))
-    {}
 
     /**
      * Initializes a new blueprint from a graph composed of disconnected nodes.
      * @param count The number of nodes within graph.
      */
-    inline graph::blueprint::blueprint(int32_t count)
-      : m_count (count)
+    inline graph::graph(int32_t count)
+      : underlying_type (count)
       , m_adjacency (count)
     {}
 
@@ -104,8 +70,8 @@ namespace topology
      * @param count The number of nodes within graph.
      * @param edges The list of edges to initialize the blueprint with.
      */
-    inline graph::blueprint::blueprint(int32_t count, std::initializer_list<edge_type> edges)
-      : blueprint (count)
+    inline graph::graph(int32_t count, const std::initializer_list<edge_type>& edges)
+      : graph (count)
     {
         for (const auto& edge : edges)
             add(edge.first, edge.second);
@@ -116,7 +82,7 @@ namespace topology
      * @param x The origin process of the new edge.
      * @param y The destination process of the new edge.
      */
-    inline void graph::blueprint::add(node_type x, node_type y)
+    inline void graph::add(node_type x, node_type y)
     {
         if (x < m_count && y < m_count)
             m_adjacency[x].insert(y);
@@ -127,7 +93,7 @@ namespace topology
      * @param x The origin process of the edge to be removed.
      * @param y The destination process of the edge to be removed.
      */
-    inline void graph::blueprint::remove(node_type x, node_type y)
+    inline void graph::remove(node_type x, node_type y)
     {
         if (x < m_count && y < m_count)
             m_adjacency[x].erase(y);
@@ -135,22 +101,24 @@ namespace topology
 
     /**
      * Retrieves the graph-topology blueprint applied over the communicator's processes.
-     * @return The blueprint describing the communicator's graph-topology.
+     * @param comm The topology-enabled communicator to extract topology from.
      */
-    inline auto graph::topology() const -> blueprint
+    inline void graph::extract(const raw_type& comm)
     {
-        struct { int32_t index, edges; } count;
-        guard(MPI_Graphdims_get(this->m_comm, &count.index, &count.edges));
+        int32_t edge_count;
+        guard(MPI_Graphdims_get(comm, &m_count, &edge_count));
 
-        blueprint topology (count.index);
-        std::vector<int32_t> index (count.index), edges (count.edges);
-        guard(MPI_Graph_get(this->m_comm, count.index, count.edges, index.data(), edges.data()));
+        int32_t *index = new int32_t[m_count];
+        int32_t *edges = new int32_t[edge_count];
+        m_adjacency = std::vector<std::set<node_type>>(m_count);
 
-        for (int x = 0, n = 0; x < count.index; ++x)
-            while (n < index[x] && n < count.edges)
-                topology.add(x, edges[n++]);
+        guard(MPI_Graph_get(comm, m_count, edge_count, index, edges));
 
-        return topology;
+        for (int x = 0, previous = 0; x < m_count; previous = index[x++])
+            m_adjacency[x].insert(edges + previous, edges + index[x]);
+
+        delete[] index;
+        delete[] edges;
     }
 
     /**
@@ -159,7 +127,7 @@ namespace topology
      * @param reorder May process ranks be reassigned within new communicator?
      * @return The new topology-applied communicator.
      */
-    inline auto graph::blueprint::commit(const raw_type& comm, bool reorder) const -> raw_type
+    inline auto graph::commit(const raw_type& comm, bool reorder) const -> raw_type
     {
         raw_type x;
         std::vector<node_type> edges, index;

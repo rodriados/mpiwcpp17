@@ -27,7 +27,7 @@ MPIWCPP17_BEGIN_NAMESPACE
  */
 struct communicator
 {
-    protected:
+    public:
         using raw_type = MPI_Comm;
 
     protected:
