@@ -12,6 +12,7 @@
 #include <mpiwcpp17/communicator.hpp>
 
 #include <mpiwcpp17/detail/topology.hpp>
+#include <mpiwcpp17/topology/cartesian.hpp>
 #include <mpiwcpp17/topology/graph.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
