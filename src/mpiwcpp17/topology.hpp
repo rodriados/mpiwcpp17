@@ -58,12 +58,21 @@ namespace topology
             /**
              * Retrieves and extracts the underlying topology blueprint that has
              * been applied over the communicator's processes.
+             * @tparam U The topology type to be extracted from communicator.
              * @return The blueprint describing the communicator's topology.
              */
-            inline auto topology() const -> T
+            template <
+                typename U = T
+              , typename = typename std::enable_if<
+                    std::is_base_of<
+                        detail::topology::blueprint
+                      , decltype(U::extract(std::declval<communicator>()))
+                    >::value
+                >::type
+            >
+            inline auto topology() const
             {
-                T topology; topology.extract(this->m_comm);
-                return topology;
+                return U::extract(*this);
             }
     };
 }
