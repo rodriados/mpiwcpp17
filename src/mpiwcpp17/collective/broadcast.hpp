@@ -30,7 +30,7 @@ namespace collective
     template <typename T>
     inline typename payload<T>::return_type broadcast(
         const payload<T>& in
-      , process::rank root = process::root
+      , process_t root = process::root
       , const communicator& comm = world
     ) {
         auto out = (root == comm.rank)
@@ -53,7 +53,7 @@ namespace collective
     inline typename payload<T>::return_type broadcast(
         T *data
       , size_t count
-      , process::rank root = process::root
+      , process_t root = process::root
       , const communicator& comm = world
     ) {
         auto msg = payload(data, count);
@@ -71,7 +71,7 @@ namespace collective
     template <typename T>
     inline typename payload<T>::return_type broadcast(
         T& data
-      , process::rank root = process::root
+      , process_t root = process::root
       , const communicator& comm = world
     ) {
         auto msg = payload(data);

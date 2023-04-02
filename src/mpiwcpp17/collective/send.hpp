@@ -25,18 +25,18 @@ namespace collective
      * @tparam T The message's contents or container type.
      * @param in The message payload to send to a process.
      * @param destiny The process to send the message to.
-     * @param tagg The message's identifying tag.
+     * @param tag The message's identifying tag.
      * @param comm The communicator this operation applies to.
      */
     template <typename T>
     inline void send(
         const payload<T>& in
-      , process::rank destiny = process::root
-      , tag::id tagg = tag::any
+      , process_t destiny = process::root
+      , tag_t tag = mpiwcpp17::tag::any
       , const communicator& comm = world
     ) {
-        tag::id tagid = tagg >= 0 ? tagg : MPI_TAG_UB;
-        guard(MPI_Send(in, in.count, in.type, destiny, tagid, comm));
+        if (tag < 0) { tag = mpiwcpp17::tag::ub; }
+        guard(MPI_Send(in, in.count, in.type, destiny, tag, comm));
     }
 
     /**
@@ -45,19 +45,19 @@ namespace collective
      * @param data The message payload to send to a process.
      * @param count The number of elements in message to send.
      * @param destiny The process to send the message to.
-     * @param tagg The message's identifying tag.
+     * @param tag The message's identifying tag.
      * @param comm The communicator this operation applies to.
      */
     template <typename T>
     inline void send(
         T *data
       , size_t count
-      , process::rank destiny = process::root
-      , tag::id tagg = tag::any
+      , process_t destiny = process::root
+      , tag_t tag = mpiwcpp17::tag::any
       , const communicator& comm = world
     ) {
         auto msg = payload(data, count);
-        collective::send<T>(msg, destiny, tagg, comm);
+        collective::send<T>(msg, destiny, tag, comm);
     }
 
     /**
@@ -65,18 +65,18 @@ namespace collective
      * @tparam T The type of container to send.
      * @param data The message container to send to a process.
      * @param destiny The process to send the message to.
-     * @param tagg The message's identifying tag.
+     * @param tag The message's identifying tag.
      * @param comm The communicator this operation applies to.
      */
     template <typename T>
     inline void send(
         T& data
-      , process::rank destiny = process::root
-      , tag::id tagg = tag::any
+      , process_t destiny = process::root
+      , tag_t tag = mpiwcpp17::tag::any
       , const communicator& comm = world
     ) {
         auto msg = payload(data);
-        collective::send<T>(msg, destiny, tagg, comm);
+        collective::send<T>(msg, destiny, tag, comm);
     }
 }
 

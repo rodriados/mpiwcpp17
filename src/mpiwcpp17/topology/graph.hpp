@@ -31,7 +31,7 @@ namespace topology
     class graph : public detail::topology::blueprint
     {
         private:
-            using node_type = process::rank;
+            using node_type = process_t;
             using edge_type = std::pair<node_type, node_type>;
 
         private:

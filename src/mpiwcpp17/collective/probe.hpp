@@ -23,17 +23,17 @@ namespace collective
     /**
      * Inspects an incoming message and retrieves its status.
      * @param source The process to receive the message from.
-     * @param tagg The message's identifying tag.
+     * @param tag The message's identifying tag.
      * @param comm The communicator this operation applies to.
      * @return The inspected message status.
      */
-    inline status probe(
-        process::rank source = process::any
-      , tag::id tagg = tag::any
+    inline status_t probe(
+        process_t source = process::any
+      , tag_t tag = mpiwcpp17::tag::any
       , const communicator& comm = world
     ) {
-        status stt; guard(MPI_Probe(source, tagg, comm, stt));
-        return stt;
+        status_t s; guard(MPI_Probe(source, tag, comm, s));
+        return s;
     }
 }
 

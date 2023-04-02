@@ -12,32 +12,35 @@
 
 MPIWCPP17_BEGIN_NAMESPACE
 
+/**
+ * The type for identifying a specific MPI-process.
+ * @since 1.0
+ */
+using process_t = decltype(MPI_ANY_SOURCE);
+
 namespace process
 {
-    /**
-     * The type for identifying a specific MPI-process.
-     * @since 1.0
-     */
-    using rank = decltype(MPI_ANY_SOURCE);
+    enum : process_t
+    {
+        /**
+         * The root process identifier within a communicator.
+         * @since 1.0
+         */
+        root = process_t(0)
 
-    /**
-     * Defines a special process identifier that may represent any process.
-     * @since 1.0
-     */
-    inline constexpr process::rank any = MPI_ANY_SOURCE;
+        /**
+         * The special process identifier that may represent any process.
+         * @since 1.0
+         */
+      , any = MPI_ANY_SOURCE
 
-    /**
-     * Defines a special process identifier to indicate that some communication
-     * must not perform any effect.
-     * @since 1.0
-     */
-    inline constexpr process::rank null = MPI_PROC_NULL;
-
-    /**
-     * Defines a special process identifier to indicate the root of a communicator.
-     * @since 1.0
-     */
-    enum : process::rank { root = 0 };
+        /**
+         * The special process identifier to indicate that an operation must not
+         * perform any effect in any process.
+         * @since 1.0
+         */
+      , null = MPI_PROC_NULL
+    };
 }
 
 MPIWCPP17_END_NAMESPACE

@@ -12,19 +12,29 @@
 
 MPIWCPP17_BEGIN_NAMESPACE
 
+/**
+ * The identification or disambiguation value of a reception operation.
+ * @since 1.0
+ */
+using tag_t = decltype(MPI_ANY_TAG);
+
 namespace tag
 {
-    /**
-     * The type for identifying a message tag.
-     * @since 1.0
-     */
-    using id = decltype(MPI_ANY_TAG);
+    enum : tag_t
+    {
+        /**
+         * The special tag value for denoting that tags are unused or irrelevant for
+         * the reception operation.
+         * @since 1.0
+         */
+        any = MPI_ANY_TAG
 
-    /**
-     * Defines a special message tag for any unused or irrelevant tag.
-     * @since 1.0
-     */
-    inline constexpr tag::id any = MPI_ANY_TAG;
-}
+        /**
+         * The special tag value for denoting the highest possible tag value.
+         * @since 2.0
+         */
+      , ub = MPI_TAG_UB
+    };
+};
 
 MPIWCPP17_END_NAMESPACE

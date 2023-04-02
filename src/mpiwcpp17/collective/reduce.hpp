@@ -35,7 +35,7 @@ namespace collective
     inline typename payload<T>::return_type reduce(
         const payload<T>& in
       , const F& lambda = {}
-      , process::rank root = process::root
+      , process_t root = process::root
       , const communicator& comm = world
     ) {
         using R = typename payload<T>::element_type;
@@ -63,7 +63,7 @@ namespace collective
         T *data
       , size_t count
       , const F& lambda = {}
-      , process::rank root = process::root
+      , process_t root = process::root
       , const communicator& comm = world
     ) {
         auto msg = payload(data, count);
@@ -84,7 +84,7 @@ namespace collective
     inline typename payload<T>::return_type reduce(
         T& data
       , const F& lambda = {}
-      , process::rank root = process::root
+      , process_t root = process::root
       , const communicator& comm = world
     ) {
         auto msg = payload(data);

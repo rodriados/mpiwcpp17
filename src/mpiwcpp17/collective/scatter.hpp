@@ -37,7 +37,7 @@ namespace collective
     template <typename T>
     inline typename payload<T>::return_type scatter(
         const payload<T>& in
-      , process::rank root = process::root
+      , process_t root = process::root
       , const communicator& comm = world
       , flag::payload::uniform = {}
     ) {
@@ -61,7 +61,7 @@ namespace collective
         const payload<T>& in
       , const payload<int>& count
       , const payload<int>& displ
-      , process::rank root = process::root
+      , process_t root = process::root
       , const communicator& comm = world
       , flag::payload::varying = {}
     ) {
@@ -79,7 +79,7 @@ namespace collective
          * @param comm The communicator the operation applies to.
          * @return A tuple of payload elements' quantity and displacement.
          */
-        inline auto calculate_natural_distribution(size_t total, process::rank root, const communicator& comm)
+        inline auto calculate_natural_distribution(size_t total, process_t root, const communicator& comm)
         {
             total = collective::broadcast(&total, 1, root, comm);
 
@@ -114,7 +114,7 @@ namespace collective
     template <typename T>
     inline typename payload<T>::return_type scatter(
         const payload<T>& in
-      , process::rank root = process::root
+      , process_t root = process::root
       , const communicator& comm = world
       , flag::payload::varying = {}
     ) {
@@ -142,7 +142,7 @@ namespace collective
         T *data
       , const payload<int>& count
       , const payload<int>& displacement
-      , process::rank root = process::root
+      , process_t root = process::root
       , const communicator& comm = world
       , flag::payload::varying flag = {}
     ) {
@@ -168,7 +168,7 @@ namespace collective
         T& data
       , const payload<int>& count
       , const payload<int>& displacement
-      , process::rank root = process::root
+      , process_t root = process::root
       , const communicator& comm = world
       , flag::payload::varying flag = {}
     ) {
@@ -191,7 +191,7 @@ namespace collective
     inline typename payload<T>::return_type scatter(
         T *data
       , size_t count
-      , process::rank root = process::root
+      , process_t root = process::root
       , const communicator& comm = world
       , G flag = {}
     ) {
@@ -212,7 +212,7 @@ namespace collective
     template <typename T, typename G = flag::payload::varying>
     inline typename payload<T>::return_type scatter(
         T& data
-      , process::rank root = process::root
+      , process_t root = process::root
       , const communicator& comm = world
       , G flag = {}
     ) {
@@ -231,7 +231,7 @@ namespace collective
      * @return The resulting scattered message.
      */
     template <typename T, typename G>
-    inline typename payload<T>::return_type scatter(T *data, size_t count, process::rank root, G flag)
+    inline typename payload<T>::return_type scatter(T *data, size_t count, process_t root, G flag)
     {
         auto msg = payload(data, count);
         return collective::scatter<T>(msg, root, world, flag);
@@ -247,7 +247,7 @@ namespace collective
      * @return The resulting scattered message.
      */
     template <typename T, typename G>
-    inline typename payload<T>::return_type scatter(T& data, process::rank root, G flag)
+    inline typename payload<T>::return_type scatter(T& data, process_t root, G flag)
     {
         auto msg = payload(data);
         return collective::scatter<T>(msg, root, world, flag);

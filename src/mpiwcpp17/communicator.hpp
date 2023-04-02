@@ -34,7 +34,7 @@ struct communicator
         raw_type m_comm = MPI_COMM_NULL;
 
     public:
-        const process::rank rank = 0;
+        const process_t rank = 0;
         const int32_t size = 0;
 
     public:
@@ -51,12 +51,12 @@ struct communicator
         inline ~communicator();
 
         inline auto duplicate() const -> communicator;
-        inline auto split(int, process::rank = process::any) const -> communicator;
+        inline auto split(int, process_t = process::any) const -> communicator;
 
         inline bool empty() const;
 
     protected:
-        inline constexpr explicit communicator(const raw_type&, process::rank, int32_t) noexcept;
+        inline constexpr explicit communicator(const raw_type&, process_t, int32_t) noexcept;
 };
 
 /**
@@ -90,7 +90,7 @@ inline communicator::communicator(const raw_type& comm)
   : m_comm (comm)
 {
     if (!empty()) {
-        guard(MPI_Comm_rank(m_comm, const_cast<process::rank*>(&rank)));
+        guard(MPI_Comm_rank(m_comm, const_cast<process_t*>(&rank)));
         guard(MPI_Comm_size(m_comm, const_cast<int32_t*>(&size)));
         guard(MPI_Comm_set_errhandler(m_comm, MPI_ERRORS_RETURN));
     }
@@ -102,7 +102,7 @@ inline communicator::communicator(const raw_type& comm)
  * @param rank The current process rank within the communicator.
  * @param size The total amount of processes within the communicator.
  */
-inline constexpr communicator::communicator(const raw_type& comm, process::rank rank, int32_t size) noexcept
+inline constexpr communicator::communicator(const raw_type& comm, process_t rank, int32_t size) noexcept
   : m_comm (comm)
   , rank (rank)
   , size (size)
@@ -169,7 +169,7 @@ inline auto communicator::duplicate() const -> communicator
  * @param key The key used to assign a process id within the new communicator.
  * @return The communicator obtained from the split.
  */
-inline auto communicator::split(int color, process::rank key) const -> communicator
+inline auto communicator::split(int color, process_t key) const -> communicator
 {
     raw_type x; guard(MPI_Comm_split(m_comm, color, key, &x));
     return communicator (x);

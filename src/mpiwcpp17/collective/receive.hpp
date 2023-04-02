@@ -30,39 +30,39 @@ namespace collective
      * @tparam T The message's contents or container type.
      * @param out The message payload to receive from a process.
      * @param source The process to receive the message from.
-     * @param tagg The message's identifying tag.
+     * @param tag The message's identifying tag.
      * @param comm The communicator this operation applies to.
      * @return The message that has been received.
      */
     template <typename T>
-    inline std::tuple<status, typename payload<T>::return_type> receive(
+    inline std::tuple<status_t, typename payload<T>::return_type> receive(
         const payload<T>& out
-      , process::rank source = process::any
-      , tag::id tagg = tag::any
+      , process_t source = process::any
+      , tag_t tag = mpiwcpp17::tag::any
       , const communicator& comm = world
     ) {
-        status stt; guard(MPI_Recv(out, out.count, out.type, source, tagg, comm, stt));
-        return std::make_tuple(stt, out);
+        status_t s; guard(MPI_Recv(out, out.count, out.type, source, tag, comm, s));
+        return std::make_tuple(s, out);
     }
 
     /**
      * Receives a generic message from a process connected to a communicator.
      * @tparam T The message's contents or container type.
      * @param source The process to receive the message from.
-     * @param tagg The message's identifying tag.
+     * @param tag The message's identifying tag.
      * @param comm The communicator this operation applies to.
      * @return The message that has been received.
      */
     template <typename T>
-    inline std::tuple<status, typename payload<T>::return_type> receive(
-        process::rank source = process::any
-      , tag::id tagg = tag::any
+    inline std::tuple<status_t, typename payload<T>::return_type> receive(
+        process_t source = process::any
+      , tag_t tag = mpiwcpp17::tag::any
       , const communicator& comm = world
     ) {
         using E = typename payload<T>::element_type;
-        auto probed = collective::probe(source, tagg, comm);
+        auto probed = collective::probe(source, tag, comm);
         auto msg = payload<T>::create(status::count<E>(probed));
-        return collective::receive<T>(msg, source, tagg, comm);
+        return collective::receive<T>(msg, source, tag, comm);
     }
 }
 

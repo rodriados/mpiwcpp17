@@ -105,7 +105,7 @@ namespace global
      * The public reference to the current process's rank within world-communicator.
      * @since 1.0
      */
-    inline constexpr const process::rank& rank = world.rank;
+    inline constexpr const process_t& rank = world.rank;
 
     /**
      * The public reference to number of processes within the world-communicator.
