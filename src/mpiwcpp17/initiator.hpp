@@ -18,21 +18,21 @@ MPIWCPP17_BEGIN_NAMESPACE
  * be instatiated more than once.
  * @since 1.0
  */
-struct initiator
+struct initiator_t
 {
-    const thread_support thread_mode;
+    const thread_support_t thread_mode;
 
-    inline initiator(const initiator&) noexcept = delete;
-    inline initiator(initiator&&) noexcept = delete;
+    inline initiator_t(const initiator_t&) noexcept = delete;
+    inline initiator_t(initiator_t&&) noexcept = delete;
 
-    inline initiator& operator=(const initiator&) noexcept = delete;
-    inline initiator& operator=(initiator&&) noexcept = delete;
+    inline initiator_t& operator=(const initiator_t&) noexcept = delete;
+    inline initiator_t& operator=(initiator_t&&) noexcept = delete;
 
     /**
      * Initializes the internal MPI state and processes communication.
      * @param mode The desired process thread support level.
      */
-    inline initiator(thread_support mode = thread_support::single)
+    inline initiator_t(thread_support_t mode = thread_support_t::single)
       : thread_mode (mpiwcpp17::initialize(mode))
     {}
 
@@ -42,7 +42,7 @@ struct initiator
      * @param argv The list of processes' command line arguments.
      * @param mode The desired process thread support level.
      */
-    inline initiator(int *argc, char ***argv, thread_support mode = thread_support::single)
+    inline initiator_t(int *argc, char ***argv, thread_support_t mode = thread_support_t::single)
       : thread_mode (mpiwcpp17::initialize(argc, argv, mode))
     {}
 
@@ -50,7 +50,7 @@ struct initiator
      * Terminates the global MPI state and communication between processes.
      * @see mpi::finalize
      */
-    inline ~initiator()
+    inline ~initiator_t()
     {
         mpiwcpp17::finalize();
     }

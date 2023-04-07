@@ -25,50 +25,50 @@ MPIWCPP17_BEGIN_NAMESPACE
  * identifies it within such communicator.
  * @since 1.0
  */
-struct communicator
+struct communicator_t
 {
     public:
-        using raw_type = MPI_Comm;
+        using raw_t = MPI_Comm;
 
     protected:
-        raw_type m_comm = MPI_COMM_NULL;
+        raw_t m_comm = MPI_COMM_NULL;
 
     public:
-        const process_t rank = 0;
+        const process_t rank = process::root;
         const int32_t size = 0;
 
     public:
-        inline constexpr communicator() noexcept = default;
+        inline constexpr communicator_t() noexcept = default;
 
-        inline communicator(const communicator&);
-        inline communicator(communicator&&) noexcept;
-        inline explicit communicator(const raw_type&);
+        inline communicator_t(const communicator_t&);
+        inline communicator_t(communicator_t&&) noexcept;
+        inline explicit communicator_t(const raw_t&);
 
-        inline communicator& operator=(const communicator&);
-        inline communicator& operator=(communicator&&);
-        inline operator const raw_type() const;
+        inline communicator_t& operator=(const communicator_t&);
+        inline communicator_t& operator=(communicator_t&&);
+        inline operator const raw_t() const;
 
-        inline ~communicator();
+        inline ~communicator_t();
 
-        inline auto duplicate() const -> communicator;
-        inline auto split(int, process_t = process::any) const -> communicator;
+        inline auto duplicate() const -> communicator_t;
+        inline auto split(int, process_t = process::any) const -> communicator_t;
 
         inline bool empty() const;
 
     protected:
-        inline constexpr explicit communicator(const raw_type&, process_t, int32_t) noexcept;
+        inline constexpr explicit communicator_t(const raw_t&, process_t, int32_t) noexcept;
 };
 
 /**
  * Duplicates the communicator wrapped by another instance.
  * @param other The communicator to be duplicated.
  */
-inline communicator::communicator(const communicator& other)
+inline communicator_t::communicator_t(const communicator_t& other)
   : rank (other.rank)
   , size (other.size)
 {
     if (!other.empty()) {
-        guard(MPI_Comm_dup(other.m_comm, const_cast<raw_type*>(&m_comm)));
+        guard(MPI_Comm_dup(other.m_comm, const_cast<raw_t*>(&m_comm)));
     }
 }
 
@@ -76,17 +76,17 @@ inline communicator::communicator(const communicator& other)
  * Moves and transfers ownership of a wrapped communicator.
  * @param other The communicator to be moved.
  */
-inline communicator::communicator(communicator&& other) noexcept
-  : communicator (other.m_comm, other.rank, other.size)
+inline communicator_t::communicator_t(communicator_t&& other) noexcept
+  : communicator_t (other.m_comm, other.rank, other.size)
 {
-    new (&other) communicator ();
+    new (&other) communicator_t ();
 }
 
 /**
  * Instantiates a new communicator by acquiring ownership of a raw communicator.
  * @param comm The raw communicator identifier to be acquired.
  */
-inline communicator::communicator(const raw_type& comm)
+inline communicator_t::communicator_t(const raw_t& comm)
   : m_comm (comm)
 {
     if (!empty()) {
@@ -102,7 +102,7 @@ inline communicator::communicator(const raw_type& comm)
  * @param rank The current process rank within the communicator.
  * @param size The total amount of processes within the communicator.
  */
-inline constexpr communicator::communicator(const raw_type& comm, process_t rank, int32_t size) noexcept
+inline constexpr communicator_t::communicator_t(const raw_t& comm, process_t rank, int32_t size) noexcept
   : m_comm (comm)
   , rank (rank)
   , size (size)
@@ -113,11 +113,11 @@ inline constexpr communicator::communicator(const raw_type& comm, process_t rank
  * @param other The communicator to be copied.
  * @return The current communicator instance.
  */
-inline communicator& communicator::operator=(const communicator& other)
+inline communicator_t& communicator_t::operator=(const communicator_t& other)
 {
     if (m_comm == other.m_comm) { return *this; }
     detail::communicator::safety_free(m_comm);
-    return *new (this) communicator (other);
+    return *new (this) communicator_t (other);
 }
 
 /**
@@ -125,11 +125,11 @@ inline communicator& communicator::operator=(const communicator& other)
  * @param other The communicator to have its ownership moved.
  * @return The current communicator instance.
  */
-inline communicator& communicator::operator=(communicator&& other)
+inline communicator_t& communicator_t::operator=(communicator_t&& other)
 {
     if (m_comm == other.m_comm) { return *this; }
     detail::communicator::safety_free(m_comm);
-    return *new (this) communicator (std::forward<decltype(other)>(other));
+    return *new (this) communicator_t (std::forward<decltype(other)>(other));
 }
 
 /**
@@ -137,7 +137,7 @@ inline communicator& communicator::operator=(communicator&& other)
  * to be seamlessly used in native MPI functions.
  * @return The raw communicator identifier.
  */
-inline communicator::operator const raw_type() const
+inline communicator_t::operator const raw_t() const
 {
     return m_comm;
 }
@@ -146,7 +146,7 @@ inline communicator::operator const raw_type() const
  * Destroys a communicator wrapper and frees all owned resources.
  * @see communicator::communicator
  */
-inline communicator::~communicator()
+inline communicator_t::~communicator_t()
 {
     detail::communicator::safety_free(m_comm);
     m_comm = MPI_COMM_NULL;
@@ -156,10 +156,10 @@ inline communicator::~communicator()
  * Duplicates the communicator with all its processes and attached information.
  * @return The new duplicated communicator.
  */
-inline auto communicator::duplicate() const -> communicator
+inline auto communicator_t::duplicate() const -> communicator_t
 {
-    raw_type x; guard(MPI_Comm_dup(m_comm, &x));
-    return communicator (x);
+    raw_t x; guard(MPI_Comm_dup(m_comm, &x));
+    return communicator_t (x);
 }
 
 /**
@@ -169,17 +169,17 @@ inline auto communicator::duplicate() const -> communicator
  * @param key The key used to assign a process id within the new communicator.
  * @return The communicator obtained from the split.
  */
-inline auto communicator::split(int color, process_t key) const -> communicator
+inline auto communicator_t::split(int color, process_t key) const -> communicator_t
 {
-    raw_type x; guard(MPI_Comm_split(m_comm, color, key, &x));
-    return communicator (x);
+    raw_t x; guard(MPI_Comm_split(m_comm, color, key, &x));
+    return communicator_t (x);
 }
 
 /**
  * Checks whether the wrapper communicator is valid.
  * @return Is the communicator valid?
  */
-inline bool communicator::empty() const
+inline bool communicator_t::empty() const
 {
     return m_comm == MPI_COMM_NULL;
 }

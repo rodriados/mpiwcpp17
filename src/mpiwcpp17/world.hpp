@@ -23,7 +23,7 @@ MPIWCPP17_BEGIN_NAMESPACE
  * The level of MPI thread support.
  * @since 1.0
  */
-enum class thread_support : int32_t
+enum class thread_support_t : int32_t
 {
     single     = MPI_THREAD_SINGLE
   , funneled   = MPI_THREAD_FUNNELED
@@ -31,54 +31,55 @@ enum class thread_support : int32_t
   , multiple   = MPI_THREAD_MULTIPLE
 };
 
-/*
+/*#@+
  * Forward declaration of initialization and finalization rountines for the global
  * MPI state and processes communication.
  */
-inline auto initialize(int*, char***, thread_support = thread_support::single) -> thread_support;
+inline auto initialize(int*, char***, thread_support_t = thread_support_t::single) -> thread_support_t;
 inline auto initialized() -> bool;
-inline auto thread_mode() -> thread_support;
+inline auto thread_mode() -> thread_support_t;
 inline auto finalize() -> void;
 inline auto finalized() -> bool;
+/**#@-*/
 
-namespace detail::world
+namespace detail
 {
-    /**
-     * A wrapper for the globally available world communicator. This wrapper protects
-     * the world-communicator so that it can only be instantiated and modified when
-     * initializing or finalizing the global MPI state.
-     * @since 1.0
-     */
-    struct communicator final : public mpiwcpp17::communicator
-    {
-        inline constexpr communicator() noexcept = default;
-
-        /**
-         * Instantiates the globally available world communicator.
-         * @see mpi::initialize
-         */
-        inline explicit communicator(int)
-          : mpiwcpp17::communicator (MPI_COMM_WORLD)
-        {}
-
-        using mpiwcpp17::communicator::operator=;
-    };
-
     /**
      * A wrapper for the world-communicator singleton instance. The wrapper exposes
      * the world-communicator through a const-qualified reference, so that it can
-     * only be modified within selected scopes.
+     * only be modified within befriended scopes.
      * @since 1.0
      */
-    class instance
+    class world_t
     {
         private:
-            inline static detail::world::communicator s_world;
+            /**
+             * A wrapper for the globally available world communicator. This wrapper protects
+             * the world-communicator so that it can only be instantiated and modified when
+             * initializing or finalizing the global MPI state.
+             * @since 1.0
+             */
+            struct communicator_t : public mpiwcpp17::communicator_t {
+                inline constexpr communicator_t() noexcept = default;
+
+                /**
+                 * Instantiates the globally available world communicator.
+                 * @see mpi::initialize
+                 */
+                inline explicit communicator_t(int)
+                  : mpiwcpp17::communicator_t (MPI_COMM_WORLD)
+                {}
+
+                using mpiwcpp17::communicator_t::operator=;
+            };
+
+        private:
+            inline static communicator_t s_comm;
 
         public:
-            inline static constexpr const detail::world::communicator& ref = s_world;
+            inline static constexpr const communicator_t& s_ref = s_comm;
 
-        friend auto mpiwcpp17::initialize(int*, char***, thread_support) -> thread_support;
+        friend auto mpiwcpp17::initialize(int*, char***, thread_support_t) -> thread_support_t;
         friend auto mpiwcpp17::finalize() -> void;
     };
 
@@ -97,7 +98,7 @@ namespace detail::world
  * The public reference to the global world-communicator instance.
  * @since 1.0
  */
-inline constexpr const detail::world::communicator& world = detail::world::instance::ref;
+inline constexpr const communicator_t& world = detail::world_t::s_ref;
 
 namespace global
 {
@@ -119,7 +120,7 @@ namespace global
  * @param mode The desired process thread support level.
  * @return The provided thread support level.
  */
-inline auto initialize(thread_support mode = thread_support::single) -> thread_support
+inline auto initialize(thread_support_t mode = thread_support_t::single) -> thread_support_t
 {
     return initialize(nullptr, nullptr, mode);
 }
@@ -131,12 +132,12 @@ inline auto initialize(thread_support mode = thread_support::single) -> thread_s
  * @param mode The desired process thread support level.
  * @return The provided thread support level.
  */
-inline auto initialize(int *argc, char ***argv, thread_support mode) -> thread_support
+inline auto initialize(int *argc, char ***argv, thread_support_t mode) -> thread_support_t
 {
     if (int m; !initialized()) {
         guard(MPI_Init_thread(argc, argv, static_cast<int>(mode), &m));
-        new (&detail::world::instance::s_world) detail::world::communicator (0);
-        return static_cast<thread_support>(m);
+        new (&detail::world_t::s_comm) detail::world_t::communicator_t (0);
+        return static_cast<thread_support_t>(m);
     } else {
         return thread_mode();
     }
@@ -159,7 +160,7 @@ inline auto initialized() -> bool
  */
 inline void abort(int code = 1)
 {
-    for (auto& deferred : detail::world::deferred) { deferred(); }
+    for (auto& deferred : detail::deferred) { deferred(); }
     guard(MPI_Abort(world, code));
 }
 
@@ -167,10 +168,10 @@ inline void abort(int code = 1)
  * Queries the thread support level provided by the current MPI execution.
  * @return The provided thread support level.
  */
-inline auto thread_mode() -> thread_support
+inline auto thread_mode() -> thread_support_t
 {
     int m; guard(MPI_Query_thread(&m));
-    return static_cast<thread_support>(m);
+    return static_cast<thread_support_t>(m);
 }
 
 /**
@@ -180,8 +181,8 @@ inline auto thread_mode() -> thread_support
 inline auto finalize() -> void
 {
     if (!finalized()) {
-        for (auto& deferred : detail::world::deferred) { deferred(); }
-        detail::world::instance::s_world = std::move(communicator());
+        for (auto& deferred : detail::deferred) { deferred(); }
+        detail::world_t::s_comm = std::move(communicator_t());
         guard(MPI_Finalize());
     }
 }
