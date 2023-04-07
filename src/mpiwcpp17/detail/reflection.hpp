@@ -48,7 +48,7 @@ namespace detail::reflection
      * @since 1.0
      */
     template <typename T>
-    class reflector;
+    class reflector_t;
 
     /**
      * Tags a member property type to an index for overload resolution.
@@ -57,9 +57,9 @@ namespace detail::reflection
      * @since 1.0
      */
     template <typename T, size_t N>
-    struct tag
+    struct tag_t
     {
-        friend auto latch(tag<T, N>) noexcept;
+        friend auto latch(tag_t<T, N>) noexcept;
     };
 
     /**
@@ -70,7 +70,7 @@ namespace detail::reflection
      * @since 1.0
      */
     template <typename T, typename U, size_t N>
-    struct injector
+    struct injector_t
     {
         /**
          * Binds the extracted member type to its index within the target reflection
@@ -78,7 +78,7 @@ namespace detail::reflection
          * but only its return type.
          * @return The extracted type bound to the member index.
          */
-        friend inline auto latch(tag<T, N>) noexcept
+        friend inline auto latch(tag_t<T, N>) noexcept
         {
             return typename std::remove_all_extents<U>::type {};
         }
@@ -93,7 +93,7 @@ namespace detail::reflection
      * @since 1.0
      */
     template <typename T, size_t N>
-    struct decoy
+    struct decoy_t
     {
         /**
          * Injects and links an extracted member type into a latch, with its index,
@@ -102,7 +102,7 @@ namespace detail::reflection
          * @tparam I The index of the property member being analyzed.
          */
         template <typename U, size_t I>
-        static constexpr auto inject(...) -> injector<T, U, I>;
+        static constexpr auto inject(...) -> injector_t<T, U, I>;
 
         /**
          * Validates whether the property member under analysis has already been
@@ -110,7 +110,7 @@ namespace detail::reflection
          * @tparam I The index of the property member being processed.
          */
         template <typename, size_t I>
-        static constexpr auto inject(int) -> decltype(latch(tag<T, I>()));
+        static constexpr auto inject(int) -> decltype(latch(tag_t<T, I>()));
 
         /**
          * Morphs the decoy into the type of a property member of the target reflection
@@ -136,7 +136,7 @@ namespace detail::reflection
         return sizeof...(I) - 1;
     }
 
-    template <typename T, size_t ...I, typename = decltype(T{decoy<T, I>()...})>
+    template <typename T, size_t ...I, typename = decltype(T{decoy_t<T, I>()...})>
     inline constexpr auto count(int) noexcept -> size_t
     {
         return reflection::count<T, I..., sizeof...(I)>(0);
@@ -148,9 +148,9 @@ namespace detail::reflection
      * @tparam T The target type for reflexive-introspection.
      * @return The tuple of extracted types.
      */
-    template <typename T, size_t ...I, typename = decltype(T{decoy<T, I>()...})>
+    template <typename T, size_t ...I, typename = decltype(T{decoy_t<T, I>()...})>
     inline constexpr auto loophole(std::index_sequence<I...>)
-        -> detail::tuple<decltype(latch(tag<T, I>()))...>;
+        -> detail::tuple_t<decltype(latch(tag_t<T, I>()))...>;
 
     /**
      * Retrieves a tuple with the internal member types of the target type.
@@ -168,7 +168,7 @@ namespace detail::reflection
      * @since 1.0
      */
     template <typename T>
-    class reflector
+    class reflector_t
     {
         static_assert(!std::is_union<T>::value, "union types cannot be reflected");
         static_assert(std::is_trivial<T>::value, "only trivial types can be reflected");
@@ -179,15 +179,16 @@ namespace detail::reflection
              * @tparam U The tuple elements' type list.
              */
             template <typename ...U>
-            inline static constexpr auto to_storage_tuple(detail::tuple<U...>)
-                -> detail::tuple<typename std::aligned_storage<sizeof(U), alignof(U)>::type...>;
+            inline static constexpr auto to_storage_tuple(detail::tuple_t<U...>)
+                -> detail::tuple_t<typename std::aligned_storage<sizeof(U), alignof(U)>::type...>;
 
         public:
-            using reflection_tuple = decltype(reflection::loophole<T>());
-            using storage_tuple = decltype(to_storage_tuple(std::declval<reflection_tuple>()));
+            using reflection_tuple_t = decltype(reflection::loophole<T>());
+            using storage_tuple_t = decltype(to_storage_tuple(std::declval<reflection_tuple_t>()));
 
         static_assert(
-            sizeof(reflection_tuple) == sizeof(T) && alignof(reflection_tuple) == alignof(T)
+            sizeof(reflection_tuple_t)  == sizeof(T)
+         && alignof(reflection_tuple_t) == alignof(T)
           , "the produced reflection tuple is not compatible with the target type");
 
         public:
@@ -197,7 +198,7 @@ namespace detail::reflection
              */
             inline static constexpr auto count() noexcept -> size_t
             {
-                return reflection_tuple::count;
+                return reflection_tuple_t::count;
             }
 
             /**
@@ -206,7 +207,7 @@ namespace detail::reflection
              * @return The target member's memory offset.
              */
             template <size_t N>
-            inline static constexpr auto offset(const storage_tuple& t = {}) noexcept -> ptrdiff_t
+            inline static constexpr auto offset(const storage_tuple_t& t = {}) noexcept -> ptrdiff_t
             {
                 return reinterpret_cast<size_t>(&t.template get<N>())
                      - reinterpret_cast<size_t>(&t.template get<0>());

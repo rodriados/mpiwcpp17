@@ -22,7 +22,7 @@ namespace detail
      * @since 1.0
      */
     template <size_t I, typename T>
-    struct leaf
+    struct leaf_t
     {
         T value;
     };
@@ -36,7 +36,7 @@ namespace detail
      * @since 1.0
      */
     template <typename ...T>
-    struct tuple : public tuple<std::make_index_sequence<sizeof...(T)>, T...>
+    struct tuple_t : public tuple_t<std::make_index_sequence<sizeof...(T)>, T...>
     {
         static constexpr size_t count = sizeof...(T);
     };
@@ -48,7 +48,7 @@ namespace detail
      * @since 1.0
      */
     template <size_t ...I, typename ...T>
-    struct tuple<std::index_sequence<I...>, T...> : public detail::leaf<I, T>...
+    struct tuple_t<std::index_sequence<I...>, T...> : public detail::leaf_t<I, T>...
     {
         /**
          * Retrieves the value of a const-qualified tuple member by its index.
@@ -69,7 +69,7 @@ namespace detail
          * @return The const-qualified leaf's value.
          */
         template <size_t J, typename U>
-        inline constexpr static const U& get(const leaf<J, U>& leaf) noexcept
+        inline constexpr static const U& get(const leaf_t<J, U>& leaf) noexcept
         {
             return leaf.value;
         }

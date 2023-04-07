@@ -89,8 +89,8 @@ namespace detail
      * @see mpi::finalize
      */
     inline static constexpr const auto deferred = std::array {
-        &mpiwcpp17::datatype::descriptor::destroy
-      , &mpiwcpp17::functor::registry::destroy
+        &mpiwcpp17::datatype::descriptor_t::destroy
+      , &mpiwcpp17::functor::registry_t::destroy
     };
 }
 
@@ -160,7 +160,8 @@ inline auto initialized() -> bool
  */
 inline void abort(int code = 1)
 {
-    for (auto& deferred : detail::deferred) { deferred(); }
+    for (auto& deferred : detail::deferred)
+        (deferred)();
     guard(MPI_Abort(world, code));
 }
 
@@ -181,7 +182,8 @@ inline auto thread_mode() -> thread_support_t
 inline auto finalize() -> void
 {
     if (!finalized()) {
-        for (auto& deferred : detail::deferred) { deferred(); }
+        for (auto& deferred : detail::deferred)
+            (deferred)();
         detail::world_t::s_comm = std::move(communicator_t());
         guard(MPI_Finalize());
     }

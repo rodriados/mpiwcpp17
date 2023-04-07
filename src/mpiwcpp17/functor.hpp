@@ -17,20 +17,20 @@
 
 MPIWCPP17_BEGIN_NAMESPACE
 
+/**
+ * The type for a operator functor instance identifier. An identifier is needed
+ * for a functor to be used as operator for a reduce collective operation.
+ * @since 1.0
+ */
+using functor_t = MPI_Op;
+
 namespace functor
 {
-    /**
-     * The type for a operator functor instance identifier. An identifier is needed
-     * for a functor to be used as operator for a reduce collective operation.
-     * @since 1.0
-     */
-    using id = MPI_Op;
-
     /**
      * The raw MPI operator functor interface.
      * @since 1.0
      */
-    using raw_type = void(void*, void*, int*, datatype::id*);
+    using raw_t = void(void*, void*, int*, datatype_t*);
 
     /**
      * Registers a operator functor, allowing to be used with MPI collective operations.
@@ -38,25 +38,25 @@ namespace functor
      * @see functor::create
      * @since 1.0
      */
-    class registry
+    class registry_t
     {
         private:
-            functor::id m_funcid;
+            functor_t m_fid;
 
         private:
-            inline static std::vector<functor::id> funcids;
+            inline static std::vector<functor_t> s_functors;
 
         public:
-            inline registry() noexcept = delete;
-            inline registry(const registry&) noexcept = delete;
-            inline registry(registry&&) noexcept = delete;
+            inline registry_t() noexcept = delete;
+            inline registry_t(const registry_t&) noexcept = delete;
+            inline registry_t(registry_t&&) noexcept = delete;
 
-            inline registry(raw_type*, bool = true);
+            inline registry_t(raw_t*, bool = true);
 
-            inline registry& operator=(const registry&) noexcept = delete;
-            inline registry& operator=(registry&&) noexcept = delete;
+            inline registry_t& operator=(const registry_t&) noexcept = delete;
+            inline registry_t& operator=(registry_t&&) noexcept = delete;
 
-            inline operator functor::id() const noexcept;
+            inline operator functor_t() const noexcept;
             inline static void destroy();
     };
 
@@ -72,7 +72,7 @@ namespace functor
          * @param count The total number of elements to process during execution.
          */
         template <typename T, typename F>
-        void wrapper(void *a, void *b, int *count, datatype::id*)
+        void wrapper(void *a, void *b, int *count, datatype_t*)
         {
             auto f = F();
             auto x = static_cast<T*>(a);
@@ -95,10 +95,10 @@ namespace functor
      * @return The identifier of the created operator.
      */
     template <typename T, typename F>
-    inline auto create(bool commutative = true) -> functor::id
+    inline auto create(bool commutative = true) -> functor_t
     {
-        static auto registration = registry(&detail::wrapper<T, F>, commutative);
-        return (functor::id) registration;
+        static auto registration = registry_t(&detail::wrapper<T, F>, commutative);
+        return (functor_t) registration;
     }
 
     /**#@+
@@ -106,19 +106,19 @@ namespace functor
      * can be directly used in operations with the types they are built to.
      * @since 1.0
      */
-    inline static constexpr const functor::id max     = MPI_MAX;
-    inline static constexpr const functor::id min     = MPI_MIN;
-    inline static constexpr const functor::id add     = MPI_SUM;
-    inline static constexpr const functor::id mul     = MPI_PROD;
-    inline static constexpr const functor::id andl    = MPI_LAND;
-    inline static constexpr const functor::id andb    = MPI_BAND;
-    inline static constexpr const functor::id orl     = MPI_LOR;
-    inline static constexpr const functor::id orb     = MPI_BOR;
-    inline static constexpr const functor::id xorl    = MPI_LXOR;
-    inline static constexpr const functor::id xorb    = MPI_BXOR;
-    inline static constexpr const functor::id minloc  = MPI_MINLOC;
-    inline static constexpr const functor::id maxloc  = MPI_MAXLOC;
-    inline static constexpr const functor::id replace = MPI_REPLACE;
+    inline static constexpr const functor_t max     = MPI_MAX;
+    inline static constexpr const functor_t min     = MPI_MIN;
+    inline static constexpr const functor_t add     = MPI_SUM;
+    inline static constexpr const functor_t mul     = MPI_PROD;
+    inline static constexpr const functor_t andl    = MPI_LAND;
+    inline static constexpr const functor_t andb    = MPI_BAND;
+    inline static constexpr const functor_t orl     = MPI_LOR;
+    inline static constexpr const functor_t orb     = MPI_BOR;
+    inline static constexpr const functor_t xorl    = MPI_LXOR;
+    inline static constexpr const functor_t xorb    = MPI_BXOR;
+    inline static constexpr const functor_t minloc  = MPI_MINLOC;
+    inline static constexpr const functor_t maxloc  = MPI_MAXLOC;
+    inline static constexpr const functor_t replace = MPI_REPLACE;
     /**#@-*/
 
     /**
@@ -126,10 +126,10 @@ namespace functor
      * @param f The functor to be registered for use with MPI collectives.
      * @param commutative Is the operator being registered commutative?
      */
-    inline registry::registry(raw_type *f, bool commutative)
+    inline registry_t::registry_t(raw_t *f, bool commutative)
     {
-        guard(MPI_Op_create(f, commutative, &m_funcid));
-        funcids.push_back(m_funcid);
+        guard(MPI_Op_create(f, commutative, &m_fid));
+        s_functors.push_back(m_fid);
     }
 
     /**
@@ -137,19 +137,20 @@ namespace functor
      * to be used seamlessly with native MPI functions.
      * @return The internal MPI operator identifier.
      */
-    inline registry::operator functor::id() const noexcept
+    inline registry_t::operator functor_t() const noexcept
     {
-        return m_funcid;
+        return m_fid;
     }
 
     /**
      * Frees up the resources needed for storing operator functors' descriptions.
      * Effectively, after destruction, these operators are in invalid state.
-     * @see mpi::functor::registry
+     * @see mpi::functor::registry_t
      */
-    inline void registry::destroy()
+    inline void registry_t::destroy()
     {
-        for (auto& funcid : funcids) guard(MPI_Op_free(&funcid));
+        for (auto& fid : s_functors)
+            guard(MPI_Op_free(&fid));
     }
 }
 
