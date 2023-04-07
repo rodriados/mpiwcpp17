@@ -45,19 +45,18 @@ MPIWCPP17_BEGIN_NAMESPACE
  * @tparam E The exception type to be raised in case of error.
  * @param code The error code returned by the MPI call.
  */
-template <typename E = mpiwcpp17::exception>
-inline constexpr void guard(error::code code)
+template <typename E = mpiwcpp17::exception_t>
+inline constexpr void guard(error_t err)
 {
-    static_assert(std::is_base_of<mpiwcpp17::exception, E>::value
+    static_assert(std::is_base_of<mpiwcpp17::exception_t, E>::value
       , "only mpiwcpp17 exceptions are throwable from a guard");
 
   #if !defined(MPIWCPP17_AVOID_GUARD)
-    if MPIWCPP17_UNLIKELY (code != MPI_SUCCESS) {
-        throw E (error::describe(code));
+    if MPIWCPP17_UNLIKELY (err != error::success) {
+        throw E (error::describe(err));
     }
   #endif
 }
-
 
 MPIWCPP17_END_NAMESPACE
 
