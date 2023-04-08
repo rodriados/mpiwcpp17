@@ -26,21 +26,21 @@ namespace topology
      * @since 1.0
      */
     template <typename T>
-    class communicator : public std::enable_if<
-        std::is_base_of<detail::topology::blueprint, T>::value
-      , mpiwcpp17::communicator
+    class communicator_t : public std::enable_if<
+        std::is_base_of<detail::topology::blueprint_t, T>::value
+      , mpiwcpp17::communicator_t
     >::type
     {
         private:
-            using underlying_type = mpiwcpp17::communicator;
+            using underlying_t = mpiwcpp17::communicator_t;
 
         protected:
-            using raw_type = typename underlying_type::raw_type;
+            using raw_t = typename underlying_t::raw_t;
 
         public:
-            inline constexpr communicator() noexcept = default;
-            inline communicator(const communicator&) = default;
-            inline communicator(communicator&&) noexcept = default;
+            inline constexpr communicator_t() noexcept = default;
+            inline communicator_t(const communicator_t&) = default;
+            inline communicator_t(communicator_t&&) noexcept = default;
 
             /**
              * Initializes a new topology communicator from a previously created
@@ -49,12 +49,12 @@ namespace topology
              * @param topology The topology blueprint to apply over the communicator.
              * @param reorder May the processes' ranks be reordered in the new communicator?
              */
-            inline explicit communicator(const raw_type& comm, const T& topology, bool reorder = true)
-              : underlying_type (topology.commit(comm, reorder))
+            inline explicit communicator_t(const raw_t& comm, const T& topology, bool reorder = true)
+              : underlying_t (topology.commit(comm, reorder))
             {}
 
-            inline communicator& operator=(const communicator&) = default;
-            inline communicator& operator=(communicator&&) = default;
+            inline communicator_t& operator=(const communicator_t&) = default;
+            inline communicator_t& operator=(communicator_t&&) = default;
 
             /**
              * Retrieves and extracts the underlying topology blueprint that has
@@ -66,8 +66,8 @@ namespace topology
                 typename U = T
               , typename = typename std::enable_if<
                     std::is_base_of<
-                        detail::topology::blueprint
-                      , decltype(U::extract(std::declval<communicator>()))
+                        detail::topology::blueprint_t
+                      , decltype(U::extract(std::declval<communicator_t>()))
                     >::value
                 >::type
             >

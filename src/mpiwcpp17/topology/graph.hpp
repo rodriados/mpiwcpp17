@@ -28,31 +28,31 @@ namespace topology
      * @see mpiwcpp17::topology::graph
      * @since 1.0
      */
-    class graph : public detail::topology::blueprint
+    class graph_t : public detail::topology::blueprint_t
     {
         private:
-            using node_type = process_t;
-            using edge_type = std::pair<node_type, node_type>;
+            using node_t = process_t;
+            using edge_t = std::pair<node_t, node_t>;
 
         private:
-            std::set<edge_type> m_edges = {};
+            std::set<edge_t> m_edges = {};
 
         private:
             template <typename T>
-            using valid_iterator = std::void_t<
+            using valid_iterator_t = std::void_t<
                 decltype(std::declval<T&>().begin())
               , decltype(std::declval<T&>().end())>;
 
         public:
-            inline graph() = default;
-            inline graph(const graph&) = default;
-            inline graph(graph&&) = default;
+            inline graph_t() = default;
+            inline graph_t(const graph_t&) = default;
+            inline graph_t(graph_t&&) = default;
 
             /**
              * Initializes a new blueprint from a list of graph edges.
              * @param edges The list of edges to initialize the blueprint with.
              */
-            inline graph(const std::initializer_list<edge_type>& edges)
+            inline graph_t(const std::initializer_list<edge_t>& edges)
               : m_edges (edges.begin(), edges.end())
             {}
 
@@ -61,17 +61,17 @@ namespace topology
              * @tparam C The container type to get graph edges from.
              * @param edges The container of edges to initialize the blueprint with.
              */
-            template <typename C, typename = valid_iterator<C>>
-            inline graph(const C& edges)
+            template <typename C, typename = valid_iterator_t<C>>
+            inline graph_t(const C& edges)
               : m_edges (edges.begin(), edges.end())
             {}
 
-            inline graph& operator=(const graph&) = default;
-            inline graph& operator=(graph&&) = default;
+            inline graph_t& operator=(const graph_t&) = default;
+            inline graph_t& operator=(graph_t&&) = default;
 
         public:
-            inline raw_type commit(const raw_type&, bool = true) const override;
-            inline static auto extract(const raw_type&) -> graph;
+            inline raw_t commit(const raw_t&, bool = true) const override;
+            inline static auto extract(const raw_t&) -> graph_t;
 
         public:
             /**
@@ -97,16 +97,16 @@ namespace topology
              * @param x The origin process of the new edge.
              * @param y The destination process of the new edge.
              */
-            inline void insert(node_type x, node_type y)
+            inline void insert(node_t x, node_t y)
             {
-                m_edges.insert(edge_type(x, y));
+                m_edges.insert(edge_t(x, y));
             }
 
             /**
              * Inserts new directed edges to the communicator graph blueprint.
              * @param edges The list of edges to be added to the graph blueprint.
              */
-            inline void insert(const std::initializer_list<edge_type>& edges)
+            inline void insert(const std::initializer_list<edge_t>& edges)
             {
                 m_edges.insert(edges.begin(), edges.end());
             }
@@ -117,7 +117,7 @@ namespace topology
              * @tparam C The container type to insert new graph edges from.
              * @param edges The container of edges to be added to the graph blueprint.
              */
-            template <typename C, typename = valid_iterator<C>>
+            template <typename C, typename = valid_iterator_t<C>>
             inline void insert(const C& edges)
             {
                 m_edges.insert(edges.begin(), edges.end());
@@ -128,18 +128,19 @@ namespace topology
              * @param x The origin process of the edge to be removed.
              * @param y The destination process of the edge to be removed.
              */
-            inline void remove(node_type x, node_type y)
+            inline void remove(node_t x, node_t y)
             {
-                m_edges.erase(edge_type(x, y));
+                m_edges.erase(edge_t(x, y));
             }
 
             /**
              * Removes existing edges from the communicator graph blueprint.
              * @param edges The edges to be removed from graph blueprint.
              */
-            inline void remove(const std::initializer_list<edge_type>& edges)
+            inline void remove(const std::initializer_list<edge_t>& edges)
             {
-                for (const auto& edge : edges) { m_edges.erase(edge); }
+                for (const auto& edge : edges)
+                    m_edges.erase(edge);
             }
 
             /**
@@ -147,10 +148,11 @@ namespace topology
              * @tparam C The container type of edges to remove from graph.
              * @param edges The container of edges to be removed from graph blueprint.
              */
-            template <typename C, typename = valid_iterator<C>>
+            template <typename C, typename = valid_iterator_t<C>>
             inline void remove(const C& edges)
             {
-                for (const auto& edge : edges) { m_edges.erase(edge); }
+                for (const auto& edge : edges)
+                    m_edges.erase(edge);
             }
     };
 
@@ -160,7 +162,7 @@ namespace topology
      * @param reorder May process ranks be reassigned within new communicator?
      * @return The new topology-applied communicator.
      */
-    inline auto graph::commit(const raw_type& comm, bool reorder) const -> raw_type
+    inline auto graph_t::commit(const raw_t& comm, bool reorder) const -> raw_t
     {
         int32_t it = 0, count = 0;
 
@@ -173,7 +175,7 @@ namespace topology
         for (auto [x, y] : m_edges)
             { ++index[x]; edges[it++] = y; }
 
-        raw_type x;
+        raw_t x;
         std::partial_sum(index, index + count, index);
         guard(MPI_Graph_create(comm, count, index, edges, reorder, &x));
 
@@ -187,7 +189,7 @@ namespace topology
      * @param comm The topology-enabled communicator to extract topology from.
      * @return The topology extracted from the given communicator.
      */
-    inline auto graph::extract(const raw_type& comm) -> graph
+    inline auto graph_t::extract(const raw_t& comm) -> graph_t
     {
         int32_t node_count, edge_count;
         guard(MPI_Graphdims_get(comm, &node_count, &edge_count));
@@ -196,14 +198,14 @@ namespace topology
         int32_t *edges = new int32_t[edge_count]();
         guard(MPI_Graph_get(comm, node_count, edge_count, index, edges));
 
-        auto edge_list = std::vector<edge_type>();
+        auto edge_list = std::vector<edge_t>();
 
         for (int32_t i = 0, j = 0; i < node_count && j < edge_count; ++i)
             while (j < index[i]) edge_list.push_back({i, edges[j++]});
 
         delete[] index;
         delete[] edges;
-        return graph(edge_list);
+        return graph_t(edge_list);
     }
 }
 

@@ -29,36 +29,36 @@ namespace topology
      * @since 1.0
      */
     template <size_t N>
-    class cartesian : public detail::topology::blueprint
+    class cartesian_t : public detail::topology::blueprint_t
     {
         private:
-            using dimension_type = std::array<int32_t, N>;
+            using dimension_t = std::array<int32_t, N>;
 
         private:
-            dimension_type m_dimensions = {};
-            dimension_type m_periodic = {};
+            dimension_t m_dimensions = {};
+            dimension_t m_periodic = {};
 
         public:
-            inline constexpr cartesian() = default;
-            inline cartesian(const cartesian&) = default;
-            inline cartesian(cartesian&&) = default;
+            inline constexpr cartesian_t() = default;
+            inline cartesian_t(const cartesian_t&) = default;
+            inline cartesian_t(cartesian_t&&) = default;
 
             /**
              * Initializes a new blueprint with cartesian dimensions.
              * @param dimensions The size of each blueprint's cartesian dimensions.
              * @param periodic Informs whether each dimension is periodic or not.
              */
-            inline cartesian(const dimension_type& dimensions, const dimension_type& periodic = {})
+            inline cartesian_t(const dimension_t& dimensions, const dimension_t& periodic = {})
               : m_dimensions (dimensions)
               , m_periodic (periodic)
             {}
 
-            inline cartesian& operator=(const cartesian&) = default;
-            inline cartesian& operator=(cartesian&&) = default;
+            inline cartesian_t& operator=(const cartesian_t&) = default;
+            inline cartesian_t& operator=(cartesian_t&&) = default;
 
         public:
-            inline raw_type commit(const raw_type&, bool = true) const override;
-            inline static auto extract(const raw_type&) -> cartesian;
+            inline raw_t commit(const raw_t&, bool = true) const override;
+            inline static auto extract(const raw_t&) -> cartesian_t;
     };
 
     /**
@@ -69,9 +69,9 @@ namespace topology
      * @return The new topology-applied communicator.
      */
     template <size_t N>
-    inline auto cartesian<N>::commit(const raw_type& comm, bool reorder) const -> raw_type
+    inline auto cartesian_t<N>::commit(const raw_t& comm, bool reorder) const -> raw_t
     {
-        raw_type x;
+        raw_t x;
         const int32_t *dimensions = m_dimensions.data();
         const int32_t *periodic = m_periodic.data();
 
@@ -86,15 +86,15 @@ namespace topology
      * @return The topology extracted from the given communicator.
      */
     template <size_t N>
-    inline auto cartesian<N>::extract(const raw_type& comm) -> cartesian
+    inline auto cartesian_t<N>::extract(const raw_t& comm) -> cartesian_t
     {
-        dimension_type dimensions, periodic, coords;
+        dimension_t dimensions, periodic, coords;
         int32_t *raw_dimensions = dimensions.data();
         int32_t *raw_periodic = periodic.data();
         int32_t *_ = coords.data();
 
         guard(MPI_Cart_get(comm, N, raw_dimensions, raw_periodic, _));
-        return cartesian(dimensions, periodic);
+        return cartesian_t(dimensions, periodic);
     }
 }
 

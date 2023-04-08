@@ -20,10 +20,10 @@ namespace detail::topology
      * The abstract base for all topology-enabled communicator blueprints.
      * @since 1.0
      */
-    class blueprint
+    class blueprint_t
     {
         public:
-            using raw_type = mpiwcpp17::communicator::raw_type;
+            using raw_t = mpiwcpp17::communicator_t::raw_t;
 
         public:
             /**
@@ -32,7 +32,7 @@ namespace detail::topology
              * @param reorder May process ranks be reassigned within new communicator?
              * @return The new topology-applied communicator.
              */
-            virtual raw_type commit(const raw_type& comm, bool reorder = true) const = 0;
+            virtual raw_t commit(const raw_t& comm, bool reorder = true) const = 0;
     };
 }
 
