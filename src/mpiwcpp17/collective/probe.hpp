@@ -28,9 +28,9 @@ namespace collective
      * @return The inspected message status.
      */
     inline status_t probe(
-        process_t source = process::any
-      , tag_t tag = mpiwcpp17::tag::any
-      , const communicator& comm = world
+        const process_t source = process::any
+      , const tag_t tag = mpiwcpp17::tag::any
+      , const communicator_t& comm = world
     ) {
         status_t s; guard(MPI_Probe(source, tag, comm, s));
         return s;

@@ -32,12 +32,12 @@ namespace collective
      * @return The resulting gathered message.
      */
     template <typename T>
-    inline typename payload<T>::return_type allgather(
-        const payload<T>& in
-      , const communicator& comm = world
+    inline typename payload_t<T>::return_t allgather(
+        const payload_t<T>& in
+      , const communicator_t& comm = world
       , flag::payload::uniform = {}
     ) {
-        auto out = payload<T>::create(in.count * comm.size);
+        auto out = payload::create<T>(in.count * comm.size);
         guard(MPI_Allgather(in, in.count, in.type, out, in.count, in.type, comm));
         return out;
     }
@@ -53,15 +53,15 @@ namespace collective
      * @return The resulting gathered message.
      */
     template <typename T>
-    inline typename payload<T>::return_type allgather(
-        const payload<T>& in
-      , const payload<int>& count
-      , const payload<int>& displ
-      , const communicator& comm = world
+    inline typename payload_t<T>::return_t allgather(
+        const payload_t<T>& in
+      , const payload_t<int>& count
+      , const payload_t<int>& displ
+      , const communicator_t& comm = world
       , flag::payload::varying = {}
     ) {
         auto total = std::accumulate(count.begin(), count.end(), 0);
-        auto out = payload<T>::create(total);
+        auto out = payload::create<T>(total);
         guard(MPI_Allgatherv(in, in.count, in.type, out, count, displ, in.type, comm));
         return out;
     }
@@ -74,10 +74,10 @@ namespace collective
          * @param comm The communicator the operation applies to.
          * @return A tuple of payload elements' quantity and displacement.
          */
-        inline auto calculate_natural_displacements(size_t total, const communicator& comm)
+        inline auto calculate_displacements(size_t total, const communicator_t& comm)
         {
             bool uniform = true;
-            auto displacement = payload<int>::create(comm.size);
+            auto displacement = payload::create<int>(comm.size);
             auto count = collective::allgather<int>({(int)total}, comm, flag::payload::uniform());
 
             for (int32_t i = 0; i < comm.size; ++i) {
@@ -96,12 +96,12 @@ namespace collective
      * @return The resulting gathered message.
      */
     template <typename T>
-    inline typename payload<T>::return_type allgather(
-        const payload<T>& in
-      , const communicator& comm = world
+    inline typename payload_t<T>::return_t allgather(
+        const payload_t<T>& in
+      , const communicator_t& comm = world
       , flag::payload::varying = {}
     ) {
-        auto [uniform, count, displ] = detail::calculate_natural_displacements(in.count, comm);
+        auto [uniform, count, displ] = detail::calculate_displacements(in.count, comm);
         return uniform
             ? collective::allgather<T>(in, comm, flag::payload::uniform())
             : collective::allgather<T>(in, count, displ, comm, flag::payload::varying());
@@ -119,14 +119,14 @@ namespace collective
      * @return The resulting gathered message.
      */
     template <typename T>
-    inline typename payload<T>::return_type allgather(
+    inline typename payload_t<T>::return_t allgather(
         T *data
-      , const payload<int>& count
-      , const payload<int>& displacement
-      , const communicator& comm = world
+      , const payload_t<int>& count
+      , const payload_t<int>& displacement
+      , const communicator_t& comm = world
       , flag::payload::varying flag = {}
     ) {
-        auto msg = payload(data, count[comm.rank]);
+        auto msg = payload_t(data, count[comm.rank]);
         return collective::allgather<T>(msg, count, displacement, comm, flag);
     }
 
@@ -142,14 +142,14 @@ namespace collective
      * @return The resulting gathered message.
      */
     template <typename T>
-    inline typename payload<T>::return_type allgather(
+    inline typename payload_t<T>::return_t allgather(
         T& data
-      , const payload<int>& count
-      , const payload<int>& displacement
-      , const communicator& comm = world
+      , const payload_t<int>& count
+      , const payload_t<int>& displacement
+      , const communicator_t& comm = world
       , flag::payload::varying flag = {}
     ) {
-        auto msg = payload(data); msg.count = count[comm.rank];
+        auto msg = payload_t(data); msg.count = count[comm.rank];
         return collective::allgather<T>(msg, count, displacement, comm, flag);
     }
 
@@ -164,13 +164,13 @@ namespace collective
      * @return The resulting gathered message.
      */
     template <typename T, typename G = flag::payload::varying>
-    inline typename payload<T>::return_type allgather(
+    inline typename payload_t<T>::return_t allgather(
         T *data
-      , size_t count
-      , const communicator& comm = world
+      , const size_t count
+      , const communicator_t& comm = world
       , G flag = {}
     ) {
-        auto msg = payload(data, count);
+        auto msg = payload_t(data, count);
         return collective::allgather<T>(msg, comm, flag);
     }
 
@@ -184,12 +184,12 @@ namespace collective
      * @return The resulting gathered message.
      */
     template <typename T, typename G = flag::payload::varying>
-    inline typename payload<T>::return_type allgather(
+    inline typename payload_t<T>::return_t allgather(
         T& data
-      , const communicator& comm = world
+      , const communicator_t& comm = world
       , G flag = {}
     ) {
-        auto msg = payload(data);
+        auto msg = payload_t(data);
         return collective::allgather<T>(msg, comm, flag);
     }
 
@@ -203,9 +203,9 @@ namespace collective
      * @return The resulting gathered message.
      */
     template <typename T, typename G>
-    inline typename payload<T>::return_type allgather(T *data, size_t count, G flag)
+    inline typename payload_t<T>::return_t allgather(T *data, const size_t count, G flag)
     {
-        auto msg = payload(data, count);
+        auto msg = payload_t(data, count);
         return collective::allgather<T>(msg, world, flag);
     }
 
@@ -218,9 +218,9 @@ namespace collective
      * @return The resulting gathered message.
      */
     template <typename T, typename G>
-    inline typename payload<T>::return_type allgather(T& data, G flag)
+    inline typename payload_t<T>::return_t allgather(T& data, G flag)
     {
-        auto msg = payload(data);
+        auto msg = payload_t(data);
         return collective::allgather<T>(msg, world, flag);
     }
 }

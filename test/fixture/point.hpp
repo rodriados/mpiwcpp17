@@ -14,7 +14,7 @@
  * @since 1.0
  */
 template <typename T = double>
-struct point
+struct point_t
 {
     T x, y;
 };
@@ -26,9 +26,12 @@ struct point
  * @return The MPI type descriptor instance.
  */
 template <typename T>
-inline mpi::datatype::descriptor mpi::datatype::describe<point<T>>()
+inline mpi::datatype::descriptor_t mpi::datatype::describe<point_t<T>>()
 {
-    return mpi::datatype::descriptor(&point<T>::x, &point<T>::y);
+    return mpi::datatype::descriptor_t(
+        &point_t<T>::x
+      , &point_t<T>::y
+    );
 }
 
 #endif

@@ -30,14 +30,14 @@ namespace collective
      * @return The resulting reduced message.
      */
     template <typename F, typename T>
-    inline typename payload<T>::return_type allreduce(
-        const payload<T>& in
+    inline typename payload_t<T>::return_t allreduce(
+        const payload_t<T>& in
       , const F& lambda = {}
-      , const communicator& comm = world
+      , const communicator_t& comm = world
     ) {
-        using R = typename payload<T>::element_type;
+        using R = typename payload_t<T>::element_t;
         auto f = detail::collective::resolve_functor<R>(lambda);
-        auto out = payload<T>::create(in.count);
+        auto out = payload::create<T>(in.count);
         guard(MPI_Allreduce(in, out, in.count, in.type, f, comm));
         return out;
     }
@@ -53,13 +53,13 @@ namespace collective
      * @return The resulting reduced message.
      */
     template <typename F, typename T>
-    inline typename payload<T>::return_type allreduce(
+    inline typename payload_t<T>::return_t allreduce(
         T *data
-      , size_t count
+      , const size_t count
       , const F& lambda = {}
-      , const communicator& comm = world
+      , const communicator_t& comm = world
     ) {
-        auto msg = payload(data, count);
+        auto msg = payload_t(data, count);
         return collective::allreduce<F,T>(msg, lambda, comm);
     }
 
@@ -73,12 +73,12 @@ namespace collective
      * @return The resulting reduced message.
      */
     template <typename F, typename T>
-    inline typename payload<T>::return_type allreduce(
+    inline typename payload_t<T>::return_t allreduce(
         T& data
       , const F& lambda = {}
-      , const communicator& comm = world
+      , const communicator_t& comm = world
     ) {
-        auto msg = payload(data);
+        auto msg = payload_t(data);
         return collective::allreduce<F,T>(msg, lambda, comm);
     }
 }

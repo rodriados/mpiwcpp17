@@ -35,11 +35,11 @@ namespace collective
      * @return The message that has been received.
      */
     template <typename T>
-    inline std::tuple<status_t, typename payload<T>::return_type> receive(
-        const payload<T>& out
-      , process_t source = process::any
-      , tag_t tag = mpiwcpp17::tag::any
-      , const communicator& comm = world
+    inline std::tuple<status_t, typename payload_t<T>::return_t> receive(
+        const payload_t<T>& out
+      , const process_t source = process::any
+      , const tag_t tag = mpiwcpp17::tag::any
+      , const communicator_t& comm = world
     ) {
         status_t s; guard(MPI_Recv(out, out.count, out.type, source, tag, comm, s));
         return std::make_tuple(s, out);
@@ -54,14 +54,14 @@ namespace collective
      * @return The message that has been received.
      */
     template <typename T>
-    inline std::tuple<status_t, typename payload<T>::return_type> receive(
-        process_t source = process::any
-      , tag_t tag = mpiwcpp17::tag::any
-      , const communicator& comm = world
+    inline std::tuple<status_t, typename payload_t<T>::return_t> receive(
+        const process_t source = process::any
+      , const tag_t tag = mpiwcpp17::tag::any
+      , const communicator_t& comm = world
     ) {
-        using E = typename payload<T>::element_type;
+        using E = typename payload_t<T>::element_t;
         auto probed = collective::probe(source, tag, comm);
-        auto msg = payload<T>::create(status::count<E>(probed));
+        auto msg = payload::create<T>(status::count<E>(probed));
         return collective::receive<T>(msg, source, tag, comm);
     }
 }

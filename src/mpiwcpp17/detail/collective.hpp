@@ -22,7 +22,7 @@ namespace detail::collective
      * @return The resolved functor identifier.
      */
     template <typename T>
-    inline auto resolve_functor(functor::id f) noexcept -> functor::id
+    inline auto resolve_functor(functor_t f) noexcept -> functor_t
     {
         return f;
     }
@@ -39,7 +39,7 @@ namespace detail::collective
         std::is_class<F>::value &&
         std::is_default_constructible<F>::value &&
         std::is_invocable_r<T, F, const T&, const T&>::value
-      , functor::id
+      , functor_t
     >::type
     {
         return functor::create<T,F>(false);
@@ -57,19 +57,19 @@ namespace detail::collective
     -> typename std::enable_if<
         !std::is_default_constructible<F>::value &&
         std::is_invocable_r<T, F, const T&, const T&>::value
-      , functor::id
+      , functor_t
     >::type
     {
         static typename std::conditional<std::is_function<F>::value, F*, F>::type lambda = f;
 
-        using wrapperf = struct {
+        using wrapper_t = struct {
             inline T operator()(const T& a, const T& b) {
                 return (lambda)(a, b);
             }
         };
 
         new (&lambda) decltype(lambda) {f};
-        return detail::collective::resolve_functor<T>(wrapperf());
+        return detail::collective::resolve_functor<T>(wrapper_t());
     }
 }
 

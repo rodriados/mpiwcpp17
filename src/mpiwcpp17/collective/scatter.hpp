@@ -35,13 +35,13 @@ namespace collective
      * @return The resulting scattered message.
      */
     template <typename T>
-    inline typename payload<T>::return_type scatter(
-        const payload<T>& in
-      , process_t root = process::root
-      , const communicator& comm = world
+    inline typename payload_t<T>::return_t scatter(
+        const payload_t<T>& in
+      , const process_t root = process::root
+      , const communicator_t& comm = world
       , flag::payload::uniform = {}
     ) {
-        auto out = payload<T>::create(in.count / comm.size);
+        auto out = payload::create<T>(in.count / comm.size);
         guard(MPI_Scatter(in, out.count, in.type, out, out.count, in.type, root, comm));
         return out;
     }
@@ -57,15 +57,15 @@ namespace collective
      * @return The resulting scattered message.
      */
     template <typename T>
-    inline typename payload<T>::return_type scatter(
-        const payload<T>& in
-      , const payload<int>& count
-      , const payload<int>& displ
-      , process_t root = process::root
-      , const communicator& comm = world
+    inline typename payload_t<T>::return_t scatter(
+        const payload_t<T>& in
+      , const payload_t<int>& count
+      , const payload_t<int>& displ
+      , const process_t root = process::root
+      , const communicator_t& comm = world
       , flag::payload::varying = {}
     ) {
-        auto out = payload<T>::create(count[comm.rank]);
+        auto out = payload::create<T>(count[comm.rank]);
         guard(MPI_Scatterv(in, count, displ, in.type, out, out.count, in.type, root, comm));
         return out;
     }
@@ -79,19 +79,21 @@ namespace collective
          * @param comm The communicator the operation applies to.
          * @return A tuple of payload elements' quantity and displacement.
          */
-        inline auto calculate_natural_distribution(size_t total, process_t root, const communicator& comm)
-        {
+        inline auto calculate_distribution(
+            size_t total
+          , const process_t root
+          , const communicator_t& comm
+        ) {
+            payload_t<int> count, displacement;
             total = collective::broadcast(&total, 1, root, comm);
 
-            payload<int> count, displacement;
             int32_t quotient  = total / comm.size;
             int32_t remainder = total % comm.size;
-
-            bool uniform = remainder == 0;
+            bool uniform = (remainder == 0);
 
             if (!uniform) {
-                count = payload<int>::create(comm.size);
-                displacement = payload<int>::create(comm.size);
+                count = payload::create<int>(comm.size);
+                displacement = payload::create<int>(comm.size);
 
                 for (int32_t i = 0; i < comm.size; ++i) {
                     count[i] = quotient + (remainder > i);
@@ -112,14 +114,14 @@ namespace collective
      * @return The resulting scattered message.
      */
     template <typename T>
-    inline typename payload<T>::return_type scatter(
-        const payload<T>& in
-      , process_t root = process::root
-      , const communicator& comm = world
+    inline typename payload_t<T>::return_t scatter(
+        const payload_t<T>& in
+      , const process_t root = process::root
+      , const communicator_t& comm = world
       , flag::payload::varying = {}
     ) {
-        auto [uniform, total, count, displ] = detail::calculate_natural_distribution(in.count, root, comm);
-        auto msg = payload<typename payload<T>::element_type>(in.ptr, total);
+        auto [uniform, total, count, displ] = detail::calculate_distribution(in.count, root, comm);
+        auto msg = payload_t(in.ptr, total);
         return uniform
             ? collective::scatter(msg, root, comm, flag::payload::uniform())
             : collective::scatter(msg, count, displ, root, comm, flag::payload::varying());
@@ -138,16 +140,16 @@ namespace collective
      * @return The resulting scattered message.
      */
     template <typename T>
-    inline typename payload<T>::return_type scatter(
+    inline typename payload_t<T>::return_t scatter(
         T *data
-      , const payload<int>& count
-      , const payload<int>& displacement
-      , process_t root = process::root
-      , const communicator& comm = world
+      , const payload_t<int>& count
+      , const payload_t<int>& displacement
+      , const process_t root = process::root
+      , const communicator_t& comm = world
       , flag::payload::varying flag = {}
     ) {
         auto total = std::accumulate(count.begin(), count.end(), 0);
-        auto msg = payload(data, total);
+        auto msg = payload_t(data, total);
         return collective::scatter<T>(msg, root, comm, flag);
     }
 
@@ -164,15 +166,15 @@ namespace collective
      * @return The resulting scattered message.
      */
     template <typename T>
-    inline typename payload<T>::return_type scatter(
+    inline typename payload_t<T>::return_t scatter(
         T& data
-      , const payload<int>& count
-      , const payload<int>& displacement
-      , process_t root = process::root
-      , const communicator& comm = world
+      , const payload_t<int>& count
+      , const payload_t<int>& displacement
+      , const process_t root = process::root
+      , const communicator_t& comm = world
       , flag::payload::varying flag = {}
     ) {
-        auto msg = payload(data);
+        auto msg = payload_t(data);
         return collective::scatter<T>(msg, root, comm, flag);
     }
 
@@ -188,14 +190,14 @@ namespace collective
      * @return The resulting scattered message.
      */
     template <typename T, typename G = flag::payload::varying>
-    inline typename payload<T>::return_type scatter(
+    inline typename payload_t<T>::return_t scatter(
         T *data
-      , size_t count
-      , process_t root = process::root
-      , const communicator& comm = world
+      , const size_t count
+      , const process_t root = process::root
+      , const communicator_t& comm = world
       , G flag = {}
     ) {
-        auto msg = payload(data, count);
+        auto msg = payload_t(data, count);
         return collective::scatter<T>(msg, root, comm, flag);
     }
 
@@ -210,13 +212,13 @@ namespace collective
      * @return The resulting scattered message.
      */
     template <typename T, typename G = flag::payload::varying>
-    inline typename payload<T>::return_type scatter(
+    inline typename payload_t<T>::return_t scatter(
         T& data
-      , process_t root = process::root
-      , const communicator& comm = world
+      , const process_t root = process::root
+      , const communicator_t& comm = world
       , G flag = {}
     ) {
-        auto msg = payload(data);
+        auto msg = payload_t(data);
         return collective::scatter<T>(msg, root, comm, flag);
     }
 
@@ -231,9 +233,13 @@ namespace collective
      * @return The resulting scattered message.
      */
     template <typename T, typename G>
-    inline typename payload<T>::return_type scatter(T *data, size_t count, process_t root, G flag)
-    {
-        auto msg = payload(data, count);
+    inline typename payload_t<T>::return_t scatter(
+        T *data
+      , const size_t count
+      , const process_t root
+      , G flag
+    ) {
+        auto msg = payload_t(data, count);
         return collective::scatter<T>(msg, root, world, flag);
     }
 
@@ -247,9 +253,9 @@ namespace collective
      * @return The resulting scattered message.
      */
     template <typename T, typename G>
-    inline typename payload<T>::return_type scatter(T& data, process_t root, G flag)
+    inline typename payload_t<T>::return_t scatter(T& data, const process_t root, G flag)
     {
-        auto msg = payload(data);
+        auto msg = payload_t(data);
         return collective::scatter<T>(msg, root, world, flag);
     }
 }

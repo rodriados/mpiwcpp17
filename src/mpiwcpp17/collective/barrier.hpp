@@ -22,7 +22,7 @@ namespace collective
      * the barrier and are, thus, synchronized.
      * @param comm The communicator on to which operation must be performed.
      */
-    inline void barrier(const communicator& comm = world)
+    inline void barrier(const communicator_t& comm = world)
     {
         guard(MPI_Barrier(comm));
     }

@@ -43,8 +43,9 @@ SCENARIO("gather values into all processes", "[collective][allgather]")
 
         THEN("all processes have all values") {
             REQUIRE(result.count == (quantity * mpi::global::size));
-            for (int i = 0, k = 0; i < mpi::global::size; ++i) for (int j = 0; j < quantity; ++j, ++k)
-                REQUIRE(result[k] == (10 * i + j));
+            for (int i = 0, k = 0; i < mpi::global::size; ++i)
+                for (int j = 0; j < quantity; ++j, ++k)
+                    REQUIRE(result[k] == (10 * i + j));
         }
     }
 
@@ -64,8 +65,9 @@ SCENARIO("gather values into all processes", "[collective][allgather]")
         THEN("all processes have all values") {
             auto size = mpi::global::size;
             REQUIRE(result.count == (size * (size + 1) / 2));
-            for (int i = 0, k = 0; i < mpi::global::size; ++i) for (int j = 0; j <= i; ++j, ++k)
-                REQUIRE(result[k] == (i * 10 + j));
+            for (int i = 0, k = 0; i < mpi::global::size; ++i)
+                for (int j = 0; j <= i; ++j, ++k)
+                    REQUIRE(result[k] == (i * 10 + j));
         }
     }
 }

@@ -32,17 +32,17 @@ namespace collective
      * @return The resulting reduced message.
      */
     template <typename F, typename T>
-    inline typename payload<T>::return_type reduce(
-        const payload<T>& in
+    inline typename payload_t<T>::return_t reduce(
+        const payload_t<T>& in
       , const F& lambda = {}
-      , process_t root = process::root
-      , const communicator& comm = world
+      , const process_t root = process::root
+      , const communicator_t& comm = world
     ) {
-        using R = typename payload<T>::element_type;
+        using R = typename payload_t<T>::element_t;
         auto f = detail::collective::resolve_functor<R>(lambda);
         auto out = (root != comm.rank)
-            ? typename payload<T>::return_type ()
-            : payload<T>::create(in.count);
+            ? typename payload_t<T>::return_t ()
+            : payload::create<T>(in.count);
         guard(MPI_Reduce(in, out, in.count, in.type, f, root, comm));
         return out;
     }
@@ -59,14 +59,14 @@ namespace collective
      * @return The resulting reduced message.
      */
     template <typename F, typename T>
-    inline typename payload<T>::return_type reduce(
+    inline typename payload_t<T>::return_t reduce(
         T *data
-      , size_t count
+      , const size_t count
       , const F& lambda = {}
-      , process_t root = process::root
-      , const communicator& comm = world
+      , const process_t root = process::root
+      , const communicator_t& comm = world
     ) {
-        auto msg = payload(data, count);
+        auto msg = payload_t(data, count);
         return collective::reduce<F,T>(msg, lambda, root, comm);
     }
 
@@ -81,13 +81,13 @@ namespace collective
      * @return The resulting reduced message.
      */
     template <typename F, typename T>
-    inline typename payload<T>::return_type reduce(
+    inline typename payload_t<T>::return_t reduce(
         T& data
       , const F& lambda = {}
-      , process_t root = process::root
-      , const communicator& comm = world
+      , const process_t root = process::root
+      , const communicator_t& comm = world
     ) {
-        auto msg = payload(data);
+        auto msg = payload_t(data);
         return collective::reduce<F,T>(msg, lambda, root, comm);
     }
 }

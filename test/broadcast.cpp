@@ -62,11 +62,11 @@ SCENARIO("broadcast values between processes", "[collective][broadcast]")
      * @since 1.0
      */
     GIVEN("a single default-copyable structure instance") {
-        point<int> value = (root == mpi::global::rank)
-            ? point<int> {mpi::global::rank + 1, mpi::global::rank + 2}
-            : point<int> {0, 0};
+        point_t<int> value = (root == mpi::global::rank)
+            ? point_t<int> {mpi::global::rank + 1, mpi::global::rank + 2}
+            : point_t<int> {0, 0};
 
-        point<int> result = mpi::broadcast(&value, 1, root);
+        point_t<int> result = mpi::broadcast(&value, 1, root);
 
         THEN("all processes have same value") {
             REQUIRE(result.x == root + 1);

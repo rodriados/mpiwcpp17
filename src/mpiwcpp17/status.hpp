@@ -75,7 +75,7 @@ namespace status
      * @param s The target operation status instance.
      * @return The MPI operation status error code.
      */
-    inline auto error(const status_t::raw_t& s) noexcept -> error::code
+    inline auto error(const status_t::raw_t& s) noexcept -> error_t
     {
         return s.MPI_ERROR;
     }
@@ -106,7 +106,7 @@ namespace status
      * @param s The target operation status instance.
      * @return The number of elements within operation's message.
      */
-    inline auto count(const datatype::id& type, const status_t::raw_t& s) -> int32_t
+    inline auto count(const datatype_t& type, const status_t::raw_t& s) -> int32_t
     {
         int count; guard(MPI_Get_count(&s, type, &count));
         return count != MPI_UNDEFINED ? count : -1;

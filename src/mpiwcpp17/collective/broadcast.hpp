@@ -28,14 +28,14 @@ namespace collective
      * @return The message that has been broadcast.
      */
     template <typename T>
-    inline typename payload<T>::return_type broadcast(
-        const payload<T>& in
-      , process_t root = process::root
-      , const communicator& comm = world
+    inline typename payload_t<T>::return_t broadcast(
+        const payload_t<T>& in
+      , const process_t root = process::root
+      , const communicator_t& comm = world
     ) {
         auto out = (root == comm.rank)
-            ? static_cast<typename payload<T>::return_type>(in)
-            : payload<T>::create(in.count);
+            ? static_cast<typename payload_t<T>::return_t>(in)
+            : payload::create<T>(in.count);
         guard(MPI_Bcast(out, out.count, out.type, root, comm));
         return out;
     }
@@ -50,13 +50,13 @@ namespace collective
      * @return The message that has been broadcast.
      */
     template <typename T>
-    inline typename payload<T>::return_type broadcast(
+    inline typename payload_t<T>::return_t broadcast(
         T *data
-      , size_t count
-      , process_t root = process::root
-      , const communicator& comm = world
+      , const size_t count
+      , const process_t root = process::root
+      , const communicator_t& comm = world
     ) {
-        auto msg = payload(data, count);
+        auto msg = payload_t(data, count);
         return collective::broadcast<T>(msg, root, comm);
     }
 
@@ -69,12 +69,12 @@ namespace collective
      * @return The message that has been broadcast.
      */
     template <typename T>
-    inline typename payload<T>::return_type broadcast(
+    inline typename payload_t<T>::return_t broadcast(
         T& data
-      , process_t root = process::root
-      , const communicator& comm = world
+      , const process_t root = process::root
+      , const communicator_t& comm = world
     ) {
-        auto msg = payload(data);
+        auto msg = payload_t(data);
         msg.count = collective::broadcast<size_t>({&msg.count, 1}, root, comm);
         return collective::broadcast<T>(msg, root, comm);
     }

@@ -30,13 +30,13 @@ namespace collective
      */
     template <typename T>
     inline void send(
-        const payload<T>& in
-      , process_t destiny = process::root
-      , tag_t tag = mpiwcpp17::tag::any
-      , const communicator& comm = world
+        const payload_t<T>& in
+      , const process_t destiny = process::root
+      , const tag_t tag = mpiwcpp17::tag::any
+      , const communicator_t& comm = world
     ) {
-        if (tag < 0) { tag = mpiwcpp17::tag::ub; }
-        guard(MPI_Send(in, in.count, in.type, destiny, tag, comm));
+        tag_t t = tag >= 0 ? tag : mpiwcpp17::tag::ub;
+        guard(MPI_Send(in, in.count, in.type, destiny, t, comm));
     }
 
     /**
@@ -51,12 +51,12 @@ namespace collective
     template <typename T>
     inline void send(
         T *data
-      , size_t count
-      , process_t destiny = process::root
-      , tag_t tag = mpiwcpp17::tag::any
-      , const communicator& comm = world
+      , const size_t count
+      , const process_t destiny = process::root
+      , const tag_t tag = mpiwcpp17::tag::any
+      , const communicator_t& comm = world
     ) {
-        auto msg = payload(data, count);
+        auto msg = payload_t(data, count);
         collective::send<T>(msg, destiny, tag, comm);
     }
 
@@ -71,11 +71,11 @@ namespace collective
     template <typename T>
     inline void send(
         T& data
-      , process_t destiny = process::root
-      , tag_t tag = mpiwcpp17::tag::any
-      , const communicator& comm = world
+      , const process_t destiny = process::root
+      , const tag_t tag = mpiwcpp17::tag::any
+      , const communicator_t& comm = world
     ) {
-        auto msg = payload(data);
+        auto msg = payload_t(data);
         collective::send<T>(msg, destiny, tag, comm);
     }
 }
