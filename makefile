@@ -16,7 +16,7 @@ STDCPP ?= c++17
 # Defining macros inside code at compile time. This can be used to enable or disable
 # certain features on code or affect the projects compilation.
 FLAGS ?=
-GCPPFLAGS ?= -std=$(STDCPP) -I$(INCDIR) $(FLAGS)
+GCPPFLAGS ?= -std=$(STDCPP) -I$(INCDIR) -I$(TESTDIR) $(FLAGS)
 LINKFLAGS ?= $(FLAGS)
 
 TESTFILES := $(shell find $(TESTDIR) -name '*.cpp')
@@ -27,6 +27,7 @@ all: testing
 install:
 	@mkdir -p $(TGTDIR)
 	@mkdir -p $(OBJDIR)
+	@mkdir -p $(sort $(dir $(TESTDEPS)))
 
 testing: override FLAGS = -g -O0
 testing: install $(TGTDIR)/runtest.o

@@ -74,34 +74,29 @@ namespace collective
     {
         /**
          * Calculates the natural distribution of elements to be scattered.
-         * @param total The amount of elements to be sent by root process.
-         * @param root The operation's root process.
-         * @param comm The communicator the operation applies to.
-         * @return A tuple of payload elements' quantity and displacement.
+         * @param elements The amount of elements to be sent by root process.
+         * @param processes The amount of processes the operation applies to.
+         * @return A tuple of payload size and displacement by process.
          */
-        inline auto calculate_distribution(
-            size_t total
-          , const process_t root
-          , const communicator_t& comm
-        ) {
-            payload_t<int> count, displacement;
-            total = collective::broadcast(&total, 1, root, comm);
+        inline auto calculate_distribution(size_t elements, size_t processes)
+        {
+            payload_t<int> count, displ;
 
-            int32_t quotient  = total / comm.size;
-            int32_t remainder = total % comm.size;
+            int32_t quotient  = elements / processes;
+            int32_t remainder = elements % processes;
             bool uniform = (remainder == 0);
 
             if (!uniform) {
-                count = payload::create<int>(comm.size);
-                displacement = payload::create<int>(comm.size);
+                count = payload::create<int>(processes);
+                displ = payload::create<int>(processes);
 
-                for (int32_t i = 0; i < comm.size; ++i) {
+                for (int32_t i = 0; i < processes; ++i) {
                     count[i] = quotient + (remainder > i);
-                    displacement[i] = (i <= 0) ? 0 : (displacement[i-1] + count[i-1]);
+                    displ[i] = (i <= 0) ? 0 : (displ[i-1] + count[i-1]);
                 }
             }
 
-            return std::make_tuple(uniform, total, count, displacement);
+            return std::make_tuple(uniform, count, displ);
         }
     }
 
@@ -120,11 +115,10 @@ namespace collective
       , const communicator_t& comm = world
       , flag::payload::varying = {}
     ) {
-        auto [uniform, total, count, displ] = detail::calculate_distribution(in.count, root, comm);
-        auto msg = payload_t(in.ptr, total);
+        auto [uniform, count, displ] = detail::calculate_distribution(in.count, comm.size);
         return uniform
-            ? collective::scatter(msg, root, comm, flag::payload::uniform())
-            : collective::scatter(msg, count, displ, root, comm, flag::payload::varying());
+            ? collective::scatter(in, root, comm, flag::payload::uniform())
+            : collective::scatter(in, count, displ, root, comm, flag::payload::varying());
     }
 
     /**
@@ -133,7 +127,7 @@ namespace collective
      * @tparam T The message's contents type.
      * @param data The message to be scattered from the root process.
      * @param count The amount of message elements to each process.
-     * @param displacement The displacement of each process mesage.
+     * @param displ The displacement of each process mesage.
      * @param root The operation's root process.
      * @param comm The communicator this operation applies to.
      * @param flag The behaviour flag of varying message sizes.
@@ -143,14 +137,13 @@ namespace collective
     inline typename payload_t<T>::return_t scatter(
         T *data
       , const payload_t<int>& count
-      , const payload_t<int>& displacement
+      , const payload_t<int>& displ
       , const process_t root = process::root
       , const communicator_t& comm = world
       , flag::payload::varying flag = {}
     ) {
-        auto total = std::accumulate(count.begin(), count.end(), 0);
-        auto msg = payload_t(data, total);
-        return collective::scatter<T>(msg, root, comm, flag);
+        auto msg = payload_t(data);
+        return collective::scatter<T>(msg, count, displ, root, comm, flag);
     }
 
     /**
@@ -159,7 +152,7 @@ namespace collective
      * @tparam T The type of container to be scattered.
      * @param data The container to be scattered from the root process.
      * @param count The amount of message elements to each process.
-     * @param displacement The displacement of each process mesage.
+     * @param displ The displacement of each process mesage.
      * @param root The operation's root process.
      * @param comm The communicator this operation applies to.
      * @param flag The behaviour flag of varying message sizes.
@@ -169,13 +162,13 @@ namespace collective
     inline typename payload_t<T>::return_t scatter(
         T& data
       , const payload_t<int>& count
-      , const payload_t<int>& displacement
+      , const payload_t<int>& displ
       , const process_t root = process::root
       , const communicator_t& comm = world
       , flag::payload::varying flag = {}
     ) {
         auto msg = payload_t(data);
-        return collective::scatter<T>(msg, root, comm, flag);
+        return collective::scatter<T>(msg, count, displ, root, comm, flag);
     }
 
     /**
@@ -219,6 +212,7 @@ namespace collective
       , G flag = {}
     ) {
         auto msg = payload_t(data);
+        msg.count = collective::broadcast<size_t>({&msg.count, 1}, root, comm);
         return collective::scatter<T>(msg, root, comm, flag);
     }
 
@@ -239,8 +233,7 @@ namespace collective
       , const process_t root
       , G flag
     ) {
-        auto msg = payload_t(data, count);
-        return collective::scatter<T>(msg, root, world, flag);
+        return collective::scatter<T,G>(data, count, root, world, flag);
     }
 
     /**
@@ -255,8 +248,7 @@ namespace collective
     template <typename T, typename G>
     inline typename payload_t<T>::return_t scatter(T& data, const process_t root, G flag)
     {
-        auto msg = payload_t(data);
-        return collective::scatter<T>(msg, root, world, flag);
+        return collective::scatter<T,G>(data, root, world, flag);
     }
 }
 

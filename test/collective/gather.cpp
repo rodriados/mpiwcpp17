@@ -52,8 +52,9 @@ SCENARIO("gather values from all processes", "[collective][gather]")
 
         if (root == mpi::global::rank) THEN("root has all processes' values") {
             REQUIRE(result.count == (quantity * mpi::global::size));
-            for (int i = 0, k = 0; i < mpi::global::size; ++i) for (int j = 0; j < quantity; ++j, ++k)
-                REQUIRE(result[k] == (10 * i + j));
+            for (int i = 0, k = 0; i < mpi::global::size; ++i)
+                for (int j = 0; j < quantity; ++j, ++k)
+                    REQUIRE(result[k] == (10 * i + j));
         }
 
         else THEN("other processes have no values") {
