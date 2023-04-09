@@ -35,14 +35,14 @@ namespace collective
      * @return The message that has been received.
      */
     template <typename T>
-    inline std::tuple<status_t, typename payload_t<T>::return_t> receive(
+    inline typename payload_t<T>::return_t receive(
         const payload_t<T>& out
       , const process_t source = process::any
       , const tag_t tag = mpiwcpp17::tag::any
       , const communicator_t& comm = world
     ) {
-        status_t s; guard(MPI_Recv(out, out.count, out.type, source, tag, comm, s));
-        return std::make_tuple(s, out);
+        guard(MPI_Recv(out, out.count, out.type, source, tag, comm, status::ignore));
+        return out;
     }
 
     /**
@@ -54,7 +54,7 @@ namespace collective
      * @return The message that has been received.
      */
     template <typename T>
-    inline std::tuple<status_t, typename payload_t<T>::return_t> receive(
+    inline typename payload_t<T>::return_t receive(
         const process_t source = process::any
       , const tag_t tag = mpiwcpp17::tag::any
       , const communicator_t& comm = world

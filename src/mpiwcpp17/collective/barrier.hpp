@@ -10,6 +10,7 @@
 
 #include <mpiwcpp17/environment.hpp>
 #include <mpiwcpp17/communicator.hpp>
+#include <mpiwcpp17/request.hpp>
 #include <mpiwcpp17/guard.hpp>
 #include <mpiwcpp17/world.hpp>
 
@@ -25,6 +26,20 @@ namespace collective
     inline void barrier(const communicator_t& comm = world)
     {
         guard(MPI_Barrier(comm));
+    }
+}
+
+namespace async
+{
+    /**
+     * Asynchronously synchronizes the execution of every process within the given
+     * communicator until they have reached the barrier.
+     * @param comm The communicator on to which operation must be performed.
+     */
+    inline request_t<> barrier(const communicator_t& comm = world)
+    {
+        request_t<> r; guard(MPI_Ibarrier(comm, r));
+        return r;
     }
 }
 
