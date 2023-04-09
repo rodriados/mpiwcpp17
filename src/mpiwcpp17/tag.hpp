@@ -35,6 +35,6 @@ namespace tag
          */
       , ub = MPI_TAG_UB
     };
-};
+}
 
 MPIWCPP17_END_NAMESPACE

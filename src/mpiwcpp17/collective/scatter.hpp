@@ -90,7 +90,7 @@ namespace collective
                 count = payload::create<int>(processes);
                 displ = payload::create<int>(processes);
 
-                for (int32_t i = 0; i < processes; ++i) {
+                for (int32_t i = 0; (size_t) i < processes; ++i) {
                     count[i] = quotient + (remainder > i);
                     displ[i] = (i <= 0) ? 0 : (displ[i-1] + count[i-1]);
                 }

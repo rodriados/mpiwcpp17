@@ -71,6 +71,13 @@ class status_t
 namespace status
 {
     /**
+     * The flag for denoting that status should be ignored for a specific operation.
+     * This can be used with any native MPI function that outputs a status instance.
+     * @since 2.0
+     */
+    inline constexpr status_t::raw_t* ignore = MPI_STATUS_IGNORE;
+
+    /**
      * Retrieves the error code of an operation status.
      * @param s The target operation status instance.
      * @return The MPI operation status error code.

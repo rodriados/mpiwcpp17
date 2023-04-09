@@ -140,19 +140,19 @@ MPIWCPP17_DISABLE_GCC_WARNING_END("-Wreturn-type")
      * their identities built-in within MPI and can be used directly.
      * @since 1.0
      */
-    template <> inline datatype_t identify<bool>()     { return MPI_C_BOOL; };
-    template <> inline datatype_t identify<char>()     { return MPI_CHAR; };
-    template <> inline datatype_t identify<float>()    { return MPI_FLOAT; };
-    template <> inline datatype_t identify<double>()   { return MPI_DOUBLE; };
-    template <> inline datatype_t identify<int8_t>()   { return MPI_INT8_T; };
-    template <> inline datatype_t identify<int16_t>()  { return MPI_INT16_T; };
-    template <> inline datatype_t identify<int32_t>()  { return MPI_INT32_T; };
-    template <> inline datatype_t identify<int64_t>()  { return MPI_INT64_T; };
-    template <> inline datatype_t identify<uint8_t>()  { return MPI_UINT8_T; };
-    template <> inline datatype_t identify<uint16_t>() { return MPI_UINT16_T; };
-    template <> inline datatype_t identify<uint32_t>() { return MPI_UINT32_T; };
-    template <> inline datatype_t identify<uint64_t>() { return MPI_UINT64_T; };
-    template <> inline datatype_t identify<wchar_t>()  { return MPI_WCHAR; };
+    template <> inline datatype_t identify<bool>()     { return MPI_C_BOOL; }
+    template <> inline datatype_t identify<char>()     { return MPI_CHAR; }
+    template <> inline datatype_t identify<float>()    { return MPI_FLOAT; }
+    template <> inline datatype_t identify<double>()   { return MPI_DOUBLE; }
+    template <> inline datatype_t identify<int8_t>()   { return MPI_INT8_T; }
+    template <> inline datatype_t identify<int16_t>()  { return MPI_INT16_T; }
+    template <> inline datatype_t identify<int32_t>()  { return MPI_INT32_T; }
+    template <> inline datatype_t identify<int64_t>()  { return MPI_INT64_T; }
+    template <> inline datatype_t identify<uint8_t>()  { return MPI_UINT8_T; }
+    template <> inline datatype_t identify<uint16_t>() { return MPI_UINT16_T; }
+    template <> inline datatype_t identify<uint32_t>() { return MPI_UINT32_T; }
+    template <> inline datatype_t identify<uint64_t>() { return MPI_UINT64_T; }
+    template <> inline datatype_t identify<wchar_t>()  { return MPI_WCHAR; }
     /**#@-*/
 
     namespace detail
