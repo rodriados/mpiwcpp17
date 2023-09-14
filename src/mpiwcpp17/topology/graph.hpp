@@ -11,7 +11,9 @@
 #include <set>
 #include <vector>
 #include <cstdint>
+#include <numeric>
 #include <utility>
+#include <algorithm>
 
 #include <mpiwcpp17/environment.hpp>
 #include <mpiwcpp17/process.hpp>
