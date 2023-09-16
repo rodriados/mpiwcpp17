@@ -23,57 +23,33 @@ MPIWCPP17_BEGIN_NAMESPACE
  * @tparam T The payload's message type.
  * @since 1.0
  */
-template <typename T, typename = void>
-struct payload_t;
-
-/**
- * A payload of generic non-union and trivial type.
- * @tparam T The payload's message type.
- * @since 1.0
- */
 template <typename T>
-struct payload_t<T, typename std::enable_if<!std::is_union<T>() && std::is_trivially_copyable<T>()>::type>
+struct payload_t
 {
     typedef T element_t;
     typedef element_t *pointer_t;
 
-    using return_t = payload_t<T>;
-
     std::shared_ptr<element_t[]> ptr;
     datatype_t type = datatype::identify<element_t>();
     size_t count = 0;
+
+    static_assert(
+        !std::is_union<T>::value && std::is_trivially_copyable<T>::value
+      , "only non-union and trivially copyable types can be used with MPI");
 
     inline payload_t() = default;
     inline payload_t(const payload_t&) noexcept = default;
     inline payload_t(payload_t&&) noexcept = default;
 
     /**
-     * Wraps a simple value into a payload instance.
-     * @param value The payload's message simple contents.
-     */
-    inline payload_t(element_t& value) noexcept
-      : payload_t (&value, 1)
-    {}
-
-    /**
-     * Wraps a raw non-owning pointer into a message payload.
-     * @param ptr The raw message buffer pointer.
-     * @param count The total number of elements in message.
-     */
-    inline payload_t(pointer_t ptr, size_t count = 1) noexcept
-      : ptr (ptr, [](auto) { /* pointer is not owned */ })
-      , count (count)
-    {}
-
-    /**
-     * Wraps an owning pointer into a message payload.
-     * @tparam U The original owning shared pointer type.
-     * @param ptr The raw message owning pointer.
+     * Wraps a pointer into a message payload.
+     * @tparam U The message elements type.
+     * @param ptr The pointer to be wrapped in a payload.
      * @param count The total number of elements in message.
      */
     template <typename U>
     inline payload_t(const std::shared_ptr<U>& ptr, size_t count = 1) noexcept
-      : ptr (std::static_pointer_cast<element_t[]>(ptr))
+      : ptr (ptr)
       , count (count)
     {}
 
@@ -174,40 +150,10 @@ struct payload_t<T, typename std::enable_if<!std::is_union<T>() && std::is_trivi
     }
 };
 
-/**
- * A payload context for messages created using iterable types.
- * @tparam C The iterable contiguous container type.
- * @tparam T The container's content type.
- * @since 1.0
- */
-template <template <typename> class C, typename T>
-struct payload_t<C<T>, typename std::enable_if<
-    std::is_same<
-        typename std::iterator_traits<decltype(std::declval<C<T>&>().begin())>::iterator_category
-      , std::random_access_iterator_tag
-    >::value
->::type> : public payload_t<T>
-{
-    /**
-     * Initializes a payload from the contiguous container instance.
-     * @param container The contiguous container to create a message payload from.
-     */
-    inline payload_t(C<T>& container)
-      : payload_t<T> (
-            &(*container.begin())
-          , std::distance(container.begin(), container.end())
-        )
-    {}
-
-    using payload_t<T>::operator=;
-};
-
 /*
  * Deduction guides for payloads.
  * @since 1.0
  */
-template <typename T> payload_t(const T&) -> payload_t<T>;
-template <typename T> payload_t(T*, size_t = 1) -> payload_t<T>;
 template <typename T> payload_t(const std::shared_ptr<T>&, size_t = 1) -> payload_t<T>;
 template <typename T> payload_t(const std::shared_ptr<T[]>&, size_t = 1) -> payload_t<T>;
 template <typename ...T> payload_t(T...) -> payload_t<typename std::common_type<T...>::type>;
@@ -221,10 +167,12 @@ namespace payload
      * @return The newly created payload.
      */
     template <typename T>
-    inline typename payload_t<T>::return_t create(size_t count = 1)
+    inline auto create(size_t count = 1) -> payload_t<T>
     {
-        using element_t = typename payload_t<T>::return_t::element_t;
-        return payload_t(std::shared_ptr<element_t[]>(new element_t[count]), count);
+        return payload_t(
+            std::shared_ptr<T[]>(new T[count])
+          , count
+        );
     }
 }
 
