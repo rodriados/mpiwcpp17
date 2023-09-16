@@ -15,27 +15,30 @@
 #include <mpiwcpp17/guard.hpp>
 #include <mpiwcpp17/world.hpp>
 
+#include <mpiwcpp17/detail/collective.hpp>
+#include <mpiwcpp17/detail/wrapper.hpp>
+
 MPIWCPP17_BEGIN_NAMESPACE
 
 namespace collective
 {
     /**
      * Broadcasts a message to all processes connected to a communicator.
-     * @tparam T The message's contents or container type.
-     * @param in The message payload to be broadcast to all processes.
+     * @tparam T The message's contents type.
+     * @param msg The message to be broadcast to all processes.
      * @param root The operation's root process.
      * @param comm The communicator this operation applies to.
      * @return The message that has been broadcast.
      */
     template <typename T>
-    inline typename payload_t<T>::return_t broadcast(
-        const payload_t<T>& in
+    inline payload_t<T> broadcast(
+        const detail::wrapper_t<T>& msg
       , const process_t root = process::root
       , const communicator_t& comm = world
     ) {
         auto out = (root == comm.rank)
-            ? static_cast<typename payload_t<T>::return_t>(in)
-            : payload::create<T>(in.count);
+            ? detail::collective::force_to_payload(msg)
+            : payload::create<T>(msg.count);
         guard(MPI_Bcast(out, out.count, out.type, root, comm));
         return out;
     }
@@ -50,13 +53,13 @@ namespace collective
      * @return The message that has been broadcast.
      */
     template <typename T>
-    inline typename payload_t<T>::return_t broadcast(
+    inline payload_t<T> broadcast(
         T *data
       , const size_t count
       , const process_t root = process::root
       , const communicator_t& comm = world
     ) {
-        auto msg = payload_t(data, count);
+        auto msg = detail::wrapper_t(data, count);
         return collective::broadcast<T>(msg, root, comm);
     }
 
@@ -69,14 +72,15 @@ namespace collective
      * @return The message that has been broadcast.
      */
     template <typename T>
-    inline typename payload_t<T>::return_t broadcast(
+    inline auto broadcast(
         T& data
       , const process_t root = process::root
       , const communicator_t& comm = world
     ) {
-        auto msg = payload_t(data);
+        auto msg = detail::wrapper_t(data);
+        using E = typename decltype(msg)::element_t;
         msg.count = collective::broadcast<size_t>({&msg.count, 1}, root, comm);
-        return collective::broadcast<T>(msg, root, comm);
+        return collective::broadcast<E>(msg, root, comm);
     }
 }
 
