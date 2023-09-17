@@ -9,9 +9,11 @@
 #include <algorithm>
 #include <iterator>
 #include <utility>
+#include <memory>
 
 #include <mpiwcpp17/environment.hpp>
 #include <mpiwcpp17/datatype.hpp>
+#include <mpiwcpp17/payload.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
 
@@ -98,6 +100,22 @@ namespace detail
      * @since 2.1
      */
     template <template <class> class C, typename T> wrapper_t(C<T>&, size_t = 0) -> wrapper_t<T>;
+
+    /**
+     * Forces a wrapper to be transformed into a payload. This conversion may be
+     * dangerous, as it may cast the wrapper const-ness away.
+     * @tparam T The wrapper's content type.
+     * @param w The wrapper to be transformed.
+     * @return The payload created from the conversion.
+     */
+    template <typename T>
+    inline auto wrapper_to_payload(const wrapper_t<T>& w)
+    {
+        return payload_t(
+            std::shared_ptr<T[]>(w.ptr, [](auto) { /* not owned */ })
+          , w.count
+        );
+    }
 }
 
 MPIWCPP17_END_NAMESPACE
