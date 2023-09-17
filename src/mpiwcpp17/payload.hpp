@@ -8,8 +8,6 @@
 
 #include <memory>
 #include <utility>
-#include <iterator>
-#include <algorithm>
 
 #include <mpiwcpp17/environment.hpp>
 #include <mpiwcpp17/datatype.hpp>
@@ -52,17 +50,6 @@ struct payload_t
       : ptr (ptr)
       , count (count)
     {}
-
-    /**
-     * Initializes a new payload from a list of its elements.
-     * @param list The list with the elements of the payload.
-     */
-    inline payload_t(const std::initializer_list<element_t>& list)
-      : ptr (new element_t[list.size()])
-      , count (list.size())
-    {
-        std::copy(list.begin(), list.end(), ptr.get());
-    }
 
     inline payload_t& operator=(const payload_t&) = default;
     inline payload_t& operator=(payload_t&&) = default;

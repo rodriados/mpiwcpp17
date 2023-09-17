@@ -32,6 +32,10 @@ namespace detail
         datatype_t type = datatype::identify<element_t>();
         size_t count = 0;
 
+        static_assert(
+            !std::is_union<T>::value && std::is_trivially_copyable<T>::value
+          , "only non-union and trivially copyable types can be used with MPI");
+
         inline wrapper_t() noexcept = delete;
         inline wrapper_t(wrapper_t&) noexcept = default;
         inline wrapper_t(wrapper_t&&) noexcept = default;
@@ -58,6 +62,7 @@ namespace detail
          * Wraps an instance of a contiguous memory container.
          * @tparam C The type of container to be wrapped.
          * @param container The container instance to be wrapped.
+         * @param count The number of elements to wrap from container.
          */
         template <
             template <class> class C
@@ -66,9 +71,9 @@ namespace detail
               , std::random_access_iterator_tag
             >::value>::type
         >
-        inline wrapper_t(C<T>& container)
+        inline wrapper_t(C<T>& container, size_t count = 0)
           : ptr (&(*container.begin()))
-          , count (std::distance(container.begin(), container.end()))
+          , count (count ? count : std::distance(container.begin(), container.end()))
         {}
 
         inline wrapper_t& operator=(const wrapper_t&) = delete;
@@ -89,7 +94,7 @@ namespace detail
      * @since 1.1
      */
     template <template <class> class C, typename T>
-    wrapper_t(const C<T>&) -> wrapper_t<T>;
+    wrapper_t(const C<T>&, size_t = 0) -> wrapper_t<T>;
 }
 
 MPIWCPP17_END_NAMESPACE
