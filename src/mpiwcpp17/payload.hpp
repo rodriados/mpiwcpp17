@@ -23,25 +23,19 @@ MPIWCPP17_BEGIN_NAMESPACE
  * @tparam T The payload's message type.
  * @since 1.0
  */
-template <typename T, typename = void>
-struct payload_t;
-
-/**
- * A payload of generic non-union and trivial type.
- * @tparam T The payload's message type.
- * @since 1.0
- */
 template <typename T>
-struct payload_t<T, typename std::enable_if<!std::is_union<T>() && std::is_trivially_copyable<T>()>::type>
+struct payload_t
 {
     typedef T element_t;
     typedef element_t *pointer_t;
 
-    using return_t = payload_t<T>;
-
     std::shared_ptr<element_t[]> ptr;
     datatype_t type = datatype::identify<element_t>();
     size_t count = 0;
+
+    static_assert(
+        std::is_trivially_copyable<T>::value
+      , "only trivially copyable types can be used with MPI");
 
     inline payload_t() = default;
     inline payload_t(const payload_t&) noexcept = default;
@@ -56,7 +50,7 @@ struct payload_t<T, typename std::enable_if<!std::is_union<T>() && std::is_trivi
     {}
 
     /**
-     * Wraps a raw non-owning pointer into a message payload.
+     * Wraps a raw non-owning pointer into a payload.
      * @param ptr The raw message buffer pointer.
      * @param count The total number of elements in message.
      */
@@ -66,10 +60,10 @@ struct payload_t<T, typename std::enable_if<!std::is_union<T>() && std::is_trivi
     {}
 
     /**
-     * Wraps an owning pointer into a message payload.
-     * @tparam U The original owning shared pointer type.
-     * @param ptr The raw message owning pointer.
-     * @param count The total number of elements in message.
+     * Wraps a shared pointer into a payload.
+     * @tparam U The original shared pointer element type.
+     * @param ptr The raw shared pointer instance.
+     * @param count The total number of elements in payload.
      */
     template <typename U>
     inline payload_t(const std::shared_ptr<U>& ptr, size_t count = 1) noexcept
@@ -78,8 +72,8 @@ struct payload_t<T, typename std::enable_if<!std::is_union<T>() && std::is_trivi
     {}
 
     /**
-     * Initializes a new payload from a list of its elements.
-     * @param list The list with the elements of the payload.
+     * Initializes a new payload from a list of elements.
+     * @param list The list of elements that composes the payload.
      */
     inline payload_t(const std::initializer_list<element_t>& list)
       : ptr (new element_t[list.size()])
@@ -87,6 +81,28 @@ struct payload_t<T, typename std::enable_if<!std::is_union<T>() && std::is_trivi
     {
         std::copy(list.begin(), list.end(), ptr.get());
     }
+
+    /**
+     * Wraps an instance of a contiguous memory container into a payload.
+     * @tparam C The type of container to be wrapped.
+     * @param container The container instance to be wrapped.
+     * @param count The number of elements to wrap from container.
+     */
+    template <
+        template <class> class C
+      , typename = typename std::enable_if<std::is_same<
+            typename std::iterator_traits<
+                decltype(std::begin(std::declval<C<element_t>&>()))
+            >::iterator_category
+          , std::random_access_iterator_tag
+        >::value>::type
+    >
+    inline payload_t(C<element_t>& container, size_t count = 0)
+      : payload_t (
+            &*std::begin(container)
+          , count ? count : std::distance(std::begin(container), std::end(container))
+        )
+    {}
 
     inline payload_t& operator=(const payload_t&) = default;
     inline payload_t& operator=(payload_t&&) = default;
@@ -174,43 +190,14 @@ struct payload_t<T, typename std::enable_if<!std::is_union<T>() && std::is_trivi
     }
 };
 
-/**
- * A payload context for messages created using iterable types.
- * @tparam C The iterable contiguous container type.
- * @tparam T The container's content type.
- * @since 1.0
- */
-template <template <typename> class C, typename T>
-struct payload_t<C<T>, typename std::enable_if<
-    std::is_same<
-        typename std::iterator_traits<decltype(std::declval<C<T>&>().begin())>::iterator_category
-      , std::random_access_iterator_tag
-    >::value
->::type> : public payload_t<T>
-{
-    /**
-     * Initializes a payload from the contiguous container instance.
-     * @param container The contiguous container to create a message payload from.
-     */
-    inline payload_t(C<T>& container)
-      : payload_t<T> (
-            &(*container.begin())
-          , std::distance(container.begin(), container.end())
-        )
-    {}
-
-    using payload_t<T>::operator=;
-};
-
 /*
  * Deduction guides for payloads.
  * @since 1.0
  */
-template <typename T> payload_t(const T&) -> payload_t<T>;
-template <typename T> payload_t(T*, size_t = 1) -> payload_t<T>;
 template <typename T> payload_t(const std::shared_ptr<T>&, size_t = 1) -> payload_t<T>;
 template <typename T> payload_t(const std::shared_ptr<T[]>&, size_t = 1) -> payload_t<T>;
 template <typename ...T> payload_t(T...) -> payload_t<typename std::common_type<T...>::type>;
+template <template <class> class C, typename T> payload_t(C<T>&, size_t = 0) -> payload_t<T>;
 
 namespace payload
 {
@@ -221,10 +208,12 @@ namespace payload
      * @return The newly created payload.
      */
     template <typename T>
-    inline typename payload_t<T>::return_t create(size_t count = 1)
+    inline auto create(size_t count = 1) -> payload_t<T>
     {
-        using element_t = typename payload_t<T>::return_t::element_t;
-        return payload_t(std::shared_ptr<element_t[]>(new element_t[count]), count);
+        return payload_t(
+            std::shared_ptr<T[]>(new T[count])
+          , count
+        );
     }
 }
 
