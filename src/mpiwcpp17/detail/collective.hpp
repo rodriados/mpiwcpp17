@@ -6,6 +6,7 @@
  */
 #pragma once
 
+#include <memory>
 #include <utility>
 
 #include <mpiwcpp17/environment.hpp>
@@ -62,14 +63,30 @@ namespace detail::collective
     {
         static typename std::conditional<std::is_function<F>::value, F*, F>::type lambda = f;
 
-        using wrapper_t = struct {
+        using fwrapper_t = struct {
             inline T operator()(const T& a, const T& b) {
                 return (lambda)(a, b);
             }
         };
 
         new (&lambda) decltype(lambda) {f};
-        return detail::collective::resolve_functor<T>(wrapper_t());
+        return detail::collective::resolve_functor<T>(fwrapper_t());
+    }
+
+    /**
+     * Forces a wrapped pointer to be transformed into a payload. This conversion
+     * is dangerous, as it may cast the wrapper const-ness away.
+     * @tparam T The wrapped pointer's content type.
+     * @param msg The wrapped pointer to be transformed.
+     * @return The payload created from the conversion.
+     */
+    template <typename T>
+    inline auto force_to_payload(const wrapper_t<T>& msg)
+    {
+        return payload_t(
+            std::shared_ptr<T[]>(msg.ptr, [](auto) { /* not owned */ })
+          , msg.count
+        );
     }
 }
 
