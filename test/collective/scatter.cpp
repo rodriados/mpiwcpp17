@@ -15,7 +15,6 @@ using namespace Catch;
 SCENARIO("scatter values to all processes", "[collective][scatter]")
 {
     auto root = GENERATE(range(0, mpi::global::size));
-    auto sumUpTo = [](auto n) { return (n * (n + 1)) / 2; };
 
     /**
      * Tests whether a container with the number of elements being a multiple of
@@ -31,7 +30,7 @@ SCENARIO("scatter values to all processes", "[collective][scatter]")
             for (int i = 0; i < mpi::global::size * quantity; ++i)
                 value[i] = i;
 
-        auto result = mpi::scatter(value, root, mpi::flag::uniform());
+        auto result = mpi::scatter(value, root, mpi::world, mpi::flag::uniform());
 
         THEN("every process has part of the values") {
             REQUIRE(result.count == quantity);
