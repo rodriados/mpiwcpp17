@@ -68,7 +68,7 @@ namespace detail::collective
             }
         };
 
-        new (&lambda) decltype(lambda) {f};
+        auto _ = new (&lambda) decltype(lambda) {f};
         return detail::collective::resolve_functor<T>(fwrapper_t());
     }
 }

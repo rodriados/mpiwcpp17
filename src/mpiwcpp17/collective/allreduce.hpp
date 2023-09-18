@@ -15,33 +15,36 @@
 #include <mpiwcpp17/world.hpp>
 
 #include <mpiwcpp17/detail/collective.hpp>
+#include <mpiwcpp17/detail/wrapper.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
 
-namespace collective
+namespace detail::collective
 {
     /**
      * Reduces messages from and to all processes using an operator.
      * @tparam F The operator functor's implementation type.
      * @tparam T The message's contents or container type.
-     * @param in The message payload to be reduced across processes.
+     * @param msg The message payload to be reduced across processes.
      * @param lambda The operator functor to reduce messages with.
      * @param comm The communicator this operation applies to.
      * @return The resulting reduced message.
      */
     template <typename F, typename T>
-    inline typename payload_t<T>::return_t allreduce(
-        const payload_t<T>& in
+    inline payload_t<T> allreduce(
+        const detail::wrapper_t<T>& msg
       , const F& lambda = {}
       , const communicator_t& comm = world
     ) {
-        using R = typename payload_t<T>::element_t;
-        auto f = detail::collective::resolve_functor<R>(lambda);
-        auto out = payload::create<T>(in.count);
-        guard(MPI_Allreduce(in, out, in.count, in.type, f, comm));
+        auto out = payload::create<T>(msg.count);
+        auto f = detail::collective::resolve_functor<T>(lambda);
+        guard(MPI_Allreduce(msg, out, msg.count, msg.type, f, comm));
         return out;
     }
+}
 
+namespace collective
+{
     /**
      * Reduces generic messages from and to all processes using an operator.
      * @tparam F The operator functor's implementation type.
@@ -53,14 +56,14 @@ namespace collective
      * @return The resulting reduced message.
      */
     template <typename F, typename T>
-    inline typename payload_t<T>::return_t allreduce(
+    inline auto allreduce(
         T *data
       , const size_t count
       , const F& lambda = {}
       , const communicator_t& comm = world
     ) {
-        auto msg = payload_t(data, count);
-        return collective::allreduce<F,T>(msg, lambda, comm);
+        auto msg = detail::wrapper_t(data, count);
+        return detail::collective::allreduce<F>(msg, lambda, comm);
     }
 
     /**
@@ -73,13 +76,13 @@ namespace collective
      * @return The resulting reduced message.
      */
     template <typename F, typename T>
-    inline typename payload_t<T>::return_t allreduce(
+    inline auto allreduce(
         T& data
       , const F& lambda = {}
       , const communicator_t& comm = world
     ) {
-        auto msg = payload_t(data);
-        return collective::allreduce<F,T>(msg, lambda, comm);
+        auto msg = detail::wrapper_t(data);
+        return detail::collective::allreduce<F>(msg, lambda, comm);
     }
 }
 
