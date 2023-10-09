@@ -40,7 +40,7 @@ namespace topology
         public:
             inline constexpr communicator_t() noexcept = default;
             inline communicator_t(const communicator_t&) = default;
-            inline communicator_t(communicator_t&&) noexcept = default;
+            inline communicator_t(communicator_t&&) noexcept = delete;
 
             /**
              * Initializes a new topology communicator from a previously created
@@ -53,29 +53,30 @@ namespace topology
               : underlying_t (topology.commit(comm, reorder))
             {}
 
-            inline communicator_t& operator=(const communicator_t&) = default;
-            inline communicator_t& operator=(communicator_t&&) = default;
-
-            /**
-             * Retrieves and extracts the underlying topology blueprint that has
-             * been applied over the communicator's processes.
-             * @tparam U The topology type to be extracted from communicator.
-             * @return The blueprint describing the communicator's topology.
-             */
-            template <
-                typename U = T
-              , typename = typename std::enable_if<
-                    std::is_base_of<
-                        detail::topology::blueprint_t
-                      , decltype(U::extract(std::declval<communicator_t>()))
-                    >::value
-                >::type
-            >
-            inline auto topology() const
-            {
-                return U::extract(*this);
-            }
+            inline communicator_t& operator=(const communicator_t&) = delete;
+            inline communicator_t& operator=(communicator_t&&) = delete;
     };
+
+    /**
+     * Retrieves and extracts the underlying topology blueprint that has been applied
+     * over a topological communicator's processes.
+     * @tparam T The topology type to be extracted from communicator.
+     * @param comm The topological communicator to extract topology from.
+     * @return The blueprint describing the communicator's topology.
+     */
+    template <
+        typename T
+      , typename = typename std::enable_if<
+            std::is_base_of<
+                detail::topology::blueprint_t
+              , decltype(T::extract(std::declval<communicator_t<T>>()))
+            >::value
+        >::type
+    >
+    inline auto extract(const communicator_t<T>& comm) -> T
+    {
+        return T::extract(comm);
+    }
 }
 
 MPIWCPP17_END_NAMESPACE
