@@ -7,6 +7,7 @@
 #pragma once
 
 #include <mpi.h>
+#include <utility>
 
 #include <mpiwcpp17/environment.hpp>
 
@@ -40,6 +41,32 @@ namespace process
          * @since 1.0
          */
       , null = MPI_PROC_NULL
+    };
+
+    /**
+     * The type of processes within a communicator.
+     * @since 2.1
+     */
+    enum type_t : std::underlying_type<decltype(MPI_COMM_TYPE_SHARED)>::type
+    {
+        /**
+         * This type allows a communicator to be split into subcommunicators, each
+         * of which can create a shared memory region.
+         * @since 2.1
+         */
+        shared_memory = MPI_COMM_TYPE_SHARED
+      #ifdef OPEN_MPI
+        , hwthread = OMPI_COMM_TYPE_HWTHREAD
+        , core     = OMPI_COMM_TYPE_CORE
+        , l1cache  = OMPI_COMM_TYPE_L1CACHE
+        , l2cache  = OMPI_COMM_TYPE_L2CACHE
+        , l3cache  = OMPI_COMM_TYPE_L3CACHE
+        , socket   = OMPI_COMM_TYPE_SOCKET
+        , numa     = OMPI_COMM_TYPE_NUMA
+        , board    = OMPI_COMM_TYPE_BOARD
+        , host     = OMPI_COMM_TYPE_HOST
+        , cluster  = OMPI_COMM_TYPE_CLUSTER
+      #endif
     };
 }
 
