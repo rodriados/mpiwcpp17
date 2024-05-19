@@ -1,5 +1,6 @@
 bin/
 obj/
+dist/
 test/catch.hpp
 test.c
 test.cpp

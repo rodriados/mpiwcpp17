@@ -1,0 +1,7 @@
+[output]
+outfile = dist/mpiwcpp17.h
+
+[project]
+workingdir = src
+namespace = mpiwcpp17
+entrypoint = mpiwcpp17.h
