@@ -9,25 +9,25 @@
 #include <mpi.h>
 #include <utility>
 
-#include <mpiwcpp17/environment.hpp>
+#include <mpiwcpp17/environment.h>
 
 MPIWCPP17_BEGIN_NAMESPACE
 
-/**
- * The type for identifying a specific MPI-process.
- * @since 1.0
- */
-using process_t = decltype(MPI_ANY_SOURCE);
-
 namespace process
 {
-    enum : process_t
+    /**
+     * The type for identifying a specific MPI-process.
+     * @since 1.0
+     */
+    using raw_t = decltype(MPI_ANY_SOURCE);
+
+    enum : raw_t
     {
         /**
          * The root process identifier within a communicator.
          * @since 1.0
          */
-        root = process_t(0)
+        root = raw_t(0)
 
         /**
          * The special process identifier that may represent any process.
@@ -47,7 +47,7 @@ namespace process
      * The type of processes within a communicator.
      * @since 2.1
      */
-    enum type_t : std::underlying_type<decltype(MPI_COMM_TYPE_SHARED)>::type
+    enum type_t : std::underlying_type_t<decltype(MPI_COMM_TYPE_SHARED)>
     {
         /**
          * This type allows a communicator to be split into subcommunicators, each
@@ -69,5 +69,12 @@ namespace process
       #endif
     };
 }
+
+/**
+ * Exposing the process type to the project's root namespace, allowing it to be
+ * referenced by with decreased verbosity.
+ * @since 1.0
+ */
+using process_t = process::raw_t;
 
 MPIWCPP17_END_NAMESPACE

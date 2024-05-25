@@ -10,7 +10,7 @@
 
 #include <utility>
 
-#include <mpiwcpp17/environment.hpp>
+#include <mpiwcpp17/environment.h>
 #include <mpiwcpp17/exception.hpp>
 #include <mpiwcpp17/error.hpp>
 
@@ -46,7 +46,7 @@ MPIWCPP17_BEGIN_NAMESPACE
  * @param code The error code returned by the MPI call.
  */
 template <typename E = mpiwcpp17::exception_t>
-inline constexpr void guard(error_t err)
+MPIWCPP17_CONSTEXPR void guard(error_t err)
 {
     static_assert(std::is_base_of<mpiwcpp17::exception_t, E>::value
       , "only mpiwcpp17 exceptions are throwable from a guard");

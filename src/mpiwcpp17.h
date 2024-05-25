@@ -7,7 +7,7 @@
 #pragma once
 
 #include <mpiwcpp17/version.h>
-#include <mpiwcpp17/environment.hpp>
+#include <mpiwcpp17/environment.h>
 
 #include <mpiwcpp17/world.hpp>
 #include <mpiwcpp17/initiator.hpp>

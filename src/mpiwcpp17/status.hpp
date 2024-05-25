@@ -10,7 +10,7 @@
 
 #include <cstdint>
 
-#include <mpiwcpp17/environment.hpp>
+#include <mpiwcpp17/environment.h>
 #include <mpiwcpp17/datatype.hpp>
 #include <mpiwcpp17/process.hpp>
 #include <mpiwcpp17/error.hpp>
@@ -19,128 +19,138 @@
 
 MPIWCPP17_BEGIN_NAMESPACE
 
-/**
- * Wraps the status of a reception, non-blocking or test operation.
- * @since 1.0
- */
-class status_t
-{
-    public:
-        using raw_t = MPI_Status;
-
-    private:
-        raw_t m_status;
-
-    public:
-        inline status_t() noexcept = default;
-        inline status_t(const status_t&) noexcept = default;
-        inline status_t(status_t&&) noexcept = default;
-
-        /**
-         * Wraps a native MPI status instance.
-         * @param s The status instance to be wrapped.
-         */
-        inline status_t(const raw_t& s) noexcept
-          : m_status (s)
-        {}
-
-        inline status_t& operator=(const status_t&) noexcept = default;
-        inline status_t& operator=(status_t&&) noexcept = default;
-
-        /**
-         * Exposes the wrapped operation status instance, allowing it to be used
-         * seamlessly with native MPI functions.
-         * @return The wrapped status instance.
-         */
-        inline operator raw_t&() noexcept
-        {
-            return m_status;
-        }
-
-        /**
-         * Exposes the pointer to the wrapped operation status instance, allowing
-         * the wrapper to be seamlessly used with native MPI functions.
-         * @return The wrapped status pointer.
-         */
-        inline operator raw_t*() noexcept
-        {
-            return &m_status;
-        }
-};
-
 namespace status
 {
+    /**
+     * The raw MPI status type.
+     * @since 3.0
+     */
+    using raw_t = MPI_Status;
+
+    /**
+     * Wraps the status of a reception, non-blocking or test operation.
+     * @since 1.0
+     */
+    class wrapper_t
+    {
+        private:
+            raw_t m_status;
+
+        public:
+            MPIWCPP17_INLINE wrapper_t() noexcept = default;
+            MPIWCPP17_INLINE wrapper_t(const wrapper_t&) noexcept = default;
+            MPIWCPP17_INLINE wrapper_t(wrapper_t&&) noexcept = default;
+
+            /**
+             * Wraps a native MPI status instance.
+             * @param s The status instance to be wrapped.
+             */
+            MPIWCPP17_INLINE wrapper_t(const raw_t& s) noexcept
+              : m_status (s)
+            {}
+
+            MPIWCPP17_INLINE wrapper_t& operator=(const wrapper_t&) noexcept = default;
+            MPIWCPP17_INLINE wrapper_t& operator=(wrapper_t&&) noexcept = default;
+
+            /**
+             * Exposes the wrapped operation status instance, allowing it to be used
+             * seamlessly with native MPI functions.
+             * @return The wrapped status instance.
+             */
+            MPIWCPP17_INLINE operator raw_t&() noexcept
+            {
+                return m_status;
+            }
+
+            /**
+             * Exposes the pointer to the wrapped operation status instance, allowing
+             * the wrapper to be seamlessly used with native MPI functions.
+             * @return The wrapped status pointer.
+             */
+            MPIWCPP17_INLINE operator raw_t*() noexcept
+            {
+                return &m_status;
+            }
+    };
+
     /**
      * The flag for denoting that status should be ignored for a specific operation.
      * This can be used with any native MPI function that outputs a status instance.
      * @since 2.0
      */
-    inline constexpr status_t::raw_t* ignore = MPI_STATUS_IGNORE;
+    MPIWCPP17_CONSTEXPR raw_t* ignore = MPI_STATUS_IGNORE;
 
     /**
      * Retrieves the error code of an operation status.
-     * @param s The target operation status instance.
+     * @param stt The target operation status instance.
      * @return The MPI operation status error code.
      */
-    inline auto error(const status_t::raw_t& s) noexcept -> error_t
+    MPIWCPP17_INLINE error_t error(const raw_t& stt) noexcept
     {
-        return s.MPI_ERROR;
+        return stt.MPI_ERROR;
     }
 
     /**
      * Retrieves the source process of an operation status.
-     * @param s The target operation status instance.
+     * @param stt The target operation status instance.
      * @return The MPI operation's source process.
      */
-    inline auto source(const status_t::raw_t& s) noexcept -> process_t
+    MPIWCPP17_INLINE process_t source(const raw_t& stt) noexcept
     {
-        return s.MPI_SOURCE;
+        return stt.MPI_SOURCE;
     }
 
     /**
      * Retrieves the message tag of an operation status.
-     * @param s The target operation status instance.
+     * @param stt The target operation status instance.
      * @return The MPI operation's message tag.
      */
-    inline auto tag(const status_t::raw_t& s) noexcept -> tag_t
+    MPIWCPP17_INLINE tag_t tag(const raw_t& stt) noexcept
     {
-        return s.MPI_TAG;
+        return stt.MPI_TAG;
     }
 
     /**
      * Retrieves the number of elements within the message of an operation.
+     * @param stt The target operation status instance.
      * @param type The operation's message type identifier.
-     * @param s The target operation status instance.
      * @return The number of elements within operation's message.
      */
-    inline auto count(const datatype_t& type, const status_t::raw_t& s) -> int32_t
+    MPIWCPP17_INLINE int32_t count(const raw_t& stt, const datatype_t& type)
     {
-        int count; guard(MPI_Get_count(&s, type, &count));
+        int count; guard(MPI_Get_count(&stt, type, &count));
         return count != MPI_UNDEFINED ? count : -1;
     }
 
     /**
      * Retrieves the number of elements within the message of an operation.
      * @tparam T The operation's message type.
-     * @param s The target operation status instance.
+     * @param stt The target operation status instance.
      * @return The number of elements within operation's message.
      */
     template <typename T>
-    inline auto count(const status_t::raw_t& s) -> int32_t
+    MPIWCPP17_INLINE int32_t count(const raw_t& stt)
     {
-        return count(datatype::identify<T>(), s);
+        return count(stt, datatype::identify<T>());
     }
 
     /**
      * Determines whether an operation has been cancelled.
-     * @param s The target operation status instance.
+     * @param stt The target operation status instance.
      * @return Has the message been cancelled?
      */
-    inline auto cancelled(const status_t::raw_t& s) -> bool
+    MPIWCPP17_INLINE bool cancelled(const raw_t& stt)
     {
-        int flag; guard(MPI_Test_cancelled(&s, &flag));
+        int flag; guard(MPI_Test_cancelled(&stt, &flag));
         return (flag != 0);
     }
 }
+
+/**
+ * Exposing the status wrapper type to the project's root namespace, allowing it
+ * to be referenced by with decreased verbosity.
+ * @since 1.0
+ */
+using status_t = status::wrapper_t;
 
 MPIWCPP17_END_NAMESPACE

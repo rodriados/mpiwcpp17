@@ -9,7 +9,7 @@
 #include <string>
 #include <exception>
 
-#include <mpiwcpp17/environment.hpp>
+#include <mpiwcpp17/environment.h>
 
 MPIWCPP17_BEGIN_NAMESPACE
 
@@ -24,28 +24,28 @@ class exception_t : public std::exception
         const std::string m_msg;
 
     public:
-        inline exception_t() = delete;
-        inline exception_t(const exception_t&) = default;
-        inline exception_t(exception_t&&) = default;
+        MPIWCPP17_INLINE exception_t() = delete;
+        MPIWCPP17_INLINE exception_t(const exception_t&) = default;
+        MPIWCPP17_INLINE exception_t(exception_t&&) = default;
 
         /**
          * Builds a new exception instance.
          * @param msg The exception's error message.
          */
-        inline explicit exception_t(const std::string& msg)
-          : m_msg {msg}
+        MPIWCPP17_INLINE explicit exception_t(const std::string& msg)
+          : m_msg (msg)
         {}
 
-        inline virtual ~exception_t() noexcept = default;
+        MPIWCPP17_INLINE virtual ~exception_t() noexcept = default;
 
-        inline exception_t& operator=(const exception_t&) = delete;
-        inline exception_t& operator=(exception_t&&) = delete;
+        MPIWCPP17_INLINE exception_t& operator=(const exception_t&) = delete;
+        MPIWCPP17_INLINE exception_t& operator=(exception_t&&) = delete;
 
         /**
          * Returns the exception's explanatory string.
          * @return The exception message.
          */
-        inline virtual const char *what() const noexcept
+        MPIWCPP17_INLINE virtual const char *what() const noexcept
         {
             return m_msg.c_str();
         }

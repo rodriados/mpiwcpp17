@@ -8,19 +8,19 @@
 
 #include <mpi.h>
 
-#include <mpiwcpp17/environment.hpp>
+#include <mpiwcpp17/environment.h>
 
 MPIWCPP17_BEGIN_NAMESPACE
 
-/**
- * The identification or disambiguation value of a reception operation.
- * @since 1.0
- */
-using tag_t = decltype(MPI_ANY_TAG);
-
 namespace tag
 {
-    enum : tag_t
+    /**
+     * The identification or disambiguation value of a reception operation.
+     * @since 3.0
+     */
+    using raw_t = decltype(MPI_ANY_TAG);
+
+    enum : raw_t
     {
         /**
          * The special tag value for denoting that tags are unused or irrelevant for
@@ -36,5 +36,12 @@ namespace tag
       , ub = MPI_TAG_UB
     };
 }
+
+/**
+ * Exposing the tag type to the project's root namespace, allowing it to be referenced
+ * by with decreased verbosity.
+ * @since 1.0
+ */
+using tag_t = tag::raw_t;
 
 MPIWCPP17_END_NAMESPACE
