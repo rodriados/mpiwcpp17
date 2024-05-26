@@ -10,12 +10,12 @@
 
 #include <utility>
 
-#include <mpiwcpp17/environment.hpp>
+#include <mpiwcpp17/environment.h>
 #include <mpiwcpp17/guard.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
 
-inline bool finalized();
+MPIWCPP17_INLINE bool finalized();
 
 namespace detail::communicator
 {
@@ -23,7 +23,7 @@ namespace detail::communicator
      * Verifies whether a communicator can be freed and, if so, frees it.
      * @param target The communicator to be freed if possible.
      */
-    inline void safety_free(MPI_Comm target)
+    MPIWCPP17_INLINE void safety_free(MPI_Comm target)
     {
         if (target != MPI_COMM_NULL && !mpiwcpp17::finalized()) {
             int compare_world, compare_self;

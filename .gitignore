@@ -4,6 +4,8 @@ dist/
 test/catch.hpp
 test.c
 test.cpp
+test2.cpp
+test3.cpp
 run
 runtest
 *.gcda
