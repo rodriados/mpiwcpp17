@@ -9,6 +9,8 @@
 #include <mpi.h>
 
 #include <mpiwcpp17/environment.h>
+#include <mpiwcpp17/communicator.hpp>
+#include <mpiwcpp17/process.hpp>
 #include <mpiwcpp17/support.hpp>
 #include <mpiwcpp17/world.hpp>
 
@@ -66,6 +68,8 @@ MPIWCPP17_INLINE support::thread_t initialize(int *argc, char ***argv, support::
     if (int provided; !mpiwcpp17::initialized()) {
         guard(MPI_Init_thread(argc, argv, static_cast<int>(mode), &provided));
         new (&detail::world_t::s_world) detail::world_t::communicator_t (0);
+        detail::world_t::s_rank = mpiwcpp17::rank(detail::world_t::s_world);
+        detail::world_t::s_size = mpiwcpp17::size(detail::world_t::s_world);
         return static_cast<support::thread_t>(provided);
     } else {
         return thread_mode();
@@ -130,6 +134,8 @@ MPIWCPP17_INLINE void finalize()
     if (!mpiwcpp17::finalized()) {
         detail::deferrer_t::run();
         new (&detail::world_t::s_world) communicator_t ();
+        detail::world_t::s_rank = process::root;
+        detail::world_t::s_size = 0;
         guard(MPI_Finalize());
     }
 }

@@ -40,10 +40,6 @@ namespace communicator
             std::shared_ptr<void> m_comm;
 
         public:
-            const process_t rank = process::root;
-            const int32_t size = 0;
-
-        public:
             MPIWCPP17_CONSTEXPR wrapper_t() noexcept = default;
 
             MPIWCPP17_INLINE wrapper_t(const wrapper_t&) noexcept = default;
@@ -56,8 +52,6 @@ namespace communicator
             MPIWCPP17_INLINE explicit wrapper_t(const raw_t& comm)
               : m_comm (std::shared_ptr<void>(static_cast<void*>(comm), detail::communicator::safety_free))
             {
-                guard(MPI_Comm_rank(comm, const_cast<process_t*>(&rank)));
-                guard(MPI_Comm_size(comm, const_cast<int32_t*>(&size)));
                 guard(MPI_Comm_set_errhandler(comm, MPI_ERRORS_RETURN));
             }
 
@@ -79,7 +73,7 @@ namespace communicator
      * Duplicates the communicator with all its processes and attached information.
      * @return The new duplicated communicator.
      */
-    MPIWCPP17_INLINE auto duplicate(const wrapper_t& comm) -> wrapper_t
+    MPIWCPP17_INLINE auto duplicate(const raw_t& comm) -> wrapper_t
     {
         raw_t x; guard(MPI_Comm_dup(comm, &x));
         return wrapper_t (x);
@@ -93,7 +87,7 @@ namespace communicator
      * @return The communicator obtained from the split.
      */
     MPIWCPP17_INLINE auto split(
-        const wrapper_t& comm
+        const raw_t& comm
       , int color, process_t key = process::any
     ) -> wrapper_t {
         raw_t x; guard(MPI_Comm_split(comm, color, key, &x));
@@ -108,7 +102,7 @@ namespace communicator
      * @return The communicator obtained from the split.
      */
     MPIWCPP17_INLINE auto split(
-        const wrapper_t& comm
+        const raw_t& comm
       , process::type_t type
       , process_t key = process::any
     ) -> wrapper_t {
@@ -120,9 +114,9 @@ namespace communicator
      * Checks whether the wrapper communicator is valid.
      * @return Is the communicator valid?
      */
-    MPIWCPP17_INLINE bool empty(const wrapper_t& comm)
+    MPIWCPP17_INLINE bool empty(const raw_t& comm)
     {
-        return static_cast<raw_t>(comm) == static_cast<raw_t>(nullptr);
+        return comm == static_cast<raw_t>(nullptr);
     }
 }
 
@@ -132,5 +126,27 @@ namespace communicator
  * @since 1.0
  */
 using communicator_t = communicator::wrapper_t;
+
+/**
+ * Informs the rank of the calling process within the given communicator.
+ * @param comm The communicator to check the process' rank with.
+ * @return The calling process' rank within communicator.
+ */
+MPIWCPP17_INLINE auto rank(const communicator::raw_t& comm) -> process_t
+{
+    process_t result; guard(MPI_Comm_rank(comm, &result));
+    return result;
+}
+
+/**
+ * Informs the number of processes within the given communicator.
+ * @param comm The communicator to check the number of processes of.
+ * @return The number of processes within given communicator.
+ */
+MPIWCPP17_INLINE auto size(const communicator::raw_t& comm) -> int32_t
+{
+    int32_t result; guard(MPI_Comm_size(comm, &result));
+    return result;
+}
 
 MPIWCPP17_END_NAMESPACE

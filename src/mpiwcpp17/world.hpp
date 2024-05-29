@@ -56,17 +56,13 @@ namespace detail
 
         public:
             MPIWCPP17_CONSTEXPR static const communicator_t& s_worldref = s_world;
+            MPIWCPP17_INLINE static process_t s_rank = process::root;
+            MPIWCPP17_INLINE static int32_t s_size = 0;
 
         friend auto mpiwcpp17::initialize(int*, char***, support::thread_t) -> support::thread_t;
         friend void mpiwcpp17::finalize();
     };
 }
-
-/**
- * The public reference to the global world-communicator instance.
- * @since 1.0
- */
-MPIWCPP17_CONSTEXPR const communicator_t& world = detail::world_t::s_worldref;
 
 namespace global
 {
@@ -74,13 +70,19 @@ namespace global
      * The public reference to the current process's rank within world-communicator.
      * @since 1.0
      */
-    MPIWCPP17_CONSTEXPR const process_t& rank = world.rank;
+    MPIWCPP17_CONSTEXPR const process_t& rank = detail::world_t::s_rank;
 
     /**
      * The public reference to number of processes within the world-communicator.
      * @since 1.0
      */
-    MPIWCPP17_CONSTEXPR const int32_t& size = world.size;
+    MPIWCPP17_CONSTEXPR const int32_t& size = detail::world_t::s_size;
 }
+
+/**
+ * The public reference to the global world-communicator instance.
+ * @since 1.0
+ */
+MPIWCPP17_CONSTEXPR const communicator_t& world = detail::world_t::s_worldref;
 
 MPIWCPP17_END_NAMESPACE
