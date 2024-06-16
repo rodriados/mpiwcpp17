@@ -50,7 +50,7 @@ namespace communicator
              * @param comm The raw communicator identifier to be acquired.
              */
             MPIWCPP17_INLINE explicit wrapper_t(const raw_t& comm)
-              : m_comm (std::shared_ptr<void>(static_cast<void*>(comm), detail::communicator::safety_free))
+              : m_comm (comm, detail::communicator::safety_free)
             {
                 guard(MPI_Comm_set_errhandler(comm, MPI_ERRORS_RETURN));
             }

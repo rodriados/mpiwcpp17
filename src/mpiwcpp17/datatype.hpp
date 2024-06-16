@@ -13,60 +13,73 @@
 #include <cstdint>
 #include <utility>
 
-#include <mpiwcpp17/environment.hpp>
+#include <mpiwcpp17/environment.h>
 #include <mpiwcpp17/guard.hpp>
 
-#include <mpiwcpp17/detail/tuple.hpp>
-#include <mpiwcpp17/detail/reflection.hpp>
+#include <mpiwcpp17/detail/deferrer.hpp>
+#include <mpiwcpp17/thirdparty/supertuple.hpp>
+#include <mpiwcpp17/thirdparty/reflector.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
-
-/**
- * The type for a datatype identifier instance. An instance of a datatype descriptor
- * must exist for all types that are to trasit via MPI.
- * @since 1.0
- */
-using datatype_t = MPI_Datatype;
 
 namespace datatype
 {
     /**
+     * The type for a datatype identifier instance. An instance of a datatype descriptor
+     * must exist for all types that are to trasit via MPI.
+     * @since 3.0
+     */
+    using raw_t = MPI_Datatype;
+
+    /**
      * Creates the description for a type that may transit within a MPI message.
-     * A descriptor must receive the type's member properties pointers as constructor
-     * parameters in order to describe a type.
      * @see datatype::describe
      * @since 1.0
      */
     class descriptor_t
     {
         private:
-            datatype_t m_typeid;
+            const raw_t m_typeid;
 
         private:
-            inline static std::vector<datatype_t> s_typeids;
+            MPIWCPP17_INLINE descriptor_t() noexcept = delete;
+            MPIWCPP17_INLINE descriptor_t(const descriptor_t&) noexcept = delete;
+            MPIWCPP17_INLINE descriptor_t(descriptor_t&&) noexcept = delete;
+
+            /**
+             * Constructs a new type description and register the type identity
+             * into the static list of identities for future destruction.
+             * @param type A type's identity.
+             */
+            MPIWCPP17_INLINE descriptor_t(raw_t type) noexcept
+              : m_typeid (type)
+            {
+                s_typeids.push_back(m_typeid);
+            }
+
+            MPIWCPP17_INLINE descriptor_t& operator=(const descriptor_t&) noexcept = delete;
+            MPIWCPP17_INLINE descriptor_t& operator=(descriptor_t&&) noexcept = delete;
+
+            MPIWCPP17_INLINE static void destroy();
 
         public:
-            inline descriptor_t() noexcept = delete;
-            inline descriptor_t(const descriptor_t&) noexcept = delete;
-            inline descriptor_t(descriptor_t&&) noexcept = delete;
+            template <typename ...T>
+            MPIWCPP17_INLINE static descriptor_t build(const std::array<ptrdiff_t, sizeof...(T)>&);
 
-            template <typename T, typename ...U>
-            inline descriptor_t(U T::*...);
-
-            template <size_t ...I, typename ...T>
-            inline descriptor_t(const mpiwcpp17::detail::tuple_t<std::index_sequence<I...>, T...>&);
-
-            inline descriptor_t& operator=(const descriptor_t&) noexcept = delete;
-            inline descriptor_t& operator=(descriptor_t&&) noexcept = delete;
-
-            inline operator datatype_t() const noexcept;
-            inline static void destroy();
+            /**
+             * Exposes the underlying raw MPI datatype identifier, allowing a descriptor
+             * to be used seamlessly with native MPI functions.
+             * @return The internal MPI datatype identifier.
+             */
+            MPIWCPP17_INLINE operator raw_t() const noexcept
+            {
+                return m_typeid;
+            }
 
         private:
-            inline descriptor_t(datatype_t) noexcept;
+            MPIWCPP17_INLINE static std::vector<raw_t> s_typeids;
+            MPIWCPP17_INLINE static auto _d = detail::deferrer_t(descriptor_t::destroy);
     };
-
-MPIWCPP17_DISABLE_GCC_WARNING_BEGIN("-Wreturn-type")
 
     /**
      * Describes a type and allows it to be sent to different processes via MPI.
@@ -75,20 +88,105 @@ MPIWCPP17_DISABLE_GCC_WARNING_BEGIN("-Wreturn-type")
      * @see datatype::descriptor_t
      */
     template <typename T>
-    inline descriptor_t describe();
+    MPIWCPP17_INLINE descriptor_t describe();
 
-  #if !defined(MPIWCPP17_AVOID_REFLECTION)
+    /**
+     * Identifies the given type by retrieving its raw datatype identifier.
+     * @tparam T The type to be identified.
+     * @return The requested type's identifier.
+     */
+    template <typename T>
+    MPIWCPP17_INLINE raw_t identify()
+    {
+        static_assert(!std::is_union<T>::value, "union types cannot be used with MPI");
+        static_assert(!std::is_reference<T>::value, "references cannot be used with MPI");
+
+        static descriptor_t description = describe<T>();
+        return (raw_t) description;
+    }
+
+    /**#@+
+     * Specializations for identifiers of built-in types. These native types have
+     * their identities built-in within MPI and can be used directly.
+     * @since 1.0
+     */
+    template <> MPIWCPP17_INLINE raw_t identify<bool>()     { return MPI_C_BOOL; }
+    template <> MPIWCPP17_INLINE raw_t identify<char>()     { return MPI_CHAR; }
+    template <> MPIWCPP17_INLINE raw_t identify<float>()    { return MPI_FLOAT; }
+    template <> MPIWCPP17_INLINE raw_t identify<double>()   { return MPI_DOUBLE; }
+    template <> MPIWCPP17_INLINE raw_t identify<int8_t>()   { return MPI_INT8_T; }
+    template <> MPIWCPP17_INLINE raw_t identify<int16_t>()  { return MPI_INT16_T; }
+    template <> MPIWCPP17_INLINE raw_t identify<int32_t>()  { return MPI_INT32_T; }
+    template <> MPIWCPP17_INLINE raw_t identify<int64_t>()  { return MPI_INT64_T; }
+    template <> MPIWCPP17_INLINE raw_t identify<uint8_t>()  { return MPI_UINT8_T; }
+    template <> MPIWCPP17_INLINE raw_t identify<uint16_t>() { return MPI_UINT16_T; }
+    template <> MPIWCPP17_INLINE raw_t identify<uint32_t>() { return MPI_UINT32_T; }
+    template <> MPIWCPP17_INLINE raw_t identify<uint64_t>() { return MPI_UINT64_T; }
+    template <> MPIWCPP17_INLINE raw_t identify<wchar_t>()  { return MPI_WCHAR; }
+    /**#@-*/
+
+    /**
+     * Informs the total size in bytes of a concrete type instance when represented
+     * by its datatype identifier.
+     * @param type The type's identifier.
+     * @return The concrete type's size in bytes.
+     */
+    MPIWCPP17_INLINE size_t size(raw_t type)
+    {
+        int result; guard(MPI_Type_size(type, &result));
+        return static_cast<size_t>(result);
+    }
+
+    /**
+     * Provides the properties' description of a MPI-enabled datatype.
+     * @tparam T The datatype to be described.
+     * @tparam R The properties' types of the target datatype.
+     * @param members The target type member properties' pointers.
+     * @return The target datatype descriptor instance.
+     */
+    template <typename T, typename ...R>
+    MPIWCPP17_INLINE descriptor_t provide(R T::*... members)
+    {
+        return descriptor_t::build<R...>({
+            ((char*) &(((T*) 0x80)->*members))
+          - ((char*) 0x80)...
+        });
+    }
+
+  #if !defined(MPIWCPP17_AVOID_THIRDPARTY_REFLECTOR)
+    namespace detail {
+        /**
+         * Provides the properties' description of a MPI-enabled datatype by using
+         * reflection over the specified type.
+         * @tparam T The type to be provided as descriptor.
+         * @tparam I The indexes of properties within the type.
+         * @return The target datatype descriptor instance.
+         */
+        template <typename T, size_t ...I>
+        MPIWCPP17_INLINE descriptor_t provide_by_reflection(std::index_sequence<I...>)
+        {
+            return descriptor_t::build<std::tuple_element_t<I,
+                typename reflector::reflection_t<T>::reflection_tuple_t>...>(
+                std::array {reflector::reflection_t<T>::template offset<I>()...}
+            );
+        }
+    }
+
     /**
      * Creates a MPI type description for using reflection over the target type.
      * @tparam T The type to be described.
      * @return The target type's description instance.
      */
     template <typename T>
-    inline descriptor_t describe()
+    MPIWCPP17_INLINE descriptor_t describe()
     {
-        return descriptor_t(typename detail::reflection::reflector_t<T>::reflection_tuple_t());
+        return detail::provide_by_reflection<T>(
+            std::make_index_sequence<reflector::reflection_t<T>::count>()
+        );
     }
+
   #else
+MPIWCPP17_DISABLE_GCC_WARNING_BEGIN("-Wreturn-type")
     /**
      * Throws a compile-time error as no descriptor can be found for the given type.
      * In order to the compilation to be successful, either reflection must not
@@ -97,141 +195,38 @@ MPIWCPP17_DISABLE_GCC_WARNING_BEGIN("-Wreturn-type")
      * @return The target type's descriptor instance.
      */
     template <typename T>
-    inline descriptor_t describe()
+    MPIWCPP17_INLINE descriptor_t describe()
     {
         static_assert(
             !std::is_void<T>::value && std::is_void<T>::value
-          , "no descriptor was found to the requested type so it cannot be used with MPI"
-        );
+          , "no descriptor was found to the requested type so it cannot be used with MPI");
     }
+MPIWCPP17_DISABLE_GCC_WARNING_END("-Wreturn-type")
   #endif
 
-MPIWCPP17_DISABLE_GCC_WARNING_END("-Wreturn-type")
-
     /**
-     * Identifies the given type by retrieving its raw datatype identifier.
-     * @tparam T The type to be identified.
-     * @return The requested type's identifier.
+     * Describes a type from its internal member properties' types.
+     * @tparam T The list of member properties' types.
+     * @param array The list of member properties' offsets.
+     * @return The resulting type description identifier.
      */
-    template <typename T>
-    inline auto identify() -> datatype_t
+    template <typename ...T>
+    MPIWCPP17_INLINE descriptor_t descriptor_t::build(const std::array<ptrdiff_t, sizeof...(T)>& array)
     {
-        static_assert(!std::is_union<T>::value, "union types cannot be used with MPI");
-        static_assert(!std::is_reference<T>::value, "references cannot be used with MPI");
+        raw_t typedesc;
+        constexpr const size_t count = sizeof...(T);
 
-        static auto description = describe<T>();
-        return (datatype_t) description;
-    }
+        // Describing a struct type by acquiring a type identity and the offset
+        // of each of its member properties. If a property of an array type
+        // has been found, than we also inform the array's element count.
+        int blocks[count]  = {(std::extent_v<T> > 1 ? std::extent_v<T> : 1)...};
+        raw_t types[count] = {identify<std::remove_extent_t<T>>()...};
+        const MPI_Aint *offsets = array.data();
 
-    /**
-     * Informs the total size in bytes of a concrete type instance when represented
-     * by its datatype identifier.
-     * @param type The type's identifier.
-     * @return The concrete type's size in bytes.
-     */
-    inline size_t size(datatype_t type)
-    {
-        int result; guard(MPI_Type_size(type, &result));
-        return static_cast<size_t>(result);
-    }
+        guard(MPI_Type_create_struct(count, blocks, offsets, types, &typedesc));
+        guard(MPI_Type_commit(&typedesc));
 
-    /**#@+
-     * Specializations for identifiers of built-in types. These native types have
-     * their identities built-in within MPI and can be used directly.
-     * @since 1.0
-     */
-    template <> inline datatype_t identify<bool>()     { return MPI_C_BOOL; }
-    template <> inline datatype_t identify<char>()     { return MPI_CHAR; }
-    template <> inline datatype_t identify<float>()    { return MPI_FLOAT; }
-    template <> inline datatype_t identify<double>()   { return MPI_DOUBLE; }
-    template <> inline datatype_t identify<int8_t>()   { return MPI_INT8_T; }
-    template <> inline datatype_t identify<int16_t>()  { return MPI_INT16_T; }
-    template <> inline datatype_t identify<int32_t>()  { return MPI_INT32_T; }
-    template <> inline datatype_t identify<int64_t>()  { return MPI_INT64_T; }
-    template <> inline datatype_t identify<uint8_t>()  { return MPI_UINT8_T; }
-    template <> inline datatype_t identify<uint16_t>() { return MPI_UINT16_T; }
-    template <> inline datatype_t identify<uint32_t>() { return MPI_UINT32_T; }
-    template <> inline datatype_t identify<uint64_t>() { return MPI_UINT64_T; }
-    template <> inline datatype_t identify<wchar_t>()  { return MPI_WCHAR; }
-    /**#@-*/
-
-    namespace detail
-    {
-        /**
-         * Describes a type from its internal member properties' types.
-         * @tparam T The list of member properties' types.
-         * @param array The list of member properties' offsets.
-         * @return The resulting type description identifier.
-         */
-        template <typename ...T>
-        inline static auto describe(const std::array<ptrdiff_t, sizeof...(T)>& array) -> datatype_t
-        {
-            datatype_t result;
-            constexpr const size_t count = sizeof...(T);
-
-            // Describing a struct type by acquiring a type identity and the offset
-            // of each of its member properties. If a property of an array type
-            // has been found, than we also inform the array's element count.
-            int blocks[count] = {(std::extent<T>::value > 1 ? std::extent<T>::value : 1)...};
-            datatype_t types[count] = {identify<typename std::remove_extent<T>::type>()...};
-            const MPI_Aint *offsets = array.data();
-
-            guard(MPI_Type_create_struct(count, blocks, offsets, types, &result));
-            guard(MPI_Type_commit(&result));
-
-            return result;
-        }
-    }
-
-    /**
-     * Constructs a new type description. A type description is needed whenever
-     * a message of non-builtin types must transit between MPI processes.
-     * @tparam T The type to be described through its property members.
-     * @tparam U The target member properties' types list.
-     * @param members The target type member properties' pointers.
-     */
-    template <typename T, typename ...U>
-    inline descriptor_t::descriptor_t(U T::*... members)
-      : descriptor_t (detail::describe<U...>({
-            ((char*) &(((T*) 0x80)->*members))
-          - ((char*) 0x80) ...
-        }))
-    {}
-
-    /**
-     * Constructs a new type description from a tuple. The given tuple must contain
-     * aligned member properties to those of the original type.
-     * @tparam T The list of member properties' types within the tuple.
-     * @param tuple A type-describing tuple instance.
-     */
-    template <size_t ...I, typename ...T>
-    inline descriptor_t::descriptor_t(
-        const mpiwcpp17::detail::tuple_t<std::index_sequence<I...>, T...>& t
-    ) : descriptor_t (detail::describe<T...>({
-            ((char*) &t.template get<I>())
-          - ((char*) &t.template get<0>()) ...
-        }))
-    {}
-
-    /**
-     * Constructs a new type description and register the type identity into the
-     * static list of identities for future destruction.
-     * @param type A type's identity.
-     */
-    inline descriptor_t::descriptor_t(datatype_t type) noexcept
-      : m_typeid (type)
-    {
-        s_typeids.push_back(type);
-    }
-
-    /**
-     * Exposes the underlying raw MPI datatype identifier, allowing a descriptor
-     * to be used seamlessly with native MPI functions.
-     * @return The internal MPI datatype identifier.
-     */
-    inline descriptor_t::operator datatype_t() const noexcept
-    {
-        return m_typeid;
+        return descriptor_t(typedesc);
     }
 
     /**
@@ -240,10 +235,11 @@ MPIWCPP17_DISABLE_GCC_WARNING_END("-Wreturn-type")
      * not be used.
      * @see mpi::datatype::descriptor_t
      */
-    inline void descriptor_t::destroy()
+    MPIWCPP17_INLINE void descriptor_t::destroy()
     {
-        for (auto& type : s_typeids)
-            guard(MPI_Type_free(&type));
+        for (raw_t& typedesc : s_typeids) {
+            guard(MPI_Type_free(&typedesc));
+        }
     }
 }
 
