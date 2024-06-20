@@ -8,7 +8,7 @@
 
 #include <utility>
 
-#include <mpiwcpp17/environment.hpp>
+#include <mpiwcpp17/environment.h>
 #include <mpiwcpp17/functor.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
@@ -22,7 +22,7 @@ namespace detail::collective
      * @return The resolved functor identifier.
      */
     template <typename T>
-    inline auto resolve_functor(functor_t f) noexcept -> functor_t
+    inline auto resolve_functor(functor::raw_t f) noexcept -> functor::raw_t
     {
         return f;
     }
@@ -39,10 +39,10 @@ namespace detail::collective
         std::is_class<F>::value &&
         std::is_default_constructible<F>::value &&
         std::is_invocable_r<T, F, const T&, const T&>::value
-      , functor_t
+      , functor::raw_t
     >::type
     {
-        return functor::create<T,F>(false);
+        return functor::create<T, F>(false);
     }
 
     /**
@@ -57,10 +57,10 @@ namespace detail::collective
     -> typename std::enable_if<
         !std::is_default_constructible<F>::value &&
         std::is_invocable_r<T, F, const T&, const T&>::value
-      , functor_t
+      , functor::raw_t
     >::type
     {
-        static typename std::conditional<std::is_function<F>::value, F*, F>::type lambda = f;
+        static std::conditional_t<std::is_function_v<F>, F*, F> lambda = f;
 
         using fwrapper_t = struct {
             inline T operator()(const T& a, const T& b) {
@@ -68,7 +68,7 @@ namespace detail::collective
             }
         };
 
-        auto _ = new (&lambda) decltype(lambda) {f};
+        (void) new (&lambda) decltype(lambda) {f};
         return detail::collective::resolve_functor<T>(fwrapper_t());
     }
 }
