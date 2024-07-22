@@ -23,7 +23,7 @@ MPIWCPP17_BEGIN_NAMESPACE
  * operations, but can be derived into other communicators as needed.
  * @since 1.0
  */
-MPIWCPP17_CONSTEXPR const detail::world_t& world = detail::world;
+MPIWCPP17_CONSTEXPR const communicator_t world = MPI_COMM_WORLD;
 
 namespace global
 {
@@ -34,7 +34,7 @@ namespace global
      * @see mpi::rank
      * @since 1.0
      */
-    MPIWCPP17_CONSTEXPR const process_t& rank = world.rank;
+    MPIWCPP17_CONSTEXPR const process_t& rank = detail::world.rank;
 
     /**
      * The public reference to the number of processes within the world communicator.
@@ -43,7 +43,7 @@ namespace global
      * @see mpi::size
      * @since 1.0
      */
-    MPIWCPP17_CONSTEXPR const int32_t& size = world.size;
+    MPIWCPP17_CONSTEXPR const int32_t& size = detail::world.size;
 }
 
 MPIWCPP17_END_NAMESPACE
