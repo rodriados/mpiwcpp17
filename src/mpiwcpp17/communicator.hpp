@@ -105,10 +105,10 @@ namespace communicator
     }
 
     /**
-     * Verifies whether a communicator can be destroyed and, if so, destroys it.
-     * @param comm The communicator to be destroyed if possible.
+     * Verifies whether a communicator can be freed and, if so, frees it.
+     * @param comm The communicator to be freed if possible.
      */
-    MPIWCPP17_INLINE void destroy(communicator_t& comm)
+    MPIWCPP17_INLINE void free(communicator_t& comm)
     {
         if (!empty(comm) && !mpiwcpp17::finalized()) {
             int compare_world, compare_self;
