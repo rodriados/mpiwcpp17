@@ -7,7 +7,6 @@
 #pragma once
 
 #include <mpi.h>
-
 #include <cstdint>
 
 #include <mpiwcpp17/environment.h>
@@ -44,13 +43,11 @@ namespace detail
              * @see mpi::initialize
              */
             MPIWCPP17_INLINE explicit world_t(int)
-              , rank (mpiwcpp17::rank(MPI_COMM_WORLD))
+              : rank (mpiwcpp17::rank(MPI_COMM_WORLD))
               , size (mpiwcpp17::size(MPI_COMM_WORLD))
             {
                 guard(MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_RETURN));
             }
-
-            using communicator_t::operator=;
 
         friend auto mpiwcpp17::initialize(int*, char***, support::thread_t) -> support::thread_t;
         friend void mpiwcpp17::finalize();

@@ -6,6 +6,7 @@
  */
 #pragma once
 
+#include <mpi.h>
 #include <cstdint>
 
 #include <mpiwcpp17/environment.h>

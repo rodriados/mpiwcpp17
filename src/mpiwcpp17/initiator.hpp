@@ -9,20 +9,16 @@
 #include <mpi.h>
 
 #include <mpiwcpp17/environment.h>
-#include <mpiwcpp17/communicator.hpp>
 #include <mpiwcpp17/process.hpp>
 #include <mpiwcpp17/support.hpp>
-#include <mpiwcpp17/world.hpp>
 
-#include <mpiwcpp17/detail/deferrer.hpp>
+#include <mpiwcpp17/detail/world.hpp>
+#include <mpiwcpp17/detail/tracker.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
+MPIWCPP17_FWD_GLOBAL_STATUS_FUNCTIONS
 
-MPIWCPP17_INLINE support::thread_t initialize(int*, char***, support::thread_t = support::thread_t::single);
 MPIWCPP17_INLINE support::thread_t thread_mode();
-MPIWCPP17_INLINE bool initialized();
-MPIWCPP17_INLINE void finalize();
-MPIWCPP17_INLINE bool finalized();
 
 /**
  * Automatically initializes and finalizes the global MPI state. This type cannot
@@ -33,7 +29,6 @@ struct initiator_t final
 {
     const support::thread_t thread_mode;
 
-    MPIWCPP17_INLINE initiator_t() noexcept = delete;
     MPIWCPP17_INLINE initiator_t(const initiator_t&) noexcept = delete;
     MPIWCPP17_INLINE initiator_t(initiator_t&&) noexcept = delete;
 
@@ -48,24 +43,17 @@ struct initiator_t final
 
 /**
  * Initializes the internal MPI state and processes communication.
- * @param mode The desired process thread support level.
- * @return The provided thread support level.
- */
-MPIWCPP17_INLINE support::thread_t initialize(support::thread_t mode = support::thread_t::single)
-{
-    return mpiwcpp17::initialize(nullptr, nullptr, mode);
-}
-
-/**
- * Initializes the internal MPI state and processes communication.
  * @param argc The number of arguments received via command-line.
  * @param argv The program's command-line arguments.
  * @param mode The desired process thread support level.
  * @return The provided thread support level.
  */
-MPIWCPP17_INLINE support::thread_t initialize(int *argc, char ***argv, support::thread_t mode)
-{
-    if (int provided; !mpiwcpp17::initialized()) {
+MPIWCPP17_INLINE support::thread_t initialize(
+    int *argc
+  , char ***argv
+  , support::thread_t mode = support::thread_t::single
+) {
+    if (int provided; !initialized()) {
         guard(MPI_Init_thread(argc, argv, static_cast<int>(mode), &provided));
         new (&detail::world) detail::world_t (0);
         return static_cast<support::thread_t>(provided);
@@ -77,9 +65,19 @@ MPIWCPP17_INLINE support::thread_t initialize(int *argc, char ***argv, support::
 /**
  * Initializes the internal MPI state and processes communication.
  * @param mode The desired process thread support level.
+ * @return The provided thread support level.
+ */
+MPIWCPP17_INLINE support::thread_t initialize(support::thread_t mode = support::thread_t::single)
+{
+    return initialize(nullptr, nullptr, mode);
+}
+
+/**
+ * Initializes the internal MPI state and processes communication.
+ * @param mode The desired process thread support level.
  */
 MPIWCPP17_INLINE initiator_t::initiator_t(support::thread_t mode)
-  : thread_mode (mpiwcpp17::initialize(mode))
+  : thread_mode (initialize(mode))
 {}
 
 /**
@@ -89,7 +87,7 @@ MPIWCPP17_INLINE initiator_t::initiator_t(support::thread_t mode)
  * @param mode The desired process thread support level.
  */
 MPIWCPP17_INLINE initiator_t::initiator_t(int *argc, char ***argv, support::thread_t mode)
-  : thread_mode (mpiwcpp17::initialize(argc, argv, mode))
+  : thread_mode (initialize(argc, argv, mode))
 {}
 
 /**
@@ -119,8 +117,8 @@ MPIWCPP17_INLINE bool initialized()
  */
 MPIWCPP17_INLINE void abort(int code = 1)
 {
-    detail::deferrer_t::run();
-    guard(MPI_Abort(world, code));
+    detail::tracker_t::clear();
+    guard(MPI_Abort(MPI_COMM_WORLD, code));
 }
 
 /**
@@ -129,8 +127,8 @@ MPIWCPP17_INLINE void abort(int code = 1)
  */
 MPIWCPP17_INLINE void finalize()
 {
-    if (!mpiwcpp17::finalized()) {
-        detail::deferrer_t::run();
+    if (!finalized()) {
+        detail::tracker_t::clear();
         guard(MPI_Finalize());
     }
 }
@@ -152,7 +150,7 @@ MPIWCPP17_INLINE bool finalized()
  */
 MPIWCPP17_INLINE initiator_t::~initiator_t()
 {
-    mpiwcpp17::finalize();
+    finalize();
 }
 
 MPIWCPP17_END_NAMESPACE
