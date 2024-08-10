@@ -16,6 +16,7 @@
 #include <mpiwcpp17/guard.hpp>
 
 #include <mpiwcpp17/detail/tracker.hpp>
+#include <mpiwcpp17/detail/attribute.hpp>
 #include <mpiwcpp17/thirdparty/reflector.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
@@ -30,6 +31,17 @@ using datatype_t = MPI_Datatype;
 
 namespace datatype
 {
+    /**
+     * Declares datatype attribute namespace and corresponding functions.
+     * @since 3.0
+     */
+    MPIWCPP17_ATTRIBUTE_DECLARE(
+        datatype_t
+      , MPI_Type_create_keyval, MPI_Type_free_keyval
+      , MPI_Type_get_attr, MPI_Type_set_attr, MPI_Type_delete_attr
+      , MPI_TYPE_DUP_FN, MPI_TYPE_NULL_DELETE_FN
+    )
+
     /**
      * Describes a type and allows it to be sent to different processes via MPI.
      * @tparam T The type to be described.
@@ -78,7 +90,7 @@ namespace datatype
      * @param type The datatype identifier to be duplicated.
      * @return A clone of the given datatype identifier.
      */
-    MPIWCPP17_INLINE datatype_t duplicate(const datatype_t& type)
+    MPIWCPP17_INLINE datatype_t duplicate(datatype_t type)
     {
         datatype_t dup; guard(MPI_Type_dup(type, &dup));
         return detail::tracker_t::add(dup, &MPI_Type_free);
@@ -90,7 +102,7 @@ namespace datatype
      * @param type The type's identifier.
      * @return The concrete type's size in bytes.
      */
-    MPIWCPP17_INLINE size_t size(const datatype_t& type)
+    MPIWCPP17_INLINE size_t size(datatype_t type)
     {
         int size; guard(MPI_Type_size(type, &size));
         return static_cast<size_t>(size);
@@ -102,7 +114,7 @@ namespace datatype
      * not be used.
      * @param type The type identifier to be freed.
      */
-    MPIWCPP17_INLINE void free(datatype_t& type)
+    MPIWCPP17_INLINE void free(datatype_t type)
     {
         if (!finalized() && !detail::tracker_t::remove(type))
             guard(MPI_Type_free(&type));
