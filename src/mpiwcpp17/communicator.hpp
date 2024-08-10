@@ -7,18 +7,16 @@
 #pragma once
 
 #include <mpi.h>
-
-#include <memory>
 #include <cstdint>
-#include <utility>
 
 #include <mpiwcpp17/environment.h>
 #include <mpiwcpp17/process.hpp>
 #include <mpiwcpp17/guard.hpp>
 
-MPIWCPP17_BEGIN_NAMESPACE
+#include <mpiwcpp17/detail/tracker.hpp>
 
-MPIWCPP17_INLINE bool finalized();
+MPIWCPP17_BEGIN_NAMESPACE
+MPIWCPP17_FWD_GLOBAL_STATUS_FUNCTIONS
 
 /**
  * The raw MPI communicator reference type.
@@ -57,8 +55,8 @@ namespace communicator
      */
     MPIWCPP17_INLINE communicator_t duplicate(const communicator_t& comm)
     {
-        communicator_t nc; guard(MPI_Comm_dup(comm, &nc));
-        return nc;
+        communicator_t dup; guard(MPI_Comm_dup(comm, &dup));
+        return detail::tracker_t::add(dup, &MPI_Comm_free);
     }
 
     /**
@@ -73,8 +71,8 @@ namespace communicator
         const communicator_t& comm
       , int color, process_t key = process::any
     ) {
-        communicator_t nc; guard(MPI_Comm_split(comm, color, key, &nc));
-        return nc;
+        communicator_t newcomm; guard(MPI_Comm_split(comm, color, key, &newcomm));
+        return detail::tracker_t::add(newcomm, &MPI_Comm_free);
     }
 
     /**
@@ -90,8 +88,8 @@ namespace communicator
       , process::type_t type
       , process_t key = process::any
     ) {
-        communicator_t nc; guard(MPI_Comm_split_type(comm, type, key, MPI_INFO_NULL, &nc));
-        return nc;
+        communicator_t newcomm; guard(MPI_Comm_split_type(comm, type, key, MPI_INFO_NULL, &newcomm));
+        return detail::tracker_t::add(newcomm, &MPI_Comm_free);
     }
 
     /**
@@ -110,12 +108,13 @@ namespace communicator
      */
     MPIWCPP17_INLINE void free(communicator_t& comm)
     {
-        if (!empty(comm) && !mpiwcpp17::finalized()) {
+        if (!empty(comm) && !finalized()) {
             int compare_world, compare_self;
             guard(MPI_Comm_compare(comm, MPI_COMM_WORLD, &compare_world));
             guard(MPI_Comm_compare(comm, MPI_COMM_SELF, &compare_self));
             if (compare_world != MPI_IDENT && compare_self != MPI_IDENT) {
-                guard(MPI_Comm_free(&comm));
+                if (!detail::tracker_t::remove(comm))
+                    guard(MPI_Comm_free(&comm));
             }
         }
     }

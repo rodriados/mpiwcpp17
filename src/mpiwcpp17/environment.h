@@ -227,3 +227,11 @@
  * @since 1.0
  */
 #define MPIWCPP17_END_NAMESPACE     }}
+
+/**
+ * Forward declaration of global MPI status functions.
+ * @since 3.0
+ */
+#define MPIWCPP17_FWD_GLOBAL_STATUS_FUNCTIONS     \
+    MPIWCPP17_INLINE auto initialized() -> bool;  \
+    MPIWCPP17_INLINE auto finalized() -> bool;

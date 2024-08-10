@@ -9,16 +9,17 @@
 #include <mpi.h>
 
 #include <array>
-#include <vector>
 #include <cstdint>
 #include <utility>
 
 #include <mpiwcpp17/environment.h>
 #include <mpiwcpp17/guard.hpp>
 
+#include <mpiwcpp17/detail/tracker.hpp>
 #include <mpiwcpp17/thirdparty/reflector.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
+MPIWCPP17_FWD_GLOBAL_STATUS_FUNCTIONS
 
 /**
  * The type for a datatype identifier instance. An instance of a datatype identifier
@@ -48,7 +49,7 @@ namespace datatype
         static_assert(!std::is_union<T>::value, "union types cannot be used with MPI");
         static_assert(!std::is_reference<T>::value, "references cannot be used with MPI");
 
-        static datatype_t identifier = describe<T>();
+        static datatype_t identifier = detail::tracker_t::add(describe<T>(), &MPI_Type_free);
         return identifier;
     }
 
@@ -79,8 +80,8 @@ namespace datatype
      */
     MPIWCPP17_INLINE datatype_t duplicate(const datatype_t& type)
     {
-        datatype_t nt; guard(MPI_Type_dup(type, &nt));
-        return nt;
+        datatype_t dup; guard(MPI_Type_dup(type, &dup));
+        return detail::tracker_t::add(dup, &MPI_Type_free);
     }
 
     /**
@@ -103,7 +104,8 @@ namespace datatype
      */
     MPIWCPP17_INLINE void free(datatype_t& type)
     {
-        guard(MPI_Type_free(&type));
+        if (!finalized() && !detail::tracker_t::remove(type))
+            guard(MPI_Type_free(&type));
     }
 
     namespace detail
@@ -123,11 +125,11 @@ namespace datatype
             // Describing a struct type by acquiring a type identity and the offset
             // of each of its member properties. If a property of an array type
             // has been found, than we also inform the array's element count.
-            int blocks[count] = {std::max(std::extent_v<M>, 1)...};
+            int blocks[count] = {std::max(std::extent_v<M>, 1ul)...};
             datatype_t members[count] = {identify<std::remove_extent_t<M>>()...};
             const MPI_Aint *offsets = (MPI_Aint*) offset.data();
 
-            guard(MPI_Type_create_struct(count, blocks, offsets, types, &result));
+            guard(MPI_Type_create_struct(count, blocks, offsets, members, &result));
             guard(MPI_Type_commit(&result));
 
             return result;
