@@ -28,7 +28,7 @@ namespace detail
      * @see mpi::world
      * @since 3.0
      */
-    MPIWCPP17_INLINE static class world_t
+    MPIWCPP17_INLINE class world_t
     {
         public:
             process_t rank = process::root;
