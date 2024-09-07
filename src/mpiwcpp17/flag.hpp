@@ -6,15 +6,13 @@
  */
 #pragma once
 
-#include <cstdint>
-
-#include <mpiwcpp17/environment.hpp>
+#include <mpiwcpp17/environment.h>
 
 MPIWCPP17_BEGIN_NAMESPACE
 
 namespace flag
 {
-    inline namespace payload
+    MPIWCPP17_INLINE namespace payload
     {
         /**
          * Guarantees that the quantity of message elements is uniform across all
@@ -22,14 +20,24 @@ namespace flag
          * receiving the same number of elements.
          * @since 1.0
          */
-        typedef struct{} uniform;
+        typedef struct{} uniform_t;
 
         /**
          * Indicates that the quantity of message elements may vary in at least
          * one of the processes taking part in a collective operation.
          * @since 1.0
          */
-        typedef struct{} varying;
+        typedef struct{} varying_t;
+    }
+
+    MPIWCPP17_INLINE namespace functor
+    {
+        /**
+         * Indicates that a functor is commutative, allowing MPI to perform optimizations
+         * when executing specific collective functions.
+         * @since 3.0
+         */
+        typedef struct{} commutative_t;
     }
 }
 
