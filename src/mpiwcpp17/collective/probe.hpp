@@ -8,12 +8,12 @@
 
 #include <mpi.h>
 
-#include <mpiwcpp17/environment.hpp>
+#include <mpiwcpp17/environment.h>
 #include <mpiwcpp17/communicator.hpp>
 #include <mpiwcpp17/process.hpp>
 #include <mpiwcpp17/status.hpp>
+#include <mpiwcpp17/global.hpp>
 #include <mpiwcpp17/guard.hpp>
-#include <mpiwcpp17/world.hpp>
 #include <mpiwcpp17/tag.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
@@ -27,13 +27,13 @@ namespace collective
      * @param comm The communicator this operation applies to.
      * @return The inspected message status.
      */
-    inline status_t probe(
-        const process_t source = process::any
-      , const tag_t tag = mpiwcpp17::tag::any
-      , const communicator_t& comm = world
+    MPIWCPP17_INLINE status_t probe(
+        process_t source = process::any
+      , tag_t tag = mpiwcpp17::tag::any
+      , communicator_t comm = world
     ) {
-        status_t s; guard(MPI_Probe(source, tag, comm, s));
-        return s;
+        status_t status; guard(MPI_Probe(source, tag, comm, &status));
+        return status;
     }
 }
 

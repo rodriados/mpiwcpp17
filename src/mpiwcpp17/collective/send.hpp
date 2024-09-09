@@ -8,15 +8,14 @@
 
 #include <mpi.h>
 
-#include <mpiwcpp17/environment.hpp>
+#include <mpiwcpp17/environment.h>
 #include <mpiwcpp17/communicator.hpp>
-#include <mpiwcpp17/payload.hpp>
 #include <mpiwcpp17/process.hpp>
+#include <mpiwcpp17/global.hpp>
 #include <mpiwcpp17/guard.hpp>
-#include <mpiwcpp17/world.hpp>
 #include <mpiwcpp17/tag.hpp>
 
-#include <mpiwcpp17/detail/wrapper.hpp>
+#include <mpiwcpp17/detail/payload.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
 
@@ -24,21 +23,22 @@ namespace detail::collective
 {
     /**
      * Sends a message to a process connected to a communicator.
-     * @tparam T The message's contents or container type.
+     * @tparam T The message's contents type.
      * @param msg The message payload to send to a process.
      * @param destiny The process to send the message to.
      * @param tag The message's identifying tag.
      * @param comm The communicator this operation applies to.
      */
     template <typename T>
-    inline void send(
-        const detail::wrapper_t<T>& msg
-      , const process_t destiny = process::root
-      , const tag_t tag = mpiwcpp17::tag::any
-      , const communicator_t& comm = world
+    MPIWCPP17_INLINE void send(
+        const detail::payload_in_t<T>& msg
+      , process_t destiny = process::root
+      , tag_t tag = mpiwcpp17::tag::any
+      , communicator_t comm = world
     ) {
-        tag_t t = tag >= 0 ? tag : mpiwcpp17::tag::ub;
-        guard(MPI_Send(msg, msg.count, msg.type, destiny, t, comm));
+        auto type = datatype::identify<T>();
+        if (tag < 0) { tag = mpiwcpp17::tag::ub; }
+        guard(MPI_Send(msg.ptr, msg.count, type, destiny, tag, comm));
     }
 }
 
@@ -48,40 +48,40 @@ namespace collective
     /**
      * Sends a generic message to a process connected to a communicator.
      * @tparam T The message's contents type.
-     * @param data The message payload to send to a process.
+     * @param data The message to be sent to a process.
      * @param count The number of elements in message to send.
      * @param destiny The process to send the message to.
      * @param tag The message's identifying tag.
      * @param comm The communicator this operation applies to.
      */
     template <typename T>
-    inline void send(
+    MPIWCPP17_INLINE void send(
         T *data
-      , const size_t count
-      , const process_t destiny = process::root
-      , const tag_t tag = mpiwcpp17::tag::any
-      , const communicator_t& comm = world
+      , size_t count
+      , process_t destiny = process::root
+      , tag_t tag = mpiwcpp17::tag::any
+      , communicator_t comm = world
     ) {
-        auto msg = detail::wrapper_t(data, count);
+        auto msg = detail::payload_in_t(data, count);
         detail::collective::send(msg, destiny, tag, comm);
     }
 
     /**
-     * Sends a container to a process connected to a communicator.
-     * @tparam T The type of container to send.
-     * @param data The message container to send to a process.
+     * Sends a generic message to a process connected to a communicator.
+     * @tparam T The message's contents or container type.
+     * @param data The message data to send to a process.
      * @param destiny The process to send the message to.
      * @param tag The message's identifying tag.
      * @param comm The communicator this operation applies to.
      */
     template <typename T>
-    inline void send(
+    MPIWCPP17_INLINE void send(
         T& data
-      , const process_t destiny = process::root
-      , const tag_t tag = mpiwcpp17::tag::any
-      , const communicator_t& comm = world
+      , process_t destiny = process::root
+      , tag_t tag = mpiwcpp17::tag::any
+      , communicator_t comm = world
     ) {
-        auto msg = detail::wrapper_t(data);
+        auto msg = detail::payload::to_input(data);
         detail::collective::send(msg, destiny, tag, comm);
     }
 }
