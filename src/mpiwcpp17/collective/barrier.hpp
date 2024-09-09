@@ -8,10 +8,10 @@
 
 #include <mpi.h>
 
-#include <mpiwcpp17/environment.hpp>
+#include <mpiwcpp17/environment.h>
 #include <mpiwcpp17/communicator.hpp>
+#include <mpiwcpp17/global.hpp>
 #include <mpiwcpp17/guard.hpp>
-#include <mpiwcpp17/world.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
 
@@ -22,7 +22,7 @@ namespace collective
      * the barrier and are, thus, synchronized.
      * @param comm The communicator on to which operation must be performed.
      */
-    inline void barrier(const communicator_t& comm = world)
+    MPIWCPP17_INLINE void barrier(communicator_t comm = world)
     {
         guard(MPI_Barrier(comm));
     }
