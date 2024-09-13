@@ -11,6 +11,7 @@
 
 #include <mpiwcpp17/environment.h>
 #include <mpiwcpp17/communicator.hpp>
+#include <mpiwcpp17/datatype.hpp>
 #include <mpiwcpp17/process.hpp>
 #include <mpiwcpp17/global.hpp>
 #include <mpiwcpp17/guard.hpp>
@@ -32,9 +33,9 @@ namespace detail::collective
     template <typename T>
     MPIWCPP17_INLINE void broadcast_replace(
         T *msg
-      , size_t count = 1
-      , process_t root = process::root
-      , communicator_t comm = world
+      , size_t count
+      , process_t root
+      , communicator_t comm
     ) {
         auto type = datatype::identify<T>();
         guard(MPI_Bcast(msg, count, type, root, comm));
@@ -51,12 +52,12 @@ namespace detail::collective
     template <typename T>
     MPIWCPP17_INLINE detail::payload_out_t<T> broadcast(
         const detail::payload_in_t<T>& msg
-      , process_t root = process::root
-      , communicator_t comm = world
+      , process_t root
+      , communicator_t comm
     ) {
         auto out = (root == rank(comm))
-            ? detail::payload::copy_to_output(msg)
-            : detail::payload::create_output<T>(msg.count);
+            ? payload::copy_to_output(msg)
+            : payload::create_output<T>(msg.count);
         broadcast_replace((T*) out, out.count, root, comm);
         return out;
     }
@@ -86,9 +87,9 @@ namespace collective
     }
 
     /**
-     * Broadcasts an iterable to all processes connected to a communicator.
+     * Broadcasts elements to all processes connected to a communicator.
      * @tparam T The type of the elements to be broadcast.
-     * @param data The iterable to be broadcast to all processes.
+     * @param data The elements to be broadcast to all processes.
      * @param root The operation's root process.
      * @param comm The communicator this operation applies to.
      * @return The message that has been broadcast.
@@ -98,29 +99,10 @@ namespace collective
         T& data
       , process_t root = process::root
       , communicator_t comm = world
-      , std::enable_if_t<detail::payload::is_contiguous_iterable_v<T>>* = 0
     ) {
         auto msg = detail::payload::to_input(data);
-        detail::collective::broadcast_replace(&msg.count, 1, root, comm);
-        return detail::collective::broadcast(msg, root, comm);
-    }
-
-    /**
-     * Broadcasts an element to all processes connected to a communicator.
-     * @tparam T The type of the element to be broadcast.
-     * @param data The element to be broadcast to all processes.
-     * @param root The operation's root process.
-     * @param comm The communicator this operation applies to.
-     * @return The message that has been broadcast.
-     */
-    template <typename T>
-    MPIWCPP17_INLINE auto broadcast(
-        T& data
-      , process_t root = process::root
-      , communicator_t comm = world
-      , std::enable_if_t<!detail::payload::is_contiguous_iterable_v<T>>* = 0
-    ) {
-        auto msg = detail::payload_in_t(&data, 1);
+        if constexpr (detail::payload::is_contiguous_iterable_v<T>)
+            detail::collective::broadcast_replace(&msg.count, 1, root, comm);
         return detail::collective::broadcast(msg, root, comm);
     }
 }
