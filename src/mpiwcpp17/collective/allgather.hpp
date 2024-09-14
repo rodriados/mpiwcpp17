@@ -70,6 +70,34 @@ namespace detail::collective
     }
 
     /**
+     * Checks whether the number of payload's elements to be operated is uniform
+     * across every process. Also, calculates the natural displacement of each payload.
+     * @param count The number of elements to operate in the calling process.
+     * @param total The produced total number of elements in each process.
+     * @param displ The natural displacement of each process's elements.
+     * @return Is the payload element count uniform across all processes?
+     */
+    MPIWCPP17_INLINE bool check_uniformity(
+        int count
+      , detail::payload_out_t<int>& total
+      , detail::payload_out_t<int>& displ
+      , communicator_t comm
+    ) {
+        bool uniform = true;
+        size_t nproc = mpiwcpp17::size(comm);
+
+        displ = payload::create_output<int>(nproc);
+        total = allgather<int>({&count, 1}, comm, flag::payload::uniform_t());
+
+        for (size_t j = 0; j < nproc; ++j) {
+            uniform = uniform && (total[0] == total[j]);
+            displ[j] = !j ? 0 : (displ[j-1] + total[j-1]);
+        }
+
+        return uniform;
+    }
+
+    /**
      * Gathers messages from and to all processes using their natural displacements.
      * @param msg The message payload to be sent to all processes.
      * @param comm The communicator this operation applies to.
@@ -81,20 +109,13 @@ namespace detail::collective
       , communicator_t comm = world
       , flag::payload::varying_t = {}
     ) {
-        bool uniform = true;
-        size_t nproc = mpiwcpp17::size(comm);
+        detail::payload_out_t<int> mtotal, mdispl;
 
-        int mlength = static_cast<int>(msg.count);
-        auto mdispl = payload::create_output<int>(nproc);
-        auto mtotal = allgather<int>({&mlength, 1}, comm, flag::payload::uniform_t());
+        auto mlength = static_cast<int>(msg.count);
+        auto uniform = check_uniformity(mlength, mtotal, mdispl, comm);
 
-        for (size_t j = 0; j < nproc; ++j) {
-            uniform = uniform && (mtotal[0] == mtotal[j]);
-            mdispl[j] = !j ? 0 : (mdispl[j-1] + mtotal[j-1]);
-        }
-
-        auto displ = payload::to_input(mdispl);
-        auto total = payload::to_input(mtotal);
+        const auto displ = payload::to_input(mdispl);
+        const auto total = payload::to_input(mtotal);
 
         return uniform
             ? allgather(msg, comm, flag::payload::uniform_t())
