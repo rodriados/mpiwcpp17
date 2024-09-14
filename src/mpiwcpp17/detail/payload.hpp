@@ -93,7 +93,8 @@ namespace detail::payload
     template <typename T>
     MPIWCPP17_CONSTEXPR bool is_contiguous_iterable_v<T, std::enable_if_t<
         std::is_same_v<
-            typename std::iterator_traits<decltype(std::begin(std::declval<T&>()))>::iterator_category
+            typename std::iterator_traits<decltype(std::begin(std::declval<T&>()))>
+                ::iterator_category
           , std::random_access_iterator_tag>>> = true;
     /**#@-*/
 
@@ -121,6 +122,18 @@ namespace detail::payload
     MPIWCPP17_INLINE payload_in_t<T> to_input(const T& data) noexcept
     {
         return payload_in_t(&data, 1);
+    }
+
+    /**
+     * Creates a new input from an output payload.
+     * @tparam T The element type of the payload.
+     * @param output The output payload to convert to an input.
+     * @return The new input payload instance.
+     */
+    template <typename T>
+    MPIWCPP17_INLINE payload_in_t<T> to_input(const payload_out_t<T>& output) noexcept
+    {
+        return payload_in_t<T>(output, output.count);
     }
 
     /**

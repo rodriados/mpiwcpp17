@@ -12,14 +12,14 @@
 #include <numeric>
 #include <tuple>
 
-#include <mpiwcpp17/environment.hpp>
+#include <mpiwcpp17/environment.h>
 #include <mpiwcpp17/communicator.hpp>
-#include <mpiwcpp17/payload.hpp>
+#include <mpiwcpp17/datatype.hpp>
+#include <mpiwcpp17/global.hpp>
 #include <mpiwcpp17/guard.hpp>
-#include <mpiwcpp17/world.hpp>
 #include <mpiwcpp17/flag.hpp>
 
-#include <mpiwcpp17/detail/wrapper.hpp>
+#include <mpiwcpp17/detail/payload.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
 
@@ -28,64 +28,45 @@ namespace detail::collective
     /**
      * Gathers messages from and to all processes connected to the communicator,
      * with the flag of a uniform quantity of elements by each process.
-     * @tparam T The message's contents or container type.
+     * @tparam T The message's contents type.
      * @param msg The message payload to be sent to all processes.
      * @param comm The communicator this operation applies to.
      * @return The resulting gathered message.
      */
     template <typename T>
-    inline payload_t<T> allgather(
-        const detail::wrapper_t<T>& msg
-      , const communicator_t& comm = world
-      , flag::payload::uniform = {}
+    MPIWCPP17_INLINE detail::payload_out_t<T> allgather(
+        const detail::payload_in_t<T>& msg
+      , communicator_t comm = world
+      , flag::payload::uniform_t = {}
     ) {
-        auto out = payload::create<T>(msg.count * comm.size);
-        guard(MPI_Allgather(msg, msg.count, msg.type, out, msg.count, msg.type, comm));
+        auto type = datatype::identify<T>();
+        auto out = payload::create_output<T>(msg.count * size(comm));
+        guard(MPI_Allgather(msg.ptr, msg.count, type, (T*) out, msg.count, type, comm));
         return out;
     }
 
     /**
      * Gathers messages from and to all processes using lists for defining each
      * process's quantity and displacement of elements.
-     * @tparam T The message's contents or container type.
+     * @tparam T The message's contents type.
      * @param msg The message payload to be sent to all processes.
-     * @param count The amount of message elements by each process.
+     * @param total The amount of message elements by each process.
      * @param displ The displacement of each process mesage.
      * @param comm The communicator this operation applies to.
      * @return The resulting gathered message.
      */
     template <typename T>
-    inline payload_t<T> allgather(
-        const detail::wrapper_t<T>& msg
-      , const payload_t<int>& count
-      , const payload_t<int>& displ
-      , const communicator_t& comm = world
-      , flag::payload::varying = {}
+    MPIWCPP17_INLINE detail::payload_out_t<T> allgather(
+        const detail::payload_in_t<T>& msg
+      , const detail::payload_in_t<int>& total
+      , const detail::payload_in_t<int>& displ
+      , communicator_t comm = world
+      , flag::payload::varying_t = {}
     ) {
-        auto out = payload::create<T>(std::accumulate(std::begin(count), std::end(count), 0));
-        guard(MPI_Allgatherv(msg, msg.count, msg.type, out, count, displ, msg.type, comm));
+        auto type = datatype::identify<T>();
+        auto out = payload::create_output<T>(std::accumulate(total.ptr, total.ptr + total.count, 0));
+        guard(MPI_Allgatherv(msg.ptr, msg.count, type, (T*) out, total.ptr, displ.ptr, type, comm));
         return out;
-    }
-
-    /**
-     * Checks whether the payloads to be gathered are uniform in size, and also
-     * calculates their natural displacement, should the payloads not be uniform.
-     * @param size The amount of elements to be sent by the current process.
-     * @param comm The communicator the operation applies to.
-     * @return A tuple of payload's elements quantity and displacement.
-     */
-    inline auto check_uniformity(int size, const communicator_t& comm)
-    {
-        auto displ = payload::create<int>(comm.size);
-        auto count = detail::collective::allgather<int>({&size}, comm, flag::payload::uniform());
-        bool uniform = true;
-
-        for (int32_t j = 0; j < comm.size; ++j) {
-            uniform = uniform && (count[0] == count[j]);
-            displ[j] = !j ? 0 : (displ[j-1] + count[j-1]);
-        }
-
-        return std::make_tuple(uniform, std::move(count), std::move(displ));
     }
 
     /**
@@ -95,66 +76,34 @@ namespace detail::collective
      * @return The resulting gathered message.
      */
     template <typename T>
-    inline payload_t<T> allgather(
-        const detail::wrapper_t<T>& msg
-      , const communicator_t& comm = world
-      , flag::payload::varying = {}
+    MPIWCPP17_INLINE detail::payload_out_t<T> allgather(
+        const detail::payload_in_t<T>& msg
+      , communicator_t comm = world
+      , flag::payload::varying_t = {}
     ) {
-        auto [uniform, count, displ] = check_uniformity((int)msg.count, comm);
+        bool uniform = true;
+        size_t nproc = mpiwcpp17::size(comm);
+
+        int mlength = static_cast<int>(msg.count);
+        auto mdispl = payload::create_output<int>(nproc);
+        auto mtotal = allgather<int>({&mlength, 1}, comm, flag::payload::uniform_t());
+
+        for (size_t j = 0; j < nproc; ++j) {
+            uniform = uniform && (mtotal[0] == mtotal[j]);
+            mdispl[j] = !j ? 0 : (mdispl[j-1] + mtotal[j-1]);
+        }
+
+        auto displ = payload::to_input(mdispl);
+        auto total = payload::to_input(mtotal);
+
         return uniform
-            ? detail::collective::allgather(msg, comm, flag::payload::uniform())
-            : detail::collective::allgather(msg, count, displ, comm, flag::payload::varying());
+            ? allgather(msg, comm, flag::payload::uniform_t())
+            : allgather(msg, total, displ, comm, flag::payload::varying_t());
     }
 }
 
 namespace collective
 {
-    /**
-     * Gathers generic messages from and to all processes using lists for defining
-     * each process's quantity and displacement of elements.
-     * @tparam T The message's contents type.
-     * @param data The message to be sent to all processes.
-     * @param count The amount of message elements by each process.
-     * @param displ The displacement of each process mesage.
-     * @param comm The communicator this operation applies to.
-     * @param flag The behaviour flag of varying message sizes.
-     * @return The resulting gathered message.
-     */
-    template <typename T>
-    inline auto allgather(
-        T *data
-      , const payload_t<int>& count
-      , const payload_t<int>& displ
-      , const communicator_t& comm = world
-      , flag::payload::varying flag = {}
-    ) {
-        auto msg = detail::wrapper_t(data, count[comm.rank]);
-        return detail::collective::allgather(msg, count, displ, comm, flag);
-    }
-
-    /**
-     * Gathers containers from and to all processes using lists for defining each
-     * process's quantity and displacement of elements.
-     * @tparam T The type of container to be gathered.
-     * @param data The container to be sent to all processes.
-     * @param count The amount of message elements by each process.
-     * @param displ The displacement of each process mesage.
-     * @param comm The communicator this operation applies to.
-     * @param flag The behaviour flag of varying message sizes.
-     * @return The resulting gathered message.
-     */
-    template <typename T>
-    inline auto allgather(
-        T& data
-      , const payload_t<int>& count
-      , const payload_t<int>& displ
-      , const communicator_t& comm = world
-      , flag::payload::varying flag = {}
-    ) {
-        auto msg = detail::wrapper_t(data, count[comm.rank]);
-        return detail::collective::allgather(msg, count, displ, comm, flag);
-    }
-
     /**
      * Gathers generic messages from and to all processes within communicator.
      * @tparam T The message's contents type.
@@ -165,14 +114,14 @@ namespace collective
      * @param flag The behaviour flag instance.
      * @return The resulting gathered message.
      */
-    template <typename T, typename G = flag::payload::varying>
-    inline auto allgather(
+    template <typename T, typename G = flag::payload::varying_t>
+    MPIWCPP17_INLINE auto allgather(
         T *data
-      , const size_t count
-      , const communicator_t& comm = world
+      , size_t count
+      , communicator_t comm = world
       , G flag = {}
     ) {
-        auto msg = detail::wrapper_t(data, count);
+        auto msg = detail::payload_in_t(data, count);
         return detail::collective::allgather(msg, comm, flag);
     }
 
@@ -185,13 +134,13 @@ namespace collective
      * @param flag The behaviour flag instance.
      * @return The resulting gathered message.
      */
-    template <typename T, typename G = flag::payload::varying>
-    inline auto allgather(
+    template <typename T, typename G = flag::payload::varying_t>
+    MPIWCPP17_INLINE auto allgather(
         T& data
-      , const communicator_t& comm = world
+      , communicator_t comm = world
       , G flag = {}
     ) {
-        auto msg = detail::wrapper_t(data);
+        auto msg = detail::payload::to_input(data);
         return detail::collective::allgather(msg, comm, flag);
     }
 }
