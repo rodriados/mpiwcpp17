@@ -10,7 +10,6 @@
 
 #include <cstdint>
 #include <numeric>
-#include <tuple>
 
 #include <mpiwcpp17/environment.h>
 #include <mpiwcpp17/communicator.hpp>
