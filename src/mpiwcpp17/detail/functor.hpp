@@ -7,9 +7,7 @@
 #pragma once
 
 #include <mpi.h>
-
 #include <utility>
-#include <unordered_map>
 
 #include <mpiwcpp17/environment.h>
 #include <mpiwcpp17/datatype.hpp>
@@ -51,12 +49,12 @@ namespace detail::functor
      * Resolves an operator functor from an already known identifier.
      * @tparam T The type the operator is applied to.
      * @param f The given operator functor identifier.
-     * @return The resolved functor identifier and datatype.
+     * @return The resolved functor identifier.
      */
     template <typename T>
-    MPIWCPP17_INLINE std::pair<functor_t, datatype_t> resolve(functor_t f)
+    MPIWCPP17_INLINE functor_t resolve(functor_t f)
     {
-        return std::pair(f, datatype::identify<T>());
+        return f;
     }
 
     /**
@@ -72,7 +70,7 @@ namespace detail::functor
             std::is_class_v<F> &&
             std::is_default_constructible_v<F> &&
             std::is_assignable_v<T&, std::invoke_result_t<F, const T&, const T&>>>>
-    MPIWCPP17_INLINE std::pair<functor_t, datatype_t> resolve(const F&)
+    MPIWCPP17_INLINE functor_t resolve(const F&)
     {
         // As a convenience for the caller, a static wrapper for the operator is
         // provided so that it is adapted to the function signature required by
@@ -92,7 +90,7 @@ namespace detail::functor
         static functor_t f = build_from_callable(
             &static_wrapper_t::call
           , std::is_base_of_v<flag::functor::commutative_t, F>);
-        return std::pair(f, datatype::identify<T>());
+        return f;
     }
 
     /**
@@ -108,7 +106,7 @@ namespace detail::functor
       , typename = std::enable_if_t<
             !std::is_default_constructible_v<F> &&
             std::is_assignable_v<T&, std::invoke_result_t<F, const T&, const T&>>>>
-    MPIWCPP17_INLINE std::pair<functor_t, datatype_t> resolve(F* lambda)
+    MPIWCPP17_INLINE functor_t resolve(F* lambda)
     {
         // As a convenience for the caller, a dynamic wrapper for the operator is
         // provided when the given operator requires a non-trivial instance for
@@ -135,7 +133,7 @@ namespace detail::functor
         datatype::attribute::set(type, marker, lambda);
 
         static functor_t f = build_from_callable(&dynamic_wrapper_t::call);
-        return std::pair(f, type);
+        return f;
     }
 }
 
