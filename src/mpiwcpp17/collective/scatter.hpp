@@ -9,19 +9,17 @@
 #include <mpi.h>
 
 #include <cstdint>
-#include <numeric>
-#include <tuple>
 
-#include <mpiwcpp17/environment.hpp>
+#include <mpiwcpp17/environment.h>
 #include <mpiwcpp17/communicator.hpp>
-#include <mpiwcpp17/payload.hpp>
+#include <mpiwcpp17/datatype.hpp>
 #include <mpiwcpp17/process.hpp>
+#include <mpiwcpp17/global.hpp>
 #include <mpiwcpp17/guard.hpp>
-#include <mpiwcpp17/world.hpp>
 #include <mpiwcpp17/flag.hpp>
 
 #include <mpiwcpp17/collective/broadcast.hpp>
-#include <mpiwcpp17/detail/wrapper.hpp>
+#include <mpiwcpp17/detail/payload.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
 
@@ -36,14 +34,15 @@ namespace detail::collective
      * @return The resulting scattered message.
      */
     template <typename T>
-    inline payload_t<T> scatter(
-        const detail::wrapper_t<T>& msg
-      , const process_t root = process::root
-      , const communicator_t& comm = world
-      , flag::payload::uniform = {}
+    MPIWCPP17_INLINE detail::payload_out_t<T> scatter(
+        const detail::payload_in_t<T>& msg
+      , process_t root = process::root
+      , communicator_t comm = world
+      , flag::payload::uniform_t = {}
     ) {
-        auto out = payload::create<T>(msg.count / comm.size);
-        guard(MPI_Scatter(msg, out.count, msg.type, out, out.count, msg.type, root, comm));
+        auto type = datatype::identify<T>();
+        auto out = payload::create_output<T>(msg.count / mpiwcpp17::size(comm));
+        guard(MPI_Scatter(msg.ptr, out.count, type, (T*) out, out.count, type, root, comm));
         return out;
     }
 
@@ -51,23 +50,24 @@ namespace detail::collective
      * Scatters a message unevenly through the processes of the communicator.
      * @tparam T The message's contents or container type.
      * @param msg The message payload to be scattered from the root process.
-     * @param count The amount of message elements to each process.
+     * @param total The amount of message elements to each process.
      * @param displ The displacement of each process mesage.
      * @param root The operation's root process.
      * @param comm The communicator this operation applies to.
      * @return The resulting scattered message.
      */
     template <typename T>
-    inline payload_t<T> scatter(
-        const detail::wrapper_t<T>& msg
-      , const payload_t<int>& count
-      , const payload_t<int>& displ
-      , const process_t root = process::root
-      , const communicator_t& comm = world
-      , flag::payload::varying = {}
+    MPIWCPP17_INLINE detail::payload_out_t<T> scatter(
+        const detail::payload_in_t<T>& msg
+      , const detail::payload_in_t<int>& total
+      , const detail::payload_in_t<int>& displ
+      , process_t root = process::root
+      , communicator_t comm = world
+      , flag::payload::varying_t = {}
     ) {
-        auto out = payload::create<T>(count[comm.rank]);
-        guard(MPI_Scatterv(msg, count, displ, msg.type, out, out.count, msg.type, root, comm));
+        auto type = datatype::identify<T>();
+        auto out = payload::create_output<T>(total.ptr[rank(comm)]);
+        guard(MPI_Scatterv(msg.ptr, total.ptr, displ.ptr, type, (T*) out, out.count, type, root, comm));
         return out;
     }
 
@@ -80,82 +80,37 @@ namespace detail::collective
      * @return The resulting scattered message.
      */
     template <typename T>
-    inline payload_t<T> scatter(
-        const detail::wrapper_t<T>& msg
-      , const process_t root = process::root
-      , const communicator_t& comm = world
-      , flag::payload::varying = {}
+    MPIWCPP17_INLINE detail::payload_out_t<T> scatter(
+        const detail::payload_in_t<T>& msg
+      , process_t root = process::root
+      , communicator_t comm = world
+      , flag::payload::varying_t = {}
     ) {
-        int32_t quotient  = msg.count / comm.size;
-        int32_t remainder = msg.count % comm.size;
+        size_t nproc = mpiwcpp17::size(comm);
+
+        size_t quotient  = msg.count / nproc;
+        size_t remainder = msg.count % nproc;
 
         if (!remainder)
-            return detail::collective::scatter(msg, root, comm, flag::payload::uniform());
+            return detail::collective::scatter(msg, root, comm, flag::payload::uniform_t());
 
-        auto count = payload::create<int>(comm.size);
-        auto displ = payload::create<int>(comm.size);
+        auto mtotal = payload::create_output<int>(nproc);
+        auto mdispl = payload::create_output<int>(nproc);
 
-        for (int32_t j = 0; j < comm.size; ++j) {
-            count[j] = quotient + (remainder > j);
-            displ[j] = !j ? 0 : (displ[j-1] + count[j-1]);
+        for (size_t j = 0; j < nproc; ++j) {
+            mtotal[j] = quotient + (remainder > j);
+            mdispl[j] = !j ? 0 : (mdispl[j-1] + mtotal[j-1]);
         }
 
-        return detail::collective::scatter(msg, count, displ, root, comm, flag::payload::varying());
+        const auto displ = payload::to_input(mdispl);
+        const auto total = payload::to_input(mtotal);
+
+        return detail::collective::scatter(msg, total, displ, root, comm, flag::payload::varying_t());
     }
 }
 
 namespace collective
 {
-    /**
-     * Scatters a generic message from the root process using lists for defining
-     * the quantity and displacement of elements for each process.
-     * @tparam T The message's contents type.
-     * @param data The message to be scattered from the root process.
-     * @param count The amount of message elements to each process.
-     * @param displ The displacement of each process mesage.
-     * @param root The operation's root process.
-     * @param comm The communicator this operation applies to.
-     * @param flag The behaviour flag of varying message sizes.
-     * @return The resulting scattered message.
-     */
-    template <typename T>
-    inline auto scatter(
-        T *data
-      , const payload_t<int>& count
-      , const payload_t<int>& displ
-      , const process_t root = process::root
-      , const communicator_t& comm = world
-      , flag::payload::varying flag = {}
-    ) {
-        auto msg = detail::wrapper_t(data);
-        return detail::collective::scatter(msg, count, displ, root, comm, flag);
-    }
-
-    /**
-     * Scatters a container from the root process using lists for defining the amount
-     * and displacement of elements for each process.
-     * @tparam T The type of container to be scattered.
-     * @param data The container to be scattered from the root process.
-     * @param count The amount of message elements to each process.
-     * @param displ The displacement of each process mesage.
-     * @param root The operation's root process.
-     * @param comm The communicator this operation applies to.
-     * @param flag The behaviour flag of varying message sizes.
-     * @return The resulting scattered message.
-     */
-    template <typename T>
-    inline auto scatter(
-        T& data
-      , const payload_t<int>& count
-      , const payload_t<int>& displ
-      , const process_t root = process::root
-      , const communicator_t& comm = world
-      , flag::payload::varying flag = {}
-    ) {
-        auto msg = detail::wrapper_t(data);
-        return detail::collective::scatter(msg, count, displ, root, comm, flag);
-    }
-
     /**
      * Scatters a generic message through the processes within communicator.
      * @tparam T The message's contents type.
@@ -167,15 +122,16 @@ namespace collective
      * @param flag The behaviour flag instance.
      * @return The resulting scattered message.
      */
-    template <typename T, typename G = flag::payload::varying>
-    inline auto scatter(
+    template <typename T, typename G = flag::payload::varying_t>
+    MPIWCPP17_INLINE auto scatter(
         T *data
-      , const size_t count
-      , const process_t root = process::root
-      , const communicator_t& comm = world
+      , size_t count
+      , process_t root = process::root
+      , communicator_t comm = world
       , G flag = {}
     ) {
-        auto msg = detail::wrapper_t(data, count);
+        auto msg = detail::payload_in_t(data, count);
+        detail::collective::broadcast_replace(&msg.count, 1, root, comm);
         return detail::collective::scatter(msg, root, comm, flag);
     }
 
@@ -189,15 +145,15 @@ namespace collective
      * @param flag The behaviour flag instance.
      * @return The resulting scattered message.
      */
-    template <typename T, typename G = flag::payload::varying>
-    inline auto scatter(
+    template <typename T, typename G = flag::payload::varying_t>
+    MPIWCPP17_INLINE auto scatter(
         T& data
-      , const process_t root = process::root
-      , const communicator_t& comm = world
+      , process_t root = process::root
+      , communicator_t comm = world
       , G flag = {}
     ) {
-        auto msg = detail::wrapper_t(data);
-        msg.count = detail::collective::broadcast<size_t>(msg.count, root, comm);
+        auto msg = detail::payload::to_input(data);
+        detail::collective::broadcast_replace(&msg.count, 1, root, comm);
         return detail::collective::scatter(msg, root, comm, flag);
     }
 }
