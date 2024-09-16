@@ -8,14 +8,14 @@
 
 #include <mpi.h>
 
-#include <mpiwcpp17/environment.hpp>
+#include <mpiwcpp17/environment.h>
 #include <mpiwcpp17/communicator.hpp>
-#include <mpiwcpp17/payload.hpp>
+#include <mpiwcpp17/datatype.hpp>
+#include <mpiwcpp17/global.hpp>
 #include <mpiwcpp17/guard.hpp>
-#include <mpiwcpp17/world.hpp>
 
-#include <mpiwcpp17/detail/collective.hpp>
-#include <mpiwcpp17/detail/wrapper.hpp>
+#include <mpiwcpp17/detail/functor.hpp>
+#include <mpiwcpp17/detail/payload.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
 
@@ -31,14 +31,15 @@ namespace detail::collective
      * @return The resulting reduced message.
      */
     template <typename F, typename T>
-    inline payload_t<T> allreduce(
-        const detail::wrapper_t<T>& msg
-      , const F& lambda = {}
-      , const communicator_t& comm = world
+    MPIWCPP17_INLINE detail::payload_out_t<T> allreduce(
+        const detail::payload_in_t<T>& msg
+      , const F& lambda
+      , communicator_t comm = world
     ) {
-        auto out = payload::create<T>(msg.count);
-        auto f = detail::collective::resolve_functor<T>(lambda);
-        guard(MPI_Allreduce(msg, out, msg.count, msg.type, f, comm));
+        auto type = datatype::identify<T>();
+        auto out = payload::create_output<T>(msg.count);
+        auto f = detail::functor::resolve<T>(lambda);
+        guard(MPI_Allreduce(msg.ptr, (T*) out, msg.count, type, f, comm));
         return out;
     }
 }
@@ -56,14 +57,14 @@ namespace collective
      * @return The resulting reduced message.
      */
     template <typename F, typename T>
-    inline auto allreduce(
+    MPIWCPP17_INLINE auto allreduce(
         T *data
-      , const size_t count
-      , const F& lambda = {}
-      , const communicator_t& comm = world
+      , size_t count
+      , const F& lambda
+      , communicator_t comm = world
     ) {
-        auto msg = detail::wrapper_t(data, count);
-        return detail::collective::allreduce<F>(msg, lambda, comm);
+        auto msg = detail::payload_in_t(data, count);
+        return detail::collective::allreduce(msg, lambda, comm);
     }
 
     /**
@@ -76,13 +77,13 @@ namespace collective
      * @return The resulting reduced message.
      */
     template <typename F, typename T>
-    inline auto allreduce(
+    MPIWCPP17_INLINE auto allreduce(
         T& data
-      , const F& lambda = {}
-      , const communicator_t& comm = world
+      , const F& lambda
+      , communicator_t comm = world
     ) {
-        auto msg = detail::wrapper_t(data);
-        return detail::collective::allreduce<F>(msg, lambda, comm);
+        auto msg = detail::payload::to_input(data);
+        return detail::collective::allreduce(msg, lambda, comm);
     }
 }
 
