@@ -12,7 +12,7 @@
 #include <utility>
 #include <memory>
 
-#include <mpiwcpp17/environment.hpp>
+#include <mpiwcpp17/environment.h>
 #include <mpiwcpp17/guard.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
@@ -24,7 +24,7 @@ MPIWCPP17_BEGIN_NAMESPACE
  * mechanism for allocating and freeing such special memory. The use of such memory
  * for performing these operations is not mandatory, and this memory can be used
  * without restrictions as any other dynamically allocated memory. However, some
- * MPI implementations may restrict the use of windows within such memory only.
+ * MPI implementations may restrict the use of windows to such memory regions only.
  */
 
 namespace memory
@@ -37,20 +37,23 @@ namespace memory
      * @return The smart pointer to the allocated memory region.
      */
     template <typename T = void>
-    inline auto allocate(size_t count = 1) -> decltype(auto)
+    MPIWCPP17_INLINE auto allocate(size_t count = 1) -> decltype(auto)
     {
-        T *ptr = nullptr;
-        auto destructor = [](T *wptr) { guard(MPI_Free_mem(wptr)); };
-
-        using destructor_t = void(*)(T*);
+        // The memory allocated by MPI should only be freed using its corresponding
+        // function, as MPI might perform extra steps while releasing the region.
+        using deleter_t = struct {
+            MPIWCPP17_INLINE void operator()(T *ptr) {
+                guard(MPI_Free_mem(ptr));
+            }
+        };
 
         if constexpr (!std::is_void<T>::value) {
-            guard(MPI_Alloc_mem(count * sizeof(T), MPI_INFO_NULL, &ptr));
-            return std::unique_ptr<T[], destructor_t>(ptr, destructor);
+            T *ptr; guard(MPI_Alloc_mem(count * sizeof(T), MPI_INFO_NULL, &ptr));
+            return std::unique_ptr<T[], deleter_t>(ptr);
 
         } else {
-            guard(MPI_Alloc_mem(count, MPI_INFO_NULL, &ptr));
-            return std::unique_ptr<void, destructor_t>(ptr, destructor);
+            T *ptr; guard(MPI_Alloc_mem(count, MPI_INFO_NULL, &ptr));
+            return std::unique_ptr<void, deleter_t>(ptr);
         }
     }
 }
