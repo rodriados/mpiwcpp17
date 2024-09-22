@@ -50,7 +50,7 @@ SCENARIO("reduce values into a process", "[collective][reduce]")
             value[i] = (mpi::global::rank + 1) * (i + 1);
 
         const auto f = [](auto x, auto y) { return x + y; };
-        auto result = mpi::reduce(value, f, root);
+        auto result = mpi::reduce(value, &f, root);
 
         if (root == mpi::global::rank) THEN("root process has the results") {
             REQUIRE(result.count == quantity);

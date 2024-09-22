@@ -18,7 +18,7 @@ SCENARIO("gather values into all processes", "[collective][allgather]")
      */
     GIVEN("a single scalar value") {
         int value = mpi::global::rank + 1;
-        auto result = mpi::allgather(&value, 1, mpi::world, mpi::flag::uniform());
+        auto result = mpi::allgather(&value, 1, mpi::world, mpi::flag::uniform_t());
 
         THEN("all processes have all values") {
             REQUIRE(result.count == mpi::global::size);
@@ -39,7 +39,7 @@ SCENARIO("gather values into all processes", "[collective][allgather]")
         for (int i = 0; i < quantity; ++i)
             value[i] = 10 * mpi::global::rank + i;
 
-        auto result = mpi::allgather(value, mpi::world, mpi::flag::uniform());
+        auto result = mpi::allgather(value, mpi::world, mpi::flag::uniform_t());
 
         THEN("all processes have all values") {
             REQUIRE(result.count == (quantity * mpi::global::size));
@@ -60,7 +60,7 @@ SCENARIO("gather values into all processes", "[collective][allgather]")
         for (int i = 0; i <= mpi::global::rank; ++i)
             value[i] = mpi::global::rank * 10 + i;
 
-        auto result = mpi::allgather(value, mpi::world, mpi::flag::varying());
+        auto result = mpi::allgather(value, mpi::world, mpi::flag::varying_t());
 
         THEN("all processes have all values") {
             auto size = mpi::global::size;

@@ -30,7 +30,7 @@ SCENARIO("scatter values to all processes", "[collective][scatter]")
             for (int i = 0; i < mpi::global::size * quantity; ++i)
                 value[i] = i;
 
-        auto result = mpi::scatter(value, root, mpi::world, mpi::flag::uniform());
+        auto result = mpi::scatter(value, root, mpi::world, mpi::flag::uniform_t());
 
         THEN("every process has part of the values") {
             REQUIRE(result.count == quantity);

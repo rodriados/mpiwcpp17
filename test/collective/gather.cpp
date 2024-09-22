@@ -23,7 +23,7 @@ SCENARIO("gather values from all processes", "[collective][gather]")
      */
     GIVEN("a single scalar value") {
         int value = mpi::global::rank + 1;
-        auto result = mpi::gather(&value, 1, root, mpi::world, mpi::flag::uniform());
+        auto result = mpi::gather(&value, 1, root, mpi::world, mpi::flag::uniform_t());
 
         if (root == mpi::global::rank) THEN("root has all processes' values") {
             REQUIRE(result.count == mpi::global::size);
@@ -48,7 +48,7 @@ SCENARIO("gather values from all processes", "[collective][gather]")
         for (int i = 0; i < quantity; ++i)
             value[i] = 10 * mpi::global::rank + i;
 
-        auto result = mpi::gather(value, root, mpi::world, mpi::flag::uniform());
+        auto result = mpi::gather(value, root, mpi::world, mpi::flag::uniform_t());
 
         if (root == mpi::global::rank) THEN("root has all processes' values") {
             REQUIRE(result.count == (quantity * mpi::global::size));
@@ -73,7 +73,7 @@ SCENARIO("gather values from all processes", "[collective][gather]")
         for (int i = 0; i <= mpi::global::rank; ++i)
             value[i] = 100 * root + mpi::global::rank * 10 + i;
 
-        auto result = mpi::gather(value, root, mpi::world, mpi::flag::varying());
+        auto result = mpi::gather(value, root, mpi::world, mpi::flag::varying_t());
 
         if (root == mpi::global::rank) THEN("root has all processes' values") {
             auto size = mpi::global::size;

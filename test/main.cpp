@@ -130,9 +130,9 @@ CATCH_REGISTER_REPORTER("mpi-reporter", MPIConsoleReporter);
  * @return The MPI type descriptor instance.
  */
 template <>
-inline mpi::datatype::descriptor_t mpi::datatype::describe<Catch::Counts>()
+inline mpi::datatype_t mpi::datatype::describe<Catch::Counts>()
 {
-    return mpi::datatype::descriptor_t(
+    return mpi::datatype::provide(
         &Catch::Counts::passed
       , &Catch::Counts::failed
       , &Catch::Counts::failedButOk
@@ -144,9 +144,9 @@ inline mpi::datatype::descriptor_t mpi::datatype::describe<Catch::Counts>()
  * @return The MPI type descriptor instance.
  */
 template <>
-inline mpi::datatype::descriptor_t mpi::datatype::describe<Catch::Totals>()
+inline mpi::datatype_t mpi::datatype::describe<Catch::Totals>()
 {
-    return mpi::datatype::descriptor_t(
+    return mpi::datatype::provide(
         &Catch::Totals::error
       , &Catch::Totals::assertions
       , &Catch::Totals::testCases
@@ -159,7 +159,7 @@ inline mpi::datatype::descriptor_t mpi::datatype::describe<Catch::Totals>()
  */
 int main(int argc, char **argv)
 {
-    mpi::initiator_t m (&argc, &argv, mpi::thread_support_t::serialized);
+    mpi::initiator_t m (&argc, &argv, mpi::support::thread_t::serialized);
 
     // Starting the test run session and running the tests according to the given
     // command line arguments. Each MPI process runs its own session and the results

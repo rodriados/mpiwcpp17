@@ -42,7 +42,7 @@ SCENARIO("reduce values into all processes", "[collective][allreduce]")
             value[i] = (mpi::global::rank + 1) * (i + 1);
 
         const auto f = [](auto x, auto y) { return x + y; };
-        auto result = mpi::allreduce(value, f);
+        auto result = mpi::allreduce(value, &f);
 
         THEN("all processes have the results") {
             REQUIRE(result.count == quantity);

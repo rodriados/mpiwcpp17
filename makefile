@@ -19,7 +19,7 @@ STDCPP ?= c++17
 # Defining macros inside code at compile time. This can be used to enable or disable
 # certain features on code or affect the projects compilation.
 FLAGS ?=
-GCPPFLAGS ?= -std=$(STDCPP) -I$(INCDIR) -I$(TESTDIR) $(FLAGS)
+GCPPFLAGS ?= -std=$(STDCPP) -I$(DSTDIR) -I$(TESTDIR) $(FLAGS)
 LINKFLAGS ?= $(FLAGS)
 
 SRCFILES := $(shell find $(SRCDIR) -name '*.h')                                \
@@ -50,7 +50,7 @@ prepare-distribute:
 	@mkdir -p $(DSTDIR)
 
 MPIWCPP17_DIST_CONFIG ?= .packconfig
-MPIWCPP17_DIST_TARGET ?= $(DIST)/$(NAME).h
+MPIWCPP17_DIST_TARGET ?= $(DSTDIR)/$(NAME).h
 
 distribute: prepare-distribute thirdparty-distribute $(MPIWCPP17_DIST_TARGET)
 no-thirdparty-distribute: prepare-distribute $(MPIWCPP17_DIST_TARGET)
@@ -76,7 +76,7 @@ prepare-build:
 	@mkdir -p $(sort $(dir $(TESTDEPS)))
 
 testing: override FLAGS = -g -O0
-testing: prepare-build $(BINDIR)/runtest.o
+testing: distribute prepare-build $(BINDIR)/runtest.o
 
 runtest: testing
 	mpirun --host localhost:$(np) -np $(np) $(BINDIR)/runtest.o $(scenario)

@@ -93,14 +93,19 @@ def extract_include_dependencies(filename: str, project: ProjectInfo) -> tuple:
 
 # Iterates over the graph and finds the required include order from the given file.
 # @param srcfile The file to iterate over the graph as an entrypoint.
+# @param visited The list of source files that have been already visited.
 # @param graph The project's include graph instance.
 # @return The require include order from the given entrypoint.
-def find_graph_required_order(srcfile: str, graph: IncludeGraph) -> list[str]:
+def find_graph_required_order(srcfile: str, graph: IncludeGraph, visited: list[str]) -> list[str]:
+    if srcfile in visited:
+        return []
+
     source_dependencies = []
+    visited = visited + [srcfile]
 
     for dependency in graph.project[srcfile]:
         transitive_dependencies = [] if dependency in source_dependencies \
-            else find_graph_required_order(dependency, graph)
+            else find_graph_required_order(dependency, graph, visited)
 
         for transitive_dependency in transitive_dependencies:
             if transitive_dependency not in source_dependencies:
@@ -128,7 +133,7 @@ def copy_code_to_file(srcfile: str, outfhandle: TextIO) -> None:
 # @param project The project information instance.
 def write_compacted_source_code(outfile: str, graph: IncludeGraph, project: ProjectInfo) -> None:
     namespace = project.namespace.upper()
-    include_order = find_graph_required_order(project.entrypoint, graph)
+    include_order = find_graph_required_order(project.entrypoint, graph, [])
 
     with open(project.entrypoint, 'r') as fhandle:
         entrypoint_header = re                               \
