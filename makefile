@@ -89,7 +89,7 @@ clean: clean-distribute
 .PHONY: prepare-distribute distribute no-thirdparty-distribute
 
 $(MPIWCPP17_DIST_TARGET): $(SRCFILES)
-	python pack.py -c $(MPIWCPP17_DIST_CONFIG) -o $@
+	python3 pack.py -c $(MPIWCPP17_DIST_CONFIG) -o $@
 
 # Creates dependency on header files. This is valuable so that whenever a header
 # file is changed, all objects depending on it will be recompiled.

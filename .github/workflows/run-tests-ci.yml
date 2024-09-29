@@ -15,8 +15,9 @@ jobs:
           docker build -t mpiwcpp17-test test
           docker container create -i -t --name test-runner mpiwcpp17-test
           docker start test-runner
-          docker cp . test-runner:/home/mpiwcpp17
+
       - name: Building and running test cases
         run: |
-          docker exec test-runner make clean
+          make distribute
+          docker cp . test-runner:/home/mpiwcpp17
           docker exec test-runner make runtest np=4

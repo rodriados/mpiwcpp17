@@ -106,7 +106,7 @@ namespace detail::functor
       , typename = std::enable_if_t<
             !std::is_default_constructible_v<F> &&
             std::is_assignable_v<T&, std::invoke_result_t<F, const T&, const T&>>>>
-    MPIWCPP17_INLINE functor_t resolve(F* lambda)
+    MPIWCPP17_INLINE functor_t resolve(F& lambda)
     {
         // As a convenience for the caller, a dynamic wrapper for the operator is
         // provided when the given operator requires a non-trivial instance for
@@ -130,7 +130,7 @@ namespace detail::functor
         // Attention! The lambda reference is not owned by the wrapper, therefore
         // the caller is responsible for guaranteeing that it exists throughout
         // the lifetime of the relevant collective operations.
-        datatype::attribute::set(type, marker, lambda);
+        datatype::attribute::set(type, marker, &lambda);
 
         static functor_t f = build_from_callable(&dynamic_wrapper_t::call);
         return f;
