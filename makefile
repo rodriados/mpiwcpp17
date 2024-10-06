@@ -116,16 +116,17 @@ thirdparty-install:    $(THIRDPARTY_DEPENDENCIES:%=thirdparty-install-%)
 thirdparty-uninstall:  $(THIRDPARTY_DEPENDENCIES:%=thirdparty-uninstall-%)
 thirdparty-clean:      $(THIRDPARTY_DEPENDENCIES:%=thirdparty-clean-%)
 
+ifndef MPIWCPP17_DIST_STANDALONE
 export REFLECTOR_DIST_STANDALONE = 1
 
-$(SUPERTUPLE_DIST_TARGET):
 ifndef SKIP_SUPERTUPLE_DISTRIBUTE
+$(SUPERTUPLE_DIST_TARGET):
 	@$(MAKE) --no-print-directory -C $(PT3DIR)/supertuple distribute
 	cp $(PT3DIR)/supertuple/$@ $@
 endif
 
-$(REFLECTOR_DIST_TARGET):
 ifndef SKIP_REFLECTOR_DISTRIBUTE
+$(REFLECTOR_DIST_TARGET):
 	@$(MAKE) --no-print-directory -C $(PT3DIR)/reflector distribute
 	cp $(PT3DIR)/reflector/$@ $@
 endif
@@ -138,6 +139,14 @@ thirdparty-uninstall-%: %
 
 thirdparty-clean-%: %
 	@$(MAKE) --no-print-directory -C $(PT3DIR)/$< clean
+
+else
+.PHONY: $(THIRDPARTY_TARGETS)
+.PHONY: $(THIRDPARTY_DEPENDENCIES:%=thirdparty-distribute-%)
+.PHONY: $(THIRDPARTY_DEPENDENCIES:%=thirdparty-install-%)
+.PHONY: $(THIRDPARTY_DEPENDENCIES:%=thirdparty-uninstall-%)
+.PHONY: $(THIRDPARTY_DEPENDENCIES:%=thirdparty-clean-%)
+endif
 
 .PHONY: thirdparty-distribute thirdparty-install thirdparty-uninstall thirdparty-clean
 .PHONY: $(THIRDPARTY_DEPENDENCIES)
