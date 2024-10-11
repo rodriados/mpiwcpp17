@@ -126,32 +126,32 @@ TEST_CASE("world communicator has correct info", "[global]")
 CATCH_REGISTER_REPORTER("mpi-reporter", MPIConsoleReporter);
 
 /**
- * Describes the framework's test state counter type.
- * @return The MPI type descriptor instance.
+ * Provides a datatype descriptor identifier for  the framework's test state counter.
+ * @since 3.0
  */
 template <>
-inline mpi::datatype_t mpi::datatype::describe<Catch::Counts>()
-{
-    return mpi::datatype::provide(
-        &Catch::Counts::passed
-      , &Catch::Counts::failed
-      , &Catch::Counts::failedButOk
-    );
-}
+struct mpi::datatype::provider_t<Catch::Counts> {
+    inline static mpi::datatype_t provide() {
+        return mpi::datatype::provide(
+            &Catch::Counts::passed
+          , &Catch::Counts::failed
+          , &Catch::Counts::failedButOk);
+    }
+};
 
 /**
- * Describes the framework's test state totalization type.
- * @return The MPI type descriptor instance.
+ * Provides a datatype descriptor identifier for the framework's test state totalization.
+ * @since 3.0
  */
 template <>
-inline mpi::datatype_t mpi::datatype::describe<Catch::Totals>()
-{
-    return mpi::datatype::provide(
-        &Catch::Totals::error
-      , &Catch::Totals::assertions
-      , &Catch::Totals::testCases
-    );
-}
+struct mpi::datatype::provider_t<Catch::Totals> {
+    inline static mpi::datatype_t provide() {
+        return mpi::datatype::provide(
+            &Catch::Totals::error
+          , &Catch::Totals::assertions
+          , &Catch::Totals::testCases);
+    }
+};
 
 /**
  * Initializes MPI machinery and runs test cases.

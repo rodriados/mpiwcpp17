@@ -19,19 +19,16 @@ struct point_t
     T x, y;
 };
 
-#if defined(MPIWCPP17_AVOID_REFLECTION)
-
 /**
- * Describes the point fixture structure.
- * @return The MPI type descriptor instance.
+ * Provides a datatype descriptor identifier for the fixture point structure.
+ * @tparam T The point's dimensions' type.
+ * @since 3.0
  */
 template <typename T>
-inline mpi::datatype::descriptor_t mpi::datatype::describe<point_t<T>>()
-{
-    return mpi::datatype::descriptor_t(
-        &point_t<T>::x
-      , &point_t<T>::y
-    );
-}
-
-#endif
+struct mpi::datatype::provider_t<point_t<T>> {
+    inline static mpi::datatype_t provide() {
+        return mpi::datatype::provide(
+            &point_t<T>::x
+          , &point_t<T>::y);
+    }
+};

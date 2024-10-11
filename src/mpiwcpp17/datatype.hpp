@@ -43,12 +43,13 @@ namespace datatype
     )
 
     /**
-     * Describes a type and allows it to be sent to different processes via MPI.
-     * @tparam T The type to be described.
-     * @return The target type's identifier instance.
+     * The datatype identity provider for a specified type. A custom, and possibly
+     * generic, provider can be specified by specializing it to the target type.
+     * @param T The type to be identified for MPI operations.
+     * @since 3.0
      */
     template <typename T>
-    MPIWCPP17_INLINE datatype_t describe();
+    struct provider_t;
 
     /**
      * Identifies the given type by retrieving its datatype identifier.
@@ -61,8 +62,8 @@ namespace datatype
         static_assert(!std::is_union<T>::value, "union types cannot be used with MPI");
         static_assert(!std::is_reference<T>::value, "references cannot be used with MPI");
 
-        static datatype_t identifier = detail::tracker_t::add(describe<T>(), &MPI_Type_free);
-        return identifier;
+        static datatype_t id = detail::tracker_t::add(provider_t<T>::provide(), &MPI_Type_free);
+        return id;
     }
 
     /**#@+
@@ -146,74 +147,57 @@ namespace datatype
 
             return result;
         }
+    }
 
-      #if !defined(MPIWCPP17_AVOID_THIRDPARTY_REFLECTOR)
+  #ifndef MPIWCPP17_AVOID_THIRDPARTY_REFLECTOR
+    /**
+     * Provides datatype description by using the automatic reflection mechanism.
+     * @param T The type to be identified for MPI operations.
+     * @since 3.0
+     */
+    template <typename T>
+    struct provider_t
+    {
+        using reflection_t = ::REFLECTOR_NAMESPACE::reflection_t<T>;
+        using reflection_tuple_t = typename reflection_t::reflection_tuple_t;
+
+        /**
+         * Provides a datatype description for the target type via reflection.
+         * @return The target datatype descriptor identifier.
+         */
+        MPIWCPP17_INLINE static datatype_t provide()
+        {
+            return provide_by_reflection(std::make_index_sequence<reflection_t::count>());
+        }
+
         /**
          * Provides the properties' description of a MPI-enabled datatype by using
-         * reflection over the specified type.
-         * @tparam T The type to be provided as descriptor.
+         * member-wise reflection over the specified type.
          * @tparam I The indexes of properties within the type.
-         * @return The target datatype descriptor instance.
+         * @return The target datatype descriptor identifier.
          */
-        template <typename T, size_t ...I>
-        MPIWCPP17_INLINE datatype_t provide_by_reflection(std::index_sequence<I...>)
+        template <size_t ...I>
+        MPIWCPP17_INLINE static datatype_t provide_by_reflection(std::index_sequence<I...>)
         {
-            using reflection_t = reflector::reflection_t<T>;
-            using elements_t = typename reflection_t::reflection_tuple_t;
-            return build_from_members<std::tuple_element_t<I, elements_t>...>({
-                reflection_t::template offset<I>()...
-            });
+            constexpr auto offset = std::array {reflection_t::template offset<I>()...};
+            return detail::build_from_members<typename reflection_tuple_t::template element_t<I>...>(offset);
         }
-      #endif
-    }
+    };
+  #endif
 
     /**
      * Provides the properties' description of a MPI-enabled datatype.
      * @tparam T The datatype to be described.
      * @tparam R The properties' types of the target datatype.
-     * @param members The target type member properties' pointers.
+     * @param member The target type member properties' pointers.
      * @return The target datatype identifier instance.
      */
     template <typename T, typename ...R>
-    MPIWCPP17_INLINE datatype_t provide(R T::*... members)
+    MPIWCPP17_INLINE datatype_t provide(R T::*... member)
     {
-        return detail::build_from_members<R...>({
-            ((char*) &(((T*) 0x80)->*members))
-          - ((char*) 0x80)...
-        });
+        const auto offset = std::array {(((char*)&(((T*)0x80)->*member)) - ((char*)0x80))...};
+        return detail::build_from_members<R...>(offset);
     }
-
-MPIWCPP17_DISABLE_GCC_WARNING_BEGIN("-Wreturn-type")
-  #if !defined(MPIWCPP17_AVOID_THIRDPARTY_REFLECTOR)
-    /**
-     * Creates a MPI type description for using reflection over the target type.
-     * @tparam T The type to be described.
-     * @return The target type's description instance.
-     */
-    template <typename T>
-    MPIWCPP17_INLINE datatype_t describe()
-    {
-        return detail::provide_by_reflection<T>(
-            std::make_index_sequence<reflector::reflection_t<T>::count>()
-        );
-    }
-  #else
-    /**
-     * Throws a compile-time error as no descriptor can be found for the given type.
-     * In order to the compilation to be successful, either reflection must not
-     * be avoided or this function must be manually specialized for the type.
-     * @tparam T The type to be described.
-     * @return The target type's descriptor instance.
-     */
-    template <typename T>
-    MPIWCPP17_INLINE datatype_t describe()
-    {
-        static_assert(
-            !std::is_void<T>::value && std::is_void<T>::value
-          , "no descriptor was found to the requested type so it cannot be used with MPI");
-    }
-  #endif
-MPIWCPP17_DISABLE_GCC_WARNING_END("-Wreturn-type")
 }
 
 MPIWCPP17_END_NAMESPACE
