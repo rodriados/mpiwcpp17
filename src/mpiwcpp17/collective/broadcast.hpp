@@ -55,7 +55,7 @@ namespace detail::collective
       , process_t root
       , communicator_t comm
     ) {
-        auto out = (root == rank(comm))
+        auto out = (root == communicator::rank(comm))
             ? payload::copy_to_output(msg)
             : payload::create_output<T>(msg.count);
         broadcast_replace((T*) out, out.count, root, comm);

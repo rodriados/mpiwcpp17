@@ -75,8 +75,8 @@ prepare-build:
 	@mkdir -p $(OBJDIR)
 	@mkdir -p $(sort $(dir $(TESTDEPS)))
 
-testing: override FLAGS = -g -O0
-testing: distribute prepare-build $(BINDIR)/runtest.o
+testing: override FLAGS = -I$(SRCDIR) -g -O0
+testing: thirdparty-distribute prepare-build $(BINDIR)/runtest.o
 
 runtest: testing
 	mpirun --host localhost:$(np) -np $(np) $(BINDIR)/runtest.o $(scenario)

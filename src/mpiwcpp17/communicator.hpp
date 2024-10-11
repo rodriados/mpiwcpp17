@@ -25,28 +25,6 @@ MPIWCPP17_FWD_GLOBAL_STATUS_FUNCTIONS
  */
 using communicator_t = MPI_Comm;
 
-/**
- * Informs the rank of the calling process within the given communicator.
- * @param comm The communicator to check the process' rank with.
- * @return The calling process' rank within communicator.
- */
-MPIWCPP17_INLINE process_t rank(communicator_t comm)
-{
-    process_t rank; guard(MPI_Comm_rank(comm, &rank));
-    return rank;
-}
-
-/**
- * Informs the number of processes within the given communicator.
- * @param comm The communicator to check the number of processes of.
- * @return The number of processes within given communicator.
- */
-MPIWCPP17_INLINE int32_t size(communicator_t comm)
-{
-    int32_t size; guard(MPI_Comm_size(comm, &size));
-    return size;
-}
-
 namespace communicator
 {
     /**
@@ -59,6 +37,28 @@ namespace communicator
       , MPI_Comm_get_attr, MPI_Comm_set_attr, MPI_Comm_delete_attr
       , MPI_COMM_DUP_FN, MPI_COMM_NULL_DELETE_FN
     )
+
+    /**
+     * Informs the rank of the calling process within the given communicator.
+     * @param comm The communicator to check the process' rank with.
+     * @return The calling process' rank within communicator.
+     */
+    MPIWCPP17_INLINE process_t rank(communicator_t comm)
+    {
+        process_t rank; guard(MPI_Comm_rank(comm, &rank));
+        return rank;
+    }
+
+    /**
+     * Informs the number of processes within the given communicator.
+     * @param comm The communicator to check the number of processes of.
+     * @return The number of processes within given communicator.
+     */
+    MPIWCPP17_INLINE int32_t size(communicator_t comm)
+    {
+        int32_t size; guard(MPI_Comm_size(comm, &size));
+        return size;
+    }
 
     /**
      * Duplicates the communicator with all its processes and attached information.

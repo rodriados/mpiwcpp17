@@ -41,7 +41,7 @@ namespace detail::collective
       , flag::payload::uniform_t = {}
     ) {
         auto type = datatype::identify<T>();
-        auto out = payload::create_output<T>(msg.count / mpiwcpp17::size(comm));
+        auto out = payload::create_output<T>(msg.count / communicator::size(comm));
         guard(MPI_Scatter(msg.ptr, out.count, type, (T*) out, out.count, type, root, comm));
         return out;
     }
@@ -66,7 +66,7 @@ namespace detail::collective
       , flag::payload::varying_t = {}
     ) {
         auto type = datatype::identify<T>();
-        auto out = payload::create_output<T>(total.ptr[rank(comm)]);
+        auto out = payload::create_output<T>(total.ptr[communicator::rank(comm)]);
         guard(MPI_Scatterv(msg.ptr, total.ptr, displ.ptr, type, (T*) out, out.count, type, root, comm));
         return out;
     }
@@ -86,7 +86,7 @@ namespace detail::collective
       , communicator_t comm = world
       , flag::payload::varying_t = {}
     ) {
-        size_t nproc = mpiwcpp17::size(comm);
+        size_t nproc = communicator::size(comm);
 
         size_t quotient  = msg.count / nproc;
         size_t remainder = msg.count % nproc;

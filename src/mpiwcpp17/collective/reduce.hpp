@@ -40,7 +40,7 @@ namespace detail::collective
       , communicator_t comm = world
     ) {
         auto type = datatype::identify<T>();
-        auto out = (root == rank(comm))
+        auto out = (root == communicator::rank(comm))
             ? payload::create_output<T>(msg.count)
             : detail::payload_out_t<T>();
         auto f = detail::functor::resolve<T>(lambda);

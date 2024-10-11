@@ -39,7 +39,7 @@ namespace detail::collective
       , flag::payload::uniform_t = {}
     ) {
         auto type = datatype::identify<T>();
-        auto out = payload::create_output<T>(msg.count * size(comm));
+        auto out = payload::create_output<T>(msg.count * communicator::size(comm));
         guard(MPI_Allgather(msg.ptr, msg.count, type, (T*) out, msg.count, type, comm));
         return out;
     }
@@ -83,7 +83,7 @@ namespace detail::collective
       , communicator_t comm
     ) {
         bool uniform = true;
-        size_t nproc = mpiwcpp17::size(comm);
+        size_t nproc = communicator::size(comm);
 
         displ = payload::create_output<int>(nproc);
         total = allgather<int>({&count, 1}, comm, flag::payload::uniform_t());

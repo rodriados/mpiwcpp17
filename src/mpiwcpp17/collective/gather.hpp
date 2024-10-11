@@ -43,8 +43,8 @@ namespace detail::collective
       , flag::payload::uniform_t = {}
     ) {
         auto type = datatype::identify<T>();
-        auto out = (root == rank(comm))
-            ? payload::create_output<T>(msg.count * size(comm))
+        auto out = (root == communicator::rank(comm))
+            ? payload::create_output<T>(msg.count * communicator::size(comm))
             : detail::payload_out_t<T>();
         guard(MPI_Gather(msg.ptr, msg.count, type, (T*) out, msg.count, type, root, comm));
         return out;
@@ -71,7 +71,7 @@ namespace detail::collective
       , flag::payload::varying_t = {}
     ) {
         auto type = datatype::identify<T>();
-        auto out = (root == rank(comm))
+        auto out = (root == communicator::rank(comm))
             ? payload::create_output<T>(std::accumulate(total.ptr, total.ptr + total.count, 0))
             : detail::payload_out_t<T>();
         guard(MPI_Gatherv(msg.ptr, msg.count, type, (T*) out, total.ptr, displ.ptr, type, root, comm));

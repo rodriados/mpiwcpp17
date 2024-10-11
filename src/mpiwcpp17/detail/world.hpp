@@ -43,8 +43,8 @@ namespace detail
              * @see mpi::initialize
              */
             MPIWCPP17_INLINE explicit world_t(int)
-              : rank (mpiwcpp17::rank(MPI_COMM_WORLD))
-              , size (mpiwcpp17::size(MPI_COMM_WORLD))
+              : rank (communicator::rank(MPI_COMM_WORLD))
+              , size (communicator::size(MPI_COMM_WORLD))
             {
                 guard(MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_RETURN));
             }
