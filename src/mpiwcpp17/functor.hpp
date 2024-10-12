@@ -20,12 +20,6 @@ MPIWCPP17_BEGIN_NAMESPACE
  */
 using functor_t = MPI_Op;
 
-MPIWCPP17_END_NAMESPACE
-
-#include <mpiwcpp17/detail/functor.hpp>
-
-MPIWCPP17_BEGIN_NAMESPACE
-
 namespace functor
 {
     /**#@+
