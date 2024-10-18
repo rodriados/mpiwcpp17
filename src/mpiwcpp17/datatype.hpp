@@ -17,7 +17,7 @@
 
 #include <mpiwcpp17/detail/tracker.hpp>
 #include <mpiwcpp17/detail/attribute.hpp>
-#include <mpiwcpp17/thirdparty/reflector.hpp>
+#include <mpiwcpp17/thirdparty/reflector.h>
 
 MPIWCPP17_BEGIN_NAMESPACE
 MPIWCPP17_FWD_GLOBAL_STATUS_FUNCTIONS

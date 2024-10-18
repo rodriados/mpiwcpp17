@@ -20,4 +20,4 @@ jobs:
         run: |
           make distribute
           docker cp . test-runner:/home/mpiwcpp17
-          docker exec test-runner make runtest np=4
+          docker exec test-runner make run-tests -j NP=$(nproc)

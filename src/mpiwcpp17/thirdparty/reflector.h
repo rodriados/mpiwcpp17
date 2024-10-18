@@ -26,14 +26,6 @@
   #endif
 #endif
 
-/*
- * As the reflector thirdparty library depends on the supertuple library to work,
- * we cannot include it if the latter should be avoided.
- */
-#ifdef MPIWCPP17_AVOID_THIRDPARTY_SUPERTUPLE
-  #define MPIWCPP17_AVOID_THIRDPARTY_REFLECTOR
-#endif
-
 #ifndef MPIWCPP17_AVOID_THIRDPARTY_REFLECTOR
-  #include <reflector.hpp>
+  #include <reflector.h>
 #endif

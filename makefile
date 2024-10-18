@@ -4,28 +4,29 @@
 # @copyright 2022-present Rodrigo Siqueira
 NAME = mpiwcpp17
 
-INCDIR  = src
-SRCDIR  = src
-TESTDIR = test
+INCDIR = src
+SRCDIR = src
+TSTDIR = test
 
 DSTDIR ?= dist
 OBJDIR ?= obj
 BINDIR ?= bin
 PT3DIR ?= thirdparty
 
-GCPP   ?= mpic++
+MPICXX ?= mpic++
 STDCPP ?= c++17
 
 # Defining macros inside code at compile time. This can be used to enable or disable
 # certain features on code or affect the projects compilation.
-FLAGS ?=
-GCPPFLAGS ?= -std=$(STDCPP) -I$(DSTDIR) -I$(TESTDIR) $(FLAGS)
+FLAGS     ?=
+CXXFLAGS  ?= -std=$(STDCPP) -I$(DSTDIR) -I$(INCDIR) $(FLAGS)
 LINKFLAGS ?= $(FLAGS)
 
 SRCFILES := $(shell find $(SRCDIR) -name '*.h')                                \
             $(shell find $(SRCDIR) -name '*.hpp')
-TESTFILES := $(shell find $(TESTDIR) -name '*.cpp')
-TESTDEPS = $(TESTFILES:$(TESTDIR)/%.cpp=$(OBJDIR)/%.test.o)
+
+TSTFILES := $(shell find $(TSTDIR) -name '*.cpp')
+TESTOBJS := $(TSTFILES:$(TSTDIR)/%.cpp=$(OBJDIR)/$(TSTDIR)/%.o)
 
 # The operational system check. At least for now, we assume that we are always running
 # on a Linux machine. Therefore, a disclaimer must be shown if this is not true.
@@ -44,22 +45,24 @@ ifeq ($(PREFIX),)
 	PREFIX := /usr/local
 endif
 
-all: testing
+all:   tests
+tests: build-tests
 
 prepare-distribute:
 	@mkdir -p $(DSTDIR)
 
+export DISTRIBUTE_DESTINATION ?= $(shell realpath $(DSTDIR))
+
 MPIWCPP17_DIST_CONFIG ?= .packconfig
-MPIWCPP17_DIST_TARGET ?= $(DSTDIR)/$(NAME).h
+MPIWCPP17_DIST_TARGET ?= $(DISTRIBUTE_DESTINATION)/$(NAME).h
 
 distribute: prepare-distribute thirdparty-distribute $(MPIWCPP17_DIST_TARGET)
 no-thirdparty-distribute: prepare-distribute $(MPIWCPP17_DIST_TARGET)
 
 clean-distribute: thirdparty-clean
-	@rm -f $(MPIWCPP17_DIST_TARGET)
 	@rm -rf $(DSTDIR)
 
-INSTALL_DESTINATION ?= $(DESTDIR)$(PREFIX)/include
+export INSTALL_DESTINATION ?= $(PREFIX)/include
 INSTALL_TARGETS = $(SRCFILES:$(SRCDIR)/%=$(INSTALL_DESTINATION)/%)
 
 install: thirdparty-install $(INSTALL_TARGETS)
@@ -67,29 +70,30 @@ install: thirdparty-install $(INSTALL_TARGETS)
 $(INSTALL_DESTINATION)/%: $(SRCDIR)/%
 	install -m 644 -D -T $< $@
 
-uninstall: thirdparty-uninstall
+uninstall:
 	@rm -f $(INSTALL_TARGETS)
 
-prepare-build:
-	@mkdir -p $(BINDIR)
-	@mkdir -p $(OBJDIR)
-	@mkdir -p $(sort $(dir $(TESTDEPS)))
+prepare-tests:
+	@mkdir -p $(BINDIR)/$(TSTDIR)
+	@mkdir -p $(sort $(dir $(TESTOBJS)))
 
-testing: override FLAGS = -I$(SRCDIR) -g -O0
-testing: thirdparty-distribute prepare-build $(BINDIR)/runtest.o
+build-tests: override FLAGS := -DTESTING -g -O0 $(FLAGS)
+build-tests: thirdparty-distribute prepare-tests $(BINDIR)/$(TSTDIR)/runtest
 
-runtest: testing
-	mpirun --host localhost:$(np) -np $(np) $(BINDIR)/runtest.o $(scenario)
+run-tests: NP ?= $(shell nproc)
+run-tests: build-tests
+	mpirun --host localhost:$(NP) -np $(NP) $(BINDIR)/$(TSTDIR)/runtest $(SCENARIO)
 
 clean: clean-distribute
 	@rm -rf $(BINDIR)
 	@rm -rf $(OBJDIR)
 
-.PHONY: all install prepare-build testing runtest uninstall clean
-.PHONY: prepare-distribute distribute no-thirdparty-distribute
+.PHONY: all clean install uninstall
+.PHONY: prepare-distribute distribute no-thirdparty-distribute clean-distribute
+.PHONY: prepare-tests build-tests tests run-tests
 
 $(MPIWCPP17_DIST_TARGET): $(SRCFILES)
-	python3 pack.py -c $(MPIWCPP17_DIST_CONFIG) -o $@
+	@python3 pack.py -c $(MPIWCPP17_DIST_CONFIG) -o $@
 
 # Creates dependency on header files. This is valuable so that whenever a header
 # file is changed, all objects depending on it will be recompiled.
@@ -97,19 +101,19 @@ ifneq ($(wildcard $(OBJDIR)/.),)
 -include $(shell find $(OBJDIR) -name '*.d')
 endif
 
-$(BINDIR)/runtest.o: $(TESTDEPS)
-	$(GCPP) $(LINKFLAGS) $^ -o $@
+$(BINDIR)/$(TSTDIR)/runtest: $(TESTOBJS)
+	$(MPICXX) $(LINKFLAGS) $^ -o $@
 
-$(OBJDIR)/%.test.o: $(TESTDIR)/%.cpp
-	$(GCPP) $(GCPPFLAGS) -MMD -c $< -o $@
+$(OBJDIR)/$(TSTDIR)/%.o: $(TSTDIR)/%.cpp
+	$(MPICXX) $(CXXFLAGS) -I$(TSTDIR) -MMD -c $< -o $@
 
 # The target path for third party dependencies' distribution files. As each dependency
 # may allow different settings, a variable for each one is needed.
-export SUPERTUPLE_DIST_TARGET ?= $(DSTDIR)/supertuple.hpp
-export REFLECTOR_DIST_TARGET  ?= $(DSTDIR)/reflector.hpp
+THIRDPARTY_IGNORE ?=
+THIRDPARTY_DEPENDENCIES = reflector
 
-THIRDPARTY_DEPENDENCIES ?= supertuple reflector
-THIRDPARTY_TARGETS = $(SUPERTUPLE_DIST_TARGET) $(REFLECTOR_DIST_TARGET)
+THIRDPARTY_TARGETS := $(filter-out $(THIRDPARTY_IGNORE),$(THIRDPARTY_DEPENDENCIES))
+THIRDPARTY_TARGETS := $(THIRDPARTY_TARGETS:%=$(DISTRIBUTE_DESTINATION)/%.h)
 
 thirdparty-distribute: prepare-distribute $(THIRDPARTY_TARGETS)
 thirdparty-install:    $(THIRDPARTY_DEPENDENCIES:%=thirdparty-install-%)
@@ -117,19 +121,11 @@ thirdparty-uninstall:  $(THIRDPARTY_DEPENDENCIES:%=thirdparty-uninstall-%)
 thirdparty-clean:      $(THIRDPARTY_DEPENDENCIES:%=thirdparty-clean-%)
 
 ifndef MPIWCPP17_DIST_STANDALONE
-export REFLECTOR_DIST_STANDALONE = 1
 
-ifndef SKIP_SUPERTUPLE_DISTRIBUTE
-$(SUPERTUPLE_DIST_TARGET):
-	@$(MAKE) --no-print-directory -C $(PT3DIR)/supertuple distribute
-	cp $(PT3DIR)/supertuple/$@ $@
-endif
+thirdparty-distribute-%: $(DISTRIBUTE_DESTINATION)/%.h
 
-ifndef SKIP_REFLECTOR_DISTRIBUTE
-$(REFLECTOR_DIST_TARGET):
-	@$(MAKE) --no-print-directory -C $(PT3DIR)/reflector distribute
-	cp $(PT3DIR)/reflector/$@ $@
-endif
+$(DISTRIBUTE_DESTINATION)/%.h: %
+	@$(MAKE) --no-print-directory -C $(PT3DIR)/$< distribute
 
 thirdparty-install-%: %
 	@$(MAKE) --no-print-directory -C $(PT3DIR)/$< install
