@@ -1,15 +1,16 @@
-name: run-tests-ci
+name: run-docker-tests-ci
 
 on: [push, pull_request]
 
 jobs:
-  test-runner:
+  docker-test-runner:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+
       - name: Preparing container
         run: |
           docker build -t mpiwcpp17-test test

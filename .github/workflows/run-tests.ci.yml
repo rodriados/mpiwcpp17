@@ -1,0 +1,35 @@
+name: run-tests-ci
+
+env:
+  CATCH_SOURCE_FILE: https://github.com/catchorg/Catch2/releases/download/v2.13.10/catch.hpp
+
+on: [push, pull_request]
+
+jobs:
+  test-runner:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        mpi: [mpich, openmpi]
+        include:
+          - os: ubuntu-latest
+            mpi: intelmpi
+      fail-fast: false
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: mpi4py/setup-mpi@v1
+        with:
+          mpi: ${{ matrix.mpi }}
+
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install testing framework
+        run: wget -O test/catch.hpp ${{env.CATCH_SOURCE_FILE}}
+
+      - name: Building and running test cases
+        run: make run-tests -j NP=$(nproc)
+
+      - name: Clean-up
+        run: make clean

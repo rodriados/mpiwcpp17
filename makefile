@@ -13,7 +13,7 @@ OBJDIR ?= obj
 BINDIR ?= bin
 PT3DIR ?= thirdparty
 
-MPICXX ?= mpic++
+MPICXX ?= mpicxx
 STDCPP ?= c++17
 
 # Defining macros inside code at compile time. This can be used to enable or disable
