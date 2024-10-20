@@ -62,7 +62,7 @@ namespace detail
     template <typename T>
     struct payload_out_t : public container_t<T>
     {
-        using container_t<T>::element_t;
+        using typename container_t<T>::element_t;
 
         static_assert(
             std::is_trivially_copyable_v<T>
