@@ -24,7 +24,7 @@ MPIWCPP17_BEGIN_NAMESPACE
  * operations, but can be derived into other communicators as needed.
  * @since 1.0
  */
-MPIWCPP17_CONSTEXPR const communicator_t world = MPI_COMM_WORLD;
+MPIWCPP17_INLINE const communicator_t world = MPI_COMM_WORLD;
 
 namespace global
 {

@@ -32,7 +32,7 @@ namespace status
      * This can be used with any native MPI function that outputs a status instance.
      * @since 2.0
      */
-    MPIWCPP17_CONSTEXPR status_t* ignore = MPI_STATUS_IGNORE;
+    MPIWCPP17_INLINE status_t* ignore = MPI_STATUS_IGNORE;
 
     /**
      * Retrieves the error code of an operation status.
