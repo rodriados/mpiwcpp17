@@ -41,7 +41,7 @@ namespace memory
     {
         // The memory allocated by MPI should only be freed using its corresponding
         // function, as MPI might perform extra steps while releasing the region.
-        using deleter_t = struct {
+        using deleter_t = struct deleter_t {
             MPIWCPP17_INLINE void operator()(T *ptr) {
                 guard(MPI_Free_mem(ptr));
             }

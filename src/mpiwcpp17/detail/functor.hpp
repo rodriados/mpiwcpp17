@@ -76,7 +76,7 @@ namespace detail::functor
         // provided so that it is adapted to the function signature required by
         // MPI. The wrapper is responsible for only correctly casting the operands
         // and applying the provided operator functor.
-        using static_wrapper_t = struct {
+        using static_wrapper_t = struct static_wrapper_t {
             static void call(void *a, void *b, int *count, datatype_t*) {
                 auto f = F();
                 auto x = static_cast<T*>(a);
@@ -113,7 +113,7 @@ namespace detail::functor
         // execution or when it's a plain function. The wrapper is responsible for
         // adapting the operator to the function signature requested by MPI, retrieving
         // the operator and applying it to correctly-typed operands.
-        using dynamic_wrapper_t = struct {
+        using dynamic_wrapper_t = struct dynamic_wrapper_t {
             static void call(void *a, void *b, int *count, datatype_t *marker) {
                 auto [ok, f] = datatype::attribute::get<F>(*marker, get_dynamic_resolution_marker());
                 auto x = static_cast<T*>(a);

@@ -55,7 +55,7 @@ MPIWCPP17_INLINE support::thread_t initialize(
 ) {
     if (int provided; !initialized()) {
         guard(MPI_Init_thread(argc, argv, static_cast<int>(mode), &provided));
-        new (&detail::world) detail::world_t (0);
+        new (&detail::g_world) detail::world_t (0);
         return static_cast<support::thread_t>(provided);
     } else {
         return thread_mode();
@@ -129,6 +129,7 @@ MPIWCPP17_INLINE void finalize()
 {
     if (!finalized()) {
         detail::tracker_t::clear();
+        detail::g_world = detail::world_t ();
         guard(MPI_Finalize());
     }
 }

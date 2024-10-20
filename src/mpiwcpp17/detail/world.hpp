@@ -51,7 +51,7 @@ namespace detail
 
         friend auto mpiwcpp17::initialize(int*, char***, support::thread_t) -> support::thread_t;
         friend void mpiwcpp17::finalize();
-    } world;
+    } g_world;
 }
 
 MPIWCPP17_END_NAMESPACE
