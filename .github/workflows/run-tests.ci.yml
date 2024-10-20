@@ -11,15 +11,9 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
         mpi: [mpich, openmpi]
-        include:
-          - os: ubuntu-latest
-            mpi: intelmpi
       fail-fast: false
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Install essential environment
-        run: sudo apt-get install -y build-essential
-
       - uses: mpi4py/setup-mpi@v1
         with:
           mpi: ${{ matrix.mpi }}
@@ -32,9 +26,7 @@ jobs:
         run: wget -O test/catch.hpp ${{env.CATCH_SOURCE_FILE}}
 
       - name: Building and running test cases
-        run: |
-          mpicxx --version
-          make run-tests NP=$(nproc)
+        run: make run-tests NP=$(nproc)
 
       - name: Clean-up
         run: make clean
