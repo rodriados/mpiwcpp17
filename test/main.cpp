@@ -123,7 +123,7 @@ TEST_CASE("world communicator has correct info", "[global]")
     REQUIRE(mpi::global::size == communicatorSize);
 }
 
-CATCH_REGISTER_REPORTER("mpi-reporter", MPIConsoleReporter);
+CATCH_REGISTER_REPORTER("mpi-reporter", MPIConsoleReporter)
 
 /**
  * Provides a datatype descriptor identifier for  the framework's test state counter.

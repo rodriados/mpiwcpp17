@@ -7,8 +7,6 @@
 #pragma once
 
 #include <mpi.h>
-#include <utility>
-
 #include <mpiwcpp17/environment.h>
 
 MPIWCPP17_BEGIN_NAMESPACE
@@ -47,7 +45,7 @@ namespace process
      * The type of processes within a communicator.
      * @since 2.1
      */
-    enum type_t : std::underlying_type_t<decltype(MPI_COMM_TYPE_SHARED)>
+    enum type_t
     {
         /**
          * This type allows a communicator to be split into subcommunicators, each
