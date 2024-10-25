@@ -25,14 +25,16 @@ SCENARIO("gather values from all processes", "[collective][gather]")
         int value = mpi::global::rank + 1;
         auto result = mpi::gather(&value, 1, root, mpi::world, mpi::flag::uniform_t());
 
-        if (root == mpi::global::rank) THEN("root has all processes' values") {
-            REQUIRE(result.count == mpi::global::size);
-            for (int i = 0; i < mpi::global::size; ++i)
-                REQUIRE(result[i] == (i + 1));
-        }
-
-        else THEN("other processes have no values") {
-            REQUIRE(result.count == 0);
+        if (root == mpi::global::rank) {
+            THEN("root has all processes' values") {
+                REQUIRE(result.count == (size_t) mpi::global::size);
+                for (int i = 0; i < mpi::global::size; ++i)
+                    REQUIRE(result[i] == (i + 1));
+            }
+        } else {
+            THEN("other processes have no values") {
+                REQUIRE(result.count == 0);
+            }
         }
     }
 
@@ -50,15 +52,17 @@ SCENARIO("gather values from all processes", "[collective][gather]")
 
         auto result = mpi::gather(value, root, mpi::world, mpi::flag::uniform_t());
 
-        if (root == mpi::global::rank) THEN("root has all processes' values") {
-            REQUIRE(result.count == (quantity * mpi::global::size));
-            for (int i = 0, k = 0; i < mpi::global::size; ++i)
-                for (int j = 0; j < quantity; ++j, ++k)
-                    REQUIRE(result[k] == (10 * i + j));
-        }
-
-        else THEN("other processes have no values") {
-            REQUIRE(result.count == 0);
+        if (root == mpi::global::rank) {
+            THEN("root has all processes' values") {
+                REQUIRE(result.count == (size_t) (quantity * mpi::global::size));
+                for (int i = 0, k = 0; i < mpi::global::size; ++i)
+                    for (int j = 0; j < quantity; ++j, ++k)
+                        REQUIRE(result[k] == (10 * i + j));
+            }
+        } else {
+            THEN("other processes have no values") {
+                REQUIRE(result.count == 0);
+            }
         }
     }
 
@@ -75,16 +79,18 @@ SCENARIO("gather values from all processes", "[collective][gather]")
 
         auto result = mpi::gather(value, root, mpi::world, mpi::flag::varying_t());
 
-        if (root == mpi::global::rank) THEN("root has all processes' values") {
-            auto size = mpi::global::size;
-            REQUIRE(result.count == (size * (size + 1) / 2));
-            for (int i = 0, k = 0; i < mpi::global::size; ++i)
-                for (int j = 0; j <= i; ++j, ++k)
-                    REQUIRE(result[k] == (100 * mpi::global::rank + i * 10 + j));
-        }
-
-        else THEN("other processes have no values") {
-            REQUIRE(result.count == 0);
+        if (root == mpi::global::rank)  {
+            THEN("root has all processes' values") {
+                auto size = mpi::global::size;
+                REQUIRE(result.count == (size_t) (size * (size + 1) / 2));
+                for (int i = 0, k = 0; i < mpi::global::size; ++i)
+                    for (int j = 0; j <= i; ++j, ++k)
+                        REQUIRE(result[k] == (100 * mpi::global::rank + i * 10 + j));
+            }
+        } else {
+            THEN("other processes have no values") {
+                REQUIRE(result.count == 0);
+            }
         }
     }
 }

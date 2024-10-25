@@ -26,14 +26,16 @@ SCENARIO("reduce values into a process", "[collective][reduce]")
         int value = mpi::global::rank + 1;
         auto result = mpi::reduce(&value, 1, mpi::functor::add, root);
 
-        if (root == mpi::global::rank) THEN("root process has the result") {
-            int expected = sumUpTo(mpi::global::size);
-            REQUIRE(result.count == 1);
-            REQUIRE(result[0] == expected);
-        }
-
-        else THEN("other processes have no values") {
-            REQUIRE(result.count == 0);
+        if (root == mpi::global::rank) {
+            THEN("root process has the result") {
+                int expected = sumUpTo(mpi::global::size);
+                REQUIRE(result.count == 1);
+                REQUIRE(result[0] == expected);
+            }
+        } else {
+            THEN("other processes have no values") {
+                REQUIRE(result.count == 0);
+            }
         }
     }
 
@@ -52,16 +54,18 @@ SCENARIO("reduce values into a process", "[collective][reduce]")
         const auto f = [](auto x, auto y) { return x + y; };
         auto result = mpi::reduce(value, f, root);
 
-        if (root == mpi::global::rank) THEN("root process has the results") {
-            REQUIRE(result.count == quantity);
-            for (int i = 0; i < quantity; ++i) {
-                int expected = sumUpTo(mpi::global::size) * (i + 1);
-                REQUIRE(result[i] == expected);
+        if (root == mpi::global::rank) {
+            THEN("root process has the results") {
+                REQUIRE(result.count == quantity);
+                for (int i = 0; i < quantity; ++i) {
+                    int expected = sumUpTo(mpi::global::size) * (i + 1);
+                    REQUIRE(result[i] == expected);
+                }
             }
-        }
-
-        else THEN("other processes have no values") {
-            REQUIRE(result.count == 0);
+        } else {
+            THEN("other processes have no values") {
+                REQUIRE(result.count == 0);
+            }
         }
     }
 }
