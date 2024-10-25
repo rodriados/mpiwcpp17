@@ -27,21 +27,27 @@ namespace detail
     class tracker_t final
     {
         private:
-            MPIWCPP17_INLINE static auto s_buffer = std::unordered_map<void*, void*>();
+            using deleter_t = int(*)(void*);
+
+        private:
+            MPIWCPP17_INLINE static auto s_map = std::unordered_map<uintptr_t, deleter_t*>();
 
         public:
-          MPIWCPP17_DISABLE_GCC_WARNING_BEGIN("-Wint-to-pointer-cast")
             /**
              * Adds a generic instance to the tracker.
              * @tparam T The trackable instance type.
+             * @tparam F The instance deleter function type.
              * @param instance The instance to be tracked.
-             * @param fn The function to use for instance destruction.
+             * @param deleter The function to use for instance destruction.
              * @return The tracked instance.
              */
-            template <typename T>
-            MPIWCPP17_INLINE static auto add(T instance, int (*fn)(T*)) -> T
+            template <typename T, typename F>
+            MPIWCPP17_INLINE static auto add(T instance, F deleter) -> T
             {
-                s_buffer.insert({(void*) instance, reinterpret_cast<void*>(fn)});
+                s_map.try_emplace(
+                    (uintptr_t) instance
+                  , reinterpret_cast<deleter_t*>(deleter));
+
                 return instance;
             }
 
@@ -55,12 +61,14 @@ namespace detail
             template <typename T>
             MPIWCPP17_INLINE static bool remove(T instance, bool preserve = false)
             {
-                auto obj = s_buffer.extract((void*) instance);
+                auto target = (uintptr_t) instance;
+                auto obj    = s_map.extract(target);
+
                 if (!preserve && !obj.empty())
-                    guard(reinterpret_cast<int(*)(T*)>(obj.mapped())(&instance));
+                    guard(reinterpret_cast<deleter_t>(obj.mapped())(&instance));
+
                 return obj.empty();
             }
-          MPIWCPP17_DISABLE_GCC_WARNING_END("-Wint-to-pointer-cast")
 
             /**
              * Clears the tracker and removes all tracked instances.
@@ -69,9 +77,10 @@ namespace detail
              */
             MPIWCPP17_INLINE static void clear(bool preserve = false)
             {
-                if (!preserve) for (auto& [key, fn] : s_buffer)
-                    guard(reinterpret_cast<int(*)(void*)>(fn)((void*)&key));
-                s_buffer.clear();
+                if (!preserve) for (auto [key, deleter] : s_map)
+                    guard(reinterpret_cast<deleter_t>(deleter)((void*)&key));
+
+                s_map.clear();
             }
     };
 }

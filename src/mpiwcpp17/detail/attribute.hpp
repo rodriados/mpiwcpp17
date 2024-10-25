@@ -14,6 +14,7 @@
 #include <mpiwcpp17/detail/tracker.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
+MPIWCPP17_FWD_GLOBAL_STATUS_FUNCTIONS
 
 namespace detail
 {
@@ -29,14 +30,16 @@ namespace detail
  * Produces a function for attribute creation.
  * @param type The data type the attribute is associated to.
  * @param fcreate The function for attribute creation.
- * @param ffree The function for freeing attribute resources.
  * @param fdup The function for attribute duplication.
  * @param fdel The function for attribute destruction.
  */
-#define MPIWCPP17_ATTRIBUTE_DECLARE_CREATE(type, fcreate, ffree, fdup, fdel)        \
+#define MPIWCPP17_ATTRIBUTE_DECLARE_CREATE(type, fcreate, fdup, fdel)               \
     MPIWCPP17_INLINE attribute_t create() {                                         \
       attribute_t attr; mpiwcpp17::guard(fcreate(fdup, fdel, &attr, nullptr));      \
-      return mpiwcpp17::detail::tracker_t::add(attr, &(ffree));                     \
+      mpiwcpp17::detail::tracker_t::add(                                            \
+          static_cast<uintptr_t>(attr)                                              \
+        , &detail::f_delete_attr);                                                  \
+      return attr;                                                                  \
     }
 
 /**
@@ -79,7 +82,9 @@ namespace detail
  */
 #define MPIWCPP17_ATTRIBUTE_DECLARE_FREE(type, ffree)                               \
     MPIWCPP17_INLINE void free(attribute_t attr) {                                  \
-      mpiwcpp17::guard(ffree(&attr));                                               \
+      uintptr_t xattr = static_cast<uintptr_t>(attr);                               \
+      if(!mpiwcpp17::finalized() && !mpiwcpp17::detail::tracker_t::remove(xattr))   \
+        mpiwcpp17::guard(ffree(&attr));                                             \
     }
 
 /**
@@ -96,7 +101,13 @@ namespace detail
 #define MPIWCPP17_ATTRIBUTE_DECLARE(type, init, free, get, set, rem, dup, del)      \
   using attribute_t = mpiwcpp17::detail::attribute_t;                               \
   namespace attribute {                                                             \
-    MPIWCPP17_ATTRIBUTE_DECLARE_CREATE(type, init, free, dup, del)                  \
+    namespace detail {                                                              \
+      MPIWCPP17_INLINE int f_delete_attr(uintptr_t *xattr) {                        \
+        attribute_t attr = static_cast<attribute_t>(*xattr);                        \
+        return (free)(&attr);                                                       \
+      }                                                                             \
+    }                                                                               \
+    MPIWCPP17_ATTRIBUTE_DECLARE_CREATE(type, init, dup, del)                        \
     MPIWCPP17_ATTRIBUTE_DECLARE_REMOVE(type, rem)                                   \
     MPIWCPP17_ATTRIBUTE_DECLARE_GET(type, get)                                      \
     MPIWCPP17_ATTRIBUTE_DECLARE_SET(type, set)                                      \

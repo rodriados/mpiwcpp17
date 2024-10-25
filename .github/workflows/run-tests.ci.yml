@@ -26,7 +26,7 @@ jobs:
         run: wget -O test/catch.hpp ${{env.CATCH_SOURCE_FILE}}
 
       - name: Building and running test cases
-        run: make run-tests NP=$(nproc)
+        run: make run-tests NP=4
 
       - name: Clean-up
         run: make clean

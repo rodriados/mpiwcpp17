@@ -71,19 +71,24 @@ namespace datatype
      * their identities built-in within MPI and can be used directly.
      * @since 1.0
      */
-    template <> MPIWCPP17_INLINE datatype_t identify<bool>()     { return MPI_C_BOOL; }
-    template <> MPIWCPP17_INLINE datatype_t identify<char>()     { return MPI_CHAR; }
-    template <> MPIWCPP17_INLINE datatype_t identify<float>()    { return MPI_FLOAT; }
-    template <> MPIWCPP17_INLINE datatype_t identify<double>()   { return MPI_DOUBLE; }
-    template <> MPIWCPP17_INLINE datatype_t identify<int8_t>()   { return MPI_INT8_T; }
-    template <> MPIWCPP17_INLINE datatype_t identify<int16_t>()  { return MPI_INT16_T; }
-    template <> MPIWCPP17_INLINE datatype_t identify<int32_t>()  { return MPI_INT32_T; }
-    template <> MPIWCPP17_INLINE datatype_t identify<int64_t>()  { return MPI_INT64_T; }
-    template <> MPIWCPP17_INLINE datatype_t identify<uint8_t>()  { return MPI_UINT8_T; }
-    template <> MPIWCPP17_INLINE datatype_t identify<uint16_t>() { return MPI_UINT16_T; }
-    template <> MPIWCPP17_INLINE datatype_t identify<uint32_t>() { return MPI_UINT32_T; }
-    template <> MPIWCPP17_INLINE datatype_t identify<uint64_t>() { return MPI_UINT64_T; }
-    template <> MPIWCPP17_INLINE datatype_t identify<wchar_t>()  { return MPI_WCHAR; }
+    template <> MPIWCPP17_INLINE datatype_t identify<bool>()        { return MPI_C_BOOL; }
+    template <> MPIWCPP17_INLINE datatype_t identify<short>()       { return MPI_SHORT; }
+    template <> MPIWCPP17_INLINE datatype_t identify<int>()         { return MPI_INT; }
+    template <> MPIWCPP17_INLINE datatype_t identify<long>()        { return MPI_LONG; }
+    template <> MPIWCPP17_INLINE datatype_t identify<float>()       { return MPI_FLOAT; }
+    template <> MPIWCPP17_INLINE datatype_t identify<double>()      { return MPI_DOUBLE; }
+    template <> MPIWCPP17_INLINE datatype_t identify<long long>()   { return MPI_LONG_LONG; }
+    template <> MPIWCPP17_INLINE datatype_t identify<long double>() { return MPI_LONG_DOUBLE; }
+
+    template <> MPIWCPP17_INLINE datatype_t identify<char>()          { return MPI_CHAR; }
+    template <> MPIWCPP17_INLINE datatype_t identify<signed char>()   { return MPI_SIGNED_CHAR; }
+    template <> MPIWCPP17_INLINE datatype_t identify<unsigned char>() { return MPI_UNSIGNED_CHAR; }
+    template <> MPIWCPP17_INLINE datatype_t identify<wchar_t>()       { return MPI_WCHAR; }
+
+    template <> MPIWCPP17_INLINE datatype_t identify<unsigned short>()     { return MPI_UNSIGNED_SHORT; }
+    template <> MPIWCPP17_INLINE datatype_t identify<unsigned int>()       { return MPI_UNSIGNED; }
+    template <> MPIWCPP17_INLINE datatype_t identify<unsigned long>()      { return MPI_UNSIGNED_LONG; }
+    template <> MPIWCPP17_INLINE datatype_t identify<unsigned long long>() { return MPI_UNSIGNED_LONG_LONG; }
     /**#@-*/
 
     /**
