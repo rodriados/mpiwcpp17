@@ -1,11 +1,11 @@
 bin/
+build/
 obj/
 dist/
 test/catch.hpp
 test.c
 test.cpp
-test2.cpp
-test3.cpp
+test[1-9].cpp
 run
 runtest
 *.gcda

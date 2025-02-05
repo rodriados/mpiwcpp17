@@ -1,5 +1,5 @@
 [output]
-outfile = dist/mpiwcpp17.h
+outfile = build/mpiwcpp17.h
 
 [project]
 workingdir = src
