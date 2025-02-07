@@ -7,14 +7,15 @@
 #include <cstdint>
 #include <vector>
 
-#include <catch.hpp>
-#include <mpiwcpp17.h>
+#include <mpiwcpp17/api.h>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators_range.hpp>
 
-#include "fixture/point.hpp"
+#include "resources/point.hpp"
 
 using namespace Catch;
 
-SCENARIO("broadcast values between processes", "[collective][broadcast]")
+TEST_CASE("broadcast values between processes", "[collective][broadcast]")
 {
     auto root = GENERATE(range(0, mpi::global::size));
 
@@ -23,16 +24,14 @@ SCENARIO("broadcast values between processes", "[collective][broadcast]")
      * from any process as the root for the operation.
      * @since 1.0
      */
-    GIVEN("a single scalar value") {
+    SECTION("a single scalar value") {
         int value = (root == mpi::global::rank)
             ? (mpi::global::rank + 1) * 2
             : 0;
 
         int result = mpi::broadcast(&value, 1, root);
 
-        THEN("all processes have same value") {
-            REQUIRE(result == (root + 1) * 2);
-        }
+        REQUIRE(result == (root + 1) * 2);
     }
 
     /**
@@ -40,7 +39,7 @@ SCENARIO("broadcast values between processes", "[collective][broadcast]")
      * from any process as the root for the operation.
      * @since 1.0
      */
-    GIVEN("a container of scalar values") {
+    SECTION("a container of scalar values") {
         constexpr int quantity = 4;
         std::vector<int> value;
 
@@ -49,11 +48,10 @@ SCENARIO("broadcast values between processes", "[collective][broadcast]")
 
         auto result = mpi::broadcast(value, root);
 
-        THEN("all processes have same values") {
-            REQUIRE(result.count == quantity);
-            for (int i = 0; i < quantity; ++i)
-                REQUIRE(result[i] == (10 * (i+1) + root));
-        }
+        REQUIRE(result.count == quantity);
+
+        for (int i = 0; i < quantity; ++i)
+            REQUIRE(result[i] == (10 * (i+1) + root));
     }
 
     /**
@@ -61,16 +59,14 @@ SCENARIO("broadcast values between processes", "[collective][broadcast]")
      * type reflection or a type description to represent the structure within MPI.
      * @since 1.0
      */
-    GIVEN("a single default-copyable structure instance") {
+    SECTION("a single default-copyable structure instance") {
         point_t<int> value = (root == mpi::global::rank)
             ? point_t<int> {mpi::global::rank + 1, mpi::global::rank + 2}
             : point_t<int> {0, 0};
 
         point_t<int> result = mpi::broadcast(&value, 1, root);
 
-        THEN("all processes have same value") {
-            REQUIRE(result.x == root + 1);
-            REQUIRE(result.y == root + 2);
-        }
+        REQUIRE(result.x == root + 1);
+        REQUIRE(result.y == root + 2);
     }
 }

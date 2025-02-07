@@ -7,12 +7,13 @@
 #include <cstdint>
 #include <vector>
 
-#include <catch.hpp>
-#include <mpiwcpp17.h>
+#include <mpiwcpp17/api.h>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators_range.hpp>
 
 using namespace Catch;
 
-SCENARIO("scatter values to all processes", "[collective][scatter]")
+TEST_CASE("scatter values to all processes", "[collective][scatter]")
 {
     auto root = GENERATE(range(0, mpi::global::size));
 
@@ -21,7 +22,7 @@ SCENARIO("scatter values to all processes", "[collective][scatter]")
      * processes can be scattered from the root of the operation.
      * @since 1.0
      */
-    GIVEN("a uniform container of scalar values") {
+    SECTION("a uniform container of scalar values") {
         constexpr int quantity = 4;
         std::vector<int> value (root == mpi::global::rank
             ? mpi::global::size * quantity: 1);
@@ -32,10 +33,9 @@ SCENARIO("scatter values to all processes", "[collective][scatter]")
 
         auto result = mpi::scatter(value, root, mpi::world, mpi::flag::uniform_t());
 
-        THEN("every process has part of the values") {
-            REQUIRE(result.count == quantity);
-            for (int i = 0; i < quantity; ++i)
-                REQUIRE(result[i] == mpi::global::rank * quantity + i);
-        }
+        REQUIRE(result.count == quantity);
+
+        for (int i = 0; i < quantity; ++i)
+            REQUIRE(result[i] == mpi::global::rank * quantity + i);
     }
 }

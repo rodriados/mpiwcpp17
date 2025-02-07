@@ -4,8 +4,8 @@
  * @author Rodrigo Siqueira <rodriados@gmail.com>
  * @copyright 2022-present Rodrigo Siqueira
  */
-#include <catch.hpp>
-#include <mpiwcpp17.h>
+#include <mpiwcpp17/api.h>
+#include <catch2/catch_test_macros.hpp>
 
 /**
  * Tests whether all processes can synchronize and wait for all others to reach

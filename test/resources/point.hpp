@@ -1,12 +1,12 @@
 /**
  * A thin C++17 wrapper for MPI.
- * @file A fixture structure for a simple geometry point.
+ * @file Simple point-like structure for testing.
  * @author Rodrigo Siqueira <rodriados@gmail.com>
  * @copyright 2022-present Rodrigo Siqueira
  */
 #pragma once
 
-#include <mpiwcpp17.h>
+#include <mpiwcpp17/api.h>
 
 /**
  * A simple 2D-geometry point fixture structure.

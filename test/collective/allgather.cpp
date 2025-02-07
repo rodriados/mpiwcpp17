@@ -7,24 +7,23 @@
 #include <cstdint>
 #include <vector>
 
-#include <catch.hpp>
-#include <mpiwcpp17.h>
+#include <mpiwcpp17/api.h>
+#include <catch2/catch_test_macros.hpp>
 
-SCENARIO("gather values into all processes", "[collective][allgather]")
+TEST_CASE("gather values into all processes", "[collective][allgather]")
 {
     /**
      * Tests whether a single scalar value can be gathered into all processes.
      * @since 1.0
      */
-    GIVEN("a single scalar value") {
+    SECTION("a single scalar value") {
         int value = mpi::global::rank + 1;
         auto result = mpi::allgather(&value, 1, mpi::world, mpi::flag::uniform_t());
 
-        THEN("all processes have all values") {
-            REQUIRE(result.count == (size_t) mpi::global::size);
-            for (int i = 0; i < mpi::global::size; ++i)
-                REQUIRE(result[i] == (i + 1));
-        }
+        REQUIRE(result.count == (size_t) mpi::global::size);
+
+        for (int i = 0; i < mpi::global::size; ++i)
+            REQUIRE(result[i] == (i + 1));
     }
 
     /**
@@ -32,7 +31,7 @@ SCENARIO("gather values into all processes", "[collective][allgather]")
      * can be gathered into all processes.
      * @since 1.0
      */
-    GIVEN("a uniform container of scalar values") {
+    SECTION("a uniform container of scalar values") {
         constexpr int quantity = 4;
         std::vector<int> value (quantity);
 
@@ -41,12 +40,11 @@ SCENARIO("gather values into all processes", "[collective][allgather]")
 
         auto result = mpi::allgather(value, mpi::world, mpi::flag::uniform_t());
 
-        THEN("all processes have all values") {
-            REQUIRE(result.count == (size_t) (quantity * mpi::global::size));
-            for (int i = 0, k = 0; i < mpi::global::size; ++i)
-                for (int j = 0; j < quantity; ++j, ++k)
-                    REQUIRE(result[k] == (10 * i + j));
-        }
+        REQUIRE(result.count == (size_t) (quantity * mpi::global::size));
+
+        for (int i = 0, k = 0; i < mpi::global::size; ++i)
+            for (int j = 0; j < quantity; ++j, ++k)
+                REQUIRE(result[k] == (10 * i + j));
     }
 
     /**
@@ -54,20 +52,19 @@ SCENARIO("gather values into all processes", "[collective][allgather]")
      * can be gathered into all processes.
      * @since 1.0
      */
-    GIVEN("a varying container of scalar values") {
+    SECTION("a varying container of scalar values") {
         std::vector<int> value (mpi::global::rank + 1);
 
         for (int i = 0; i <= mpi::global::rank; ++i)
             value[i] = mpi::global::rank * 10 + i;
 
+        auto size = mpi::global::size;
         auto result = mpi::allgather(value, mpi::world, mpi::flag::varying_t());
 
-        THEN("all processes have all values") {
-            auto size = mpi::global::size;
-            REQUIRE(result.count == (size_t) (size * (size + 1) / 2));
-            for (int i = 0, k = 0; i < mpi::global::size; ++i)
-                for (int j = 0; j <= i; ++j, ++k)
-                    REQUIRE(result[k] == (i * 10 + j));
-        }
+        REQUIRE(result.count == (size_t) (size * (size + 1) / 2));
+
+        for (int i = 0, k = 0; i < mpi::global::size; ++i)
+            for (int j = 0; j <= i; ++j, ++k)
+                REQUIRE(result[k] == (i * 10 + j));
     }
 }

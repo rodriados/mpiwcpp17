@@ -7,12 +7,13 @@
 #include <cstdint>
 #include <vector>
 
-#include <catch.hpp>
-#include <mpiwcpp17.h>
+#include <mpiwcpp17/api.h>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators_range.hpp>
 
 using namespace Catch;
 
-SCENARIO("reduce values into a process", "[collective][reduce]")
+TEST_CASE("reduce values into a process", "[collective][reduce]")
 {
     auto root = GENERATE(range(0, mpi::global::size));
     auto sumUpTo = [](auto n) { return (n * (n + 1)) / 2; };
@@ -22,20 +23,16 @@ SCENARIO("reduce values into a process", "[collective][reduce]")
      * using the given functor as operator.
      * @since 1.0
      */
-    GIVEN("a single scalar value") {
+    SECTION("a single scalar value") {
         int value = mpi::global::rank + 1;
         auto result = mpi::reduce(&value, 1, mpi::functor::add, root);
 
         if (root == mpi::global::rank) {
-            THEN("root process has the result") {
-                int expected = sumUpTo(mpi::global::size);
-                REQUIRE(result.count == 1);
-                REQUIRE(result[0] == expected);
-            }
+            int expected = sumUpTo(mpi::global::size);
+            REQUIRE(result.count == 1);
+            REQUIRE(result[0] == expected);
         } else {
-            THEN("other processes have no values") {
-                REQUIRE(result.count == 0);
-            }
+            REQUIRE(result.count == 0);
         }
     }
 
@@ -44,7 +41,7 @@ SCENARIO("reduce values into a process", "[collective][reduce]")
      * can be reduced into the root process using the given functor as operator.
      * @since 1.0
      */
-    GIVEN("a uniform container of scalar values") {
+    SECTION("a uniform container of scalar values") {
         constexpr int quantity = 4;
         std::vector<int> value (quantity);
 
@@ -55,17 +52,13 @@ SCENARIO("reduce values into a process", "[collective][reduce]")
         auto result = mpi::reduce(value, f, root);
 
         if (root == mpi::global::rank) {
-            THEN("root process has the results") {
-                REQUIRE(result.count == quantity);
-                for (int i = 0; i < quantity; ++i) {
-                    int expected = sumUpTo(mpi::global::size) * (i + 1);
-                    REQUIRE(result[i] == expected);
-                }
+            REQUIRE(result.count == quantity);
+            for (int i = 0; i < quantity; ++i) {
+                int expected = sumUpTo(mpi::global::size) * (i + 1);
+                REQUIRE(result[i] == expected);
             }
         } else {
-            THEN("other processes have no values") {
-                REQUIRE(result.count == 0);
-            }
+            REQUIRE(result.count == 0);
         }
     }
 }

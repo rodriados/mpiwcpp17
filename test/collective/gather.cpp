@@ -7,12 +7,13 @@
 #include <cstdint>
 #include <vector>
 
-#include <catch.hpp>
-#include <mpiwcpp17.h>
+#include <mpiwcpp17/api.h>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators_range.hpp>
 
 using namespace Catch;
 
-SCENARIO("gather values from all processes", "[collective][gather]")
+TEST_CASE("gather values from all processes", "[collective][gather]")
 {
     auto root = GENERATE(range(0, mpi::global::size));
 
@@ -21,20 +22,16 @@ SCENARIO("gather values from all processes", "[collective][gather]")
      * any process as the root for the operation.
      * @since 1.0
      */
-    GIVEN("a single scalar value") {
+    SECTION("a single scalar value") {
         int value = mpi::global::rank + 1;
         auto result = mpi::gather(&value, 1, root, mpi::world, mpi::flag::uniform_t());
 
         if (root == mpi::global::rank) {
-            THEN("root has all processes' values") {
-                REQUIRE(result.count == (size_t) mpi::global::size);
-                for (int i = 0; i < mpi::global::size; ++i)
-                    REQUIRE(result[i] == (i + 1));
-            }
+            REQUIRE(result.count == (size_t) mpi::global::size);
+            for (int i = 0; i < mpi::global::size; ++i)
+                REQUIRE(result[i] == (i + 1));
         } else {
-            THEN("other processes have no values") {
-                REQUIRE(result.count == 0);
-            }
+            REQUIRE(result.count == 0);
         }
     }
 
@@ -43,7 +40,7 @@ SCENARIO("gather values from all processes", "[collective][gather]")
      * can be gathered into any process as the root for the operation.
      * @since 1.0
      */
-    GIVEN("a uniform container of scalar values") {
+    SECTION("a uniform container of scalar values") {
         constexpr int quantity = 4;
         std::vector<int> value (quantity);
 
@@ -53,16 +50,12 @@ SCENARIO("gather values from all processes", "[collective][gather]")
         auto result = mpi::gather(value, root, mpi::world, mpi::flag::uniform_t());
 
         if (root == mpi::global::rank) {
-            THEN("root has all processes' values") {
-                REQUIRE(result.count == (size_t) (quantity * mpi::global::size));
-                for (int i = 0, k = 0; i < mpi::global::size; ++i)
-                    for (int j = 0; j < quantity; ++j, ++k)
-                        REQUIRE(result[k] == (10 * i + j));
-            }
+            REQUIRE(result.count == (size_t) (quantity * mpi::global::size));
+            for (int i = 0, k = 0; i < mpi::global::size; ++i)
+                for (int j = 0; j < quantity; ++j, ++k)
+                    REQUIRE(result[k] == (10 * i + j));
         } else {
-            THEN("other processes have no values") {
-                REQUIRE(result.count == 0);
-            }
+            REQUIRE(result.count == 0);
         }
     }
 
@@ -71,7 +64,7 @@ SCENARIO("gather values from all processes", "[collective][gather]")
      * can be gathered into any process as the root for the operation.
      * @since 1.0
      */
-    GIVEN("a varying container of scalar values") {
+    SECTION("a varying container of scalar values") {
         std::vector<int> value (mpi::global::rank + 1);
 
         for (int i = 0; i <= mpi::global::rank; ++i)
@@ -80,17 +73,13 @@ SCENARIO("gather values from all processes", "[collective][gather]")
         auto result = mpi::gather(value, root, mpi::world, mpi::flag::varying_t());
 
         if (root == mpi::global::rank)  {
-            THEN("root has all processes' values") {
-                auto size = mpi::global::size;
-                REQUIRE(result.count == (size_t) (size * (size + 1) / 2));
-                for (int i = 0, k = 0; i < mpi::global::size; ++i)
-                    for (int j = 0; j <= i; ++j, ++k)
-                        REQUIRE(result[k] == (100 * mpi::global::rank + i * 10 + j));
-            }
+            auto size = mpi::global::size;
+            REQUIRE(result.count == (size_t) (size * (size + 1) / 2));
+            for (int i = 0, k = 0; i < mpi::global::size; ++i)
+                for (int j = 0; j <= i; ++j, ++k)
+                    REQUIRE(result[k] == (100 * mpi::global::rank + i * 10 + j));
         } else {
-            THEN("other processes have no values") {
-                REQUIRE(result.count == 0);
-            }
+            REQUIRE(result.count == 0);
         }
     }
 }
