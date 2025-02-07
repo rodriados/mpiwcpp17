@@ -1,0 +1,34 @@
+name: pack-source-code
+
+on:
+  push:
+    tags:
+      - '**'
+
+jobs:
+  source-pack:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jwlawson/actions-setup-cmake@v1
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake python-is-python3
+
+      - name: Configure project with CMake
+        run: |
+          cmake -S . -B build
+
+      - name: Pack source code
+        run: |
+          cmake --build build --target MPIwCpp17PackSourceCode
+
+      - name: Draft release with packed source code
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/mpiwcpp17.h
+          draft: true

@@ -1,8 +1,5 @@
 name: run-tests-ci
 
-env:
-  CATCH_SOURCE_FILE: https://github.com/catchorg/Catch2/releases/download/v2.13.10/catch.hpp
-
 on: [push, pull_request]
 
 jobs:
@@ -14,19 +11,26 @@ jobs:
       fail-fast: false
     runs-on: ${{ matrix.os }}
     steps:
+      - uses: actions/checkout@v4
+      - uses: jwlawson/actions-setup-cmake@v1
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake ninja-build
+
       - uses: mpi4py/setup-mpi@v1
         with:
           mpi: ${{ matrix.mpi }}
 
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
+      - name: Configure project with CMake
+        run: |
+          cmake -S . -B build   \
+            -DBUILD_TESTING=ON  \
+            -G Ninja
 
-      - name: Install testing framework
-        run: wget -O test/catch.hpp ${{env.CATCH_SOURCE_FILE}}
+      - name: Build project
+        run: cmake --build build
 
-      - name: Building and running test cases
-        run: make run-tests NP=4
-
-      - name: Clean-up
-        run: make clean
+      - name: Run tests
+        run: ctest --test-dir build --output-on-failure
