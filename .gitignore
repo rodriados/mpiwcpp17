@@ -2,7 +2,6 @@ bin/
 build/
 obj/
 dist/
-test/catch.hpp
 test.c
 test.cpp
 test[1-9].cpp

@@ -1,4 +1,0 @@
-[submodule "thirdparty/reflector"]
-	path = thirdparty/reflector
-	url = https://github.com/rodriados/reflector
-	fetchRecurseSubmodules = yes

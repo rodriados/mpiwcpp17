@@ -1,0 +1,9 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+if(NOT DEFINED MPIWCPP17_AVOID_REFLECTOR)
+  find_dependency(Reflector REQUIRED)
+endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/MPIwCpp17Targets.cmake")

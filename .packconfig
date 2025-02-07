@@ -4,4 +4,4 @@ outfile = build/mpiwcpp17.h
 [project]
 workingdir = src
 namespace = mpiwcpp17
-entrypoint = mpiwcpp17.h
+entrypoint = mpiwcpp17/api.h
