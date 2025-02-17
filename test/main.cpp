@@ -34,7 +34,7 @@ TEST_CASE("world communicator has correct info", "[global]")
  */
 int main(int argc, char **argv)
 {
-    mpi::initiator_t m (&argc, &argv, mpi::support::thread_t::serialized);
+    mpi::initiator_t m (&argc, &argv, mpi::support::thread_level_t::serialized);
 
     // Starting the test run session and running the tests according to the given
     // command line arguments. Each MPI process runs its own session and the results

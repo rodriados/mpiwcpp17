@@ -21,7 +21,7 @@ namespace support
      * parallelism is supported by the current MPI installation.
      * @since 1.0
      */
-    enum class thread_t : int32_t
+    enum class thread_level_t : int32_t
     {
         /**
          * The first level of thread support.

@@ -38,7 +38,7 @@ namespace detail::collective
         size_t count
       , process_t source = process::any
       , tag_t tag = mpiwcpp17::tag::any
-      , communicator_t comm = world
+      , communicator_t comm = mpiwcpp17::world
     ) {
         auto type = datatype::identify<T>();
         auto out = payload::create_output<T>(count);

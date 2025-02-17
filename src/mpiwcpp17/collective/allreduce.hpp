@@ -34,7 +34,7 @@ namespace detail::collective
     MPIWCPP17_INLINE detail::payload_out_t<T> allreduce(
         const detail::payload_in_t<T>& msg
       , const F& lambda
-      , communicator_t comm = world
+      , communicator_t comm = mpiwcpp17::world
     ) {
         auto type = datatype::identify<T>();
         auto out = payload::create_output<T>(msg.count);

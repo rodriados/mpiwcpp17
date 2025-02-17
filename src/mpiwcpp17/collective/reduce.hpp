@@ -37,7 +37,7 @@ namespace detail::collective
         const detail::payload_in_t<T>& msg
       , const F& lambda
       , process_t root = process::root
-      , communicator_t comm = world
+      , communicator_t comm = mpiwcpp17::world
     ) {
         auto type = datatype::identify<T>();
         auto out = (root == communicator::rank(comm))

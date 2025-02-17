@@ -218,7 +218,7 @@
  */
 #define MPIWCPP17_BEGIN_NAMESPACE   \
     namespace MPIWCPP17_NAMESPACE { \
-        inline namespace v3 {       \
+        inline namespace v2 {       \
             namespace mpiwcpp17 = MPIWCPP17_NAMESPACE;
 
 /**
@@ -227,11 +227,3 @@
  * @since 1.0
  */
 #define MPIWCPP17_END_NAMESPACE     }}
-
-/**
- * Forward declaration of global MPI status functions.
- * @since 3.0
- */
-#define MPIWCPP17_FWD_GLOBAL_STATUS_FUNCTIONS     \
-    MPIWCPP17_INLINE auto initialized() -> bool;  \
-    MPIWCPP17_INLINE auto finalized() -> bool;

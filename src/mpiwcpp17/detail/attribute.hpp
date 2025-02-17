@@ -9,12 +9,12 @@
 #include <utility>
 
 #include <mpiwcpp17/environment.h>
+#include <mpiwcpp17/global.hpp>
 #include <mpiwcpp17/guard.hpp>
 
 #include <mpiwcpp17/detail/tracker.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
-MPIWCPP17_FWD_GLOBAL_STATUS_FUNCTIONS
 
 namespace detail
 {

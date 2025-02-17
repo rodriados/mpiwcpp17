@@ -34,7 +34,7 @@ namespace detail::collective
         const detail::payload_in_t<T>& msg
       , process_t destiny = process::root
       , tag_t tag = mpiwcpp17::tag::any
-      , communicator_t comm = world
+      , communicator_t comm = mpiwcpp17::world
     ) {
         auto type = datatype::identify<T>();
         if (tag < 0) { tag = mpiwcpp17::tag::ub; }

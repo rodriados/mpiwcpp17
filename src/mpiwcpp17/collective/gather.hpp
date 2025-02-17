@@ -39,7 +39,7 @@ namespace detail::collective
     MPIWCPP17_INLINE detail::payload_out_t<T> gather(
         const detail::payload_in_t<T>& msg
       , process_t root = process::root
-      , communicator_t comm = world
+      , communicator_t comm = mpiwcpp17::world
       , flag::payload::uniform_t = {}
     ) {
         auto type = datatype::identify<T>();
@@ -67,7 +67,7 @@ namespace detail::collective
       , const detail::payload_in_t<int>& total
       , const detail::payload_in_t<int>& displ
       , process_t root = process::root
-      , communicator_t comm = world
+      , communicator_t comm = mpiwcpp17::world
       , flag::payload::varying_t = {}
     ) {
         auto type = datatype::identify<T>();
@@ -89,7 +89,7 @@ namespace detail::collective
     MPIWCPP17_INLINE detail::payload_out_t<T> gather(
         const detail::payload_in_t<T>& msg
       , process_t root = process::root
-      , communicator_t comm = world
+      , communicator_t comm = mpiwcpp17::world
       , flag::payload::varying_t = {}
     ) {
         detail::payload_out_t<int> mtotal, mdispl;

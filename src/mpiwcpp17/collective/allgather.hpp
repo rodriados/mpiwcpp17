@@ -35,7 +35,7 @@ namespace detail::collective
     template <typename T>
     MPIWCPP17_INLINE detail::payload_out_t<T> allgather(
         const detail::payload_in_t<T>& msg
-      , communicator_t comm = world
+      , communicator_t comm = mpiwcpp17::world
       , flag::payload::uniform_t = {}
     ) {
         auto type = datatype::identify<T>();
@@ -59,7 +59,7 @@ namespace detail::collective
         const detail::payload_in_t<T>& msg
       , const detail::payload_in_t<int>& total
       , const detail::payload_in_t<int>& displ
-      , communicator_t comm = world
+      , communicator_t comm = mpiwcpp17::world
       , flag::payload::varying_t = {}
     ) {
         auto type = datatype::identify<T>();
@@ -105,7 +105,7 @@ namespace detail::collective
     template <typename T>
     MPIWCPP17_INLINE detail::payload_out_t<T> allgather(
         const detail::payload_in_t<T>& msg
-      , communicator_t comm = world
+      , communicator_t comm = mpiwcpp17::world
       , flag::payload::varying_t = {}
     ) {
         detail::payload_out_t<int> mtotal, mdispl;
