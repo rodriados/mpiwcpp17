@@ -13,6 +13,8 @@ MPIWCPP17_BEGIN_NAMESPACE
 
 /**
  * The type for identifying a specific MPI-process.
+ * This identifier can be used to conditionally split the behavior of processes
+ * so that they may perform different routines or functions.
  * @since 1.0
  */
 using process_t = decltype(MPI_ANY_SOURCE);
@@ -23,19 +25,24 @@ namespace process
     {
         /**
          * The root process identifier within a communicator.
+         * The root process is always present in a communicator and is guaranteed
+         * to be the process with the lowest possible identifier.
          * @since 1.0
          */
         root = process_t(0)
 
         /**
          * The special process identifier that may represent any process.
+         * The any-process identifier is useful when messages can be received from
+         * any other process, without previous knowledge of which is the source.
          * @since 1.0
          */
       , any = MPI_ANY_SOURCE
 
         /**
-         * The special process identifier to indicate that an operation must not
-         * perform any effect in any process.
+         * The special process identifier to indicate no process.
+         * The null-process identifier is useful to denote that an operation must
+         * not perform any effect in any process.
          * @since 1.0
          */
       , null = MPI_PROC_NULL
@@ -43,6 +50,7 @@ namespace process
 
     /**
      * The type of processes within a communicator.
+     * Processes may be grouped up when they share common hardware characteristics.
      * @since 2.1
      */
     enum type_t

@@ -14,17 +14,23 @@ MPIWCPP17_BEGIN_NAMESPACE
 
 /**
  * The type of a MPI error code.
+ * This represents the code of an error returned natively by MPI.
  * @since 1.0
  */
 using error_t = decltype(MPI_SUCCESS);
 
 namespace error
 {
-    /**
-     * Defines the error code for a successful MPI operation.
-     * @since 1.0
-     */
-    enum : error_t { success = MPI_SUCCESS };
+    enum : error_t
+    {
+        /**
+         * The error code for a successful MPI operation.
+         * When returned by MPI, it is a guarantee that the returning operation
+         * was successful and that the global MPI state is healthy.
+         * @since 1.0
+         */
+        success = MPI_SUCCESS
+    };
 
     /**
      * Produces an error message explaining an error returned by MPI.

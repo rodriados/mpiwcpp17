@@ -10,7 +10,7 @@
  * The preprocessor macros encoding the current mpiwcpp17 library release version.
  * This is guaranteed to change with every mpiwcpp17 release.
  */
-#define MPIWCPP17_VERSION 10000
+#define MPIWCPP17_VERSION 20100
 
 /**
  * The preprocessor macros encoding the release policy's values to the current mpiwcpp17
