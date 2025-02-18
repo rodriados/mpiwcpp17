@@ -27,29 +27,23 @@ MPIWCPP17_BEGIN_NAMESPACE
  */
 MPIWCPP17_INLINE const auto world = MPI_COMM_WORLD;
 
-namespace global
-{
-    /**
-     * The public reference to the current process's rank within the world communicator.
-     * This is the global rank within the world communicator, and a process might
-     * have different ranks on different communicators.
-     * @see mpi::communicator::rank
-     * @since 1.0
-     */
-    MPIWCPP17_CONSTEXPR const auto& rank = detail::world::rank;
+/**
+ * The public reference to the current process's rank within the world communicator.
+ * This is the global rank within the world communicator, and a process might have
+ * different ranks on different communicators.
+ * @see mpi::communicator::rank
+ * @since 1.0
+ */
+MPIWCPP17_CONSTEXPR const auto& rank = detail::world_t::rank;
 
-    /**
-     * The public reference to the number of processes within the world communicator.
-     * This is total number of different processes to which communications can occur.
-     * A different number of processes might be accessible from different communicators.
-     * @see mpi::communicator::size
-     * @since 1.0
-     */
-    MPIWCPP17_CONSTEXPR const auto& size = detail::world::size;
-}
-
-MPIWCPP17_INLINE auto initialized() -> bool;
-MPIWCPP17_INLINE auto finalized() -> bool;
+/**
+ * The public reference to the number of processes within the world communicator.
+ * This is total number of different processes to which communications can occur.
+ * A different number of processes might be accessible from different communicators.
+ * @see mpi::communicator::size
+ * @since 1.0
+ */
+MPIWCPP17_CONSTEXPR const auto& size = detail::world_t::size;
 
 /**
  * Initializes internal MPI machinery and processes communication.
@@ -58,13 +52,13 @@ MPIWCPP17_INLINE auto finalized() -> bool;
  * @param mode The desired process thread-support level.
  * @return The thread-support level provided by MPI.
  */
-MPIWCPP17_INLINE support::thread_level_t initialize(
+MPIWCPP17_INLINE auto initialize(
     int *argc, char ***argv
   , support::thread_level_t mode = support::thread_level_t::single
-) {
-    if (initialized() || finalized())
-        throw exception_t("MPI is already initialized or finalized");
-    return detail::world::initialize(argc, argv, mode);
+) -> support::thread_level_t {
+    if (detail::world_t::initialized() || detail::world_t::finalized())
+        throw exception_t("MPI cannot be initialized");
+    return detail::world_t::initialize(argc, argv, mode);
 }
 
 /**
@@ -72,51 +66,49 @@ MPIWCPP17_INLINE support::thread_level_t initialize(
  * @param mode The desired process thread-support level.
  * @return The thread-support level provided by MPI.
  */
-MPIWCPP17_INLINE support::thread_level_t initialize(
+MPIWCPP17_INLINE auto initialize(
     support::thread_level_t mode = support::thread_level_t::single
-) {
+) -> support::thread_level_t {
     return initialize(nullptr, nullptr, mode);
 }
 
 /**
- * Finalizes MPI, cleans-up resources and closes all processes communication.
+ * Informs whether MPI is ready and processes communication is possible.
+ * @return Is MPI already initialized?
+ * @see mpi::initialize
+ */
+MPIWCPP17_INLINE auto initialized() -> bool
+{
+    return detail::world_t::initialized();
+}
+
+/**
+ * Finalizes MPI, cleans-up resources and disallows further process communication.
  * @see mpi::initialize
  */
 MPIWCPP17_INLINE void finalize()
 {
-    if (finalized())
+    if (detail::world_t::finalized())
         throw exception_t("MPI is already finalized");
     detail::tracker_t::clear();
-    detail::world::finalize();
+    detail::world_t::finalize();
 }
 
 /**
- * Checks whether MPI is ready and processes communication has been opened.
- * @return Is MPI already initialized?
- * @see mpi::initialize
- */
-MPIWCPP17_INLINE bool initialized()
-{
-    int f; guard(MPI_Initialized(&f));
-    return (bool) f;
-}
-
-/**
- * Checks whether MPI is finalized and processes communication has been closed.
+ * Checks whether MPI has already been finalized and process communication is closed.
  * @return Is MPI already finalized?
  * @see mpi::finalize
  */
-MPIWCPP17_INLINE bool finalized()
+MPIWCPP17_INLINE auto finalized() -> bool
 {
-    int f; guard(MPI_Finalized(&f));
-    return (bool) f;
+    return detail::world_t::finalized();
 }
 
 /**
  * Queries the thread-support level provided by MPI to the current execution.
  * @return The provided thread-support level.
  */
-MPIWCPP17_INLINE support::thread_level_t thread_level()
+MPIWCPP17_INLINE auto thread_level() -> support::thread_level_t
 {
     int t; guard(MPI_Query_thread(&t));
     return static_cast<support::thread_level_t>(t);
@@ -129,7 +121,7 @@ MPIWCPP17_INLINE support::thread_level_t thread_level()
 MPIWCPP17_INLINE void abort(int code = 1)
 {
     detail::tracker_t::clear();
-    detail::world::abort(code);
+    guard(MPI_Abort(world, code));
 }
 
 MPIWCPP17_END_NAMESPACE
