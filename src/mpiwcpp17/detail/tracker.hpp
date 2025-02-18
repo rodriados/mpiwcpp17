@@ -22,15 +22,16 @@ namespace detail
      * Tracks MPI objects instantiated during execution that should eventually be
      * freed before MPI finalizes. The tracker maps a generic object instance to
      * its MPI-destructor function.
-     * @since 3.0
+     * @since 2.1
      */
     class tracker_t final
     {
         private:
-            using deleter_t = int(*)(void*);
+            using deleter_t = int(void*);
+            using tracked_map_t = std::unordered_map<uintptr_t, deleter_t*>;
 
         private:
-            MPIWCPP17_INLINE static auto s_map = std::unordered_map<uintptr_t, deleter_t*>();
+            MPIWCPP17_INLINE static auto s_tracked = tracked_map_t();
 
         public:
             /**
@@ -44,10 +45,8 @@ namespace detail
             template <typename T, typename F>
             MPIWCPP17_INLINE static auto add(T instance, F deleter) -> T
             {
-                s_map.try_emplace(
-                    (uintptr_t) instance
-                  , reinterpret_cast<deleter_t*>(deleter));
-
+                auto key = (uintptr_t) instance;
+                s_tracked.try_emplace(key, reinterpret_cast<deleter_t*>(deleter));
                 return instance;
             }
 
@@ -61,12 +60,10 @@ namespace detail
             template <typename T>
             MPIWCPP17_INLINE static bool remove(T instance, bool preserve = false)
             {
-                auto target = (uintptr_t) instance;
-                auto obj    = s_map.extract(target);
-
+                auto key = (uintptr_t) instance;
+                auto obj = s_tracked.extract(key);
                 if (!preserve && !obj.empty())
-                    guard(reinterpret_cast<deleter_t>(obj.mapped())(&instance));
-
+                    guard((obj.mapped())(&instance));
                 return obj.empty();
             }
 
@@ -77,10 +74,9 @@ namespace detail
              */
             MPIWCPP17_INLINE static void clear(bool preserve = false)
             {
-                if (!preserve) for (auto [key, deleter] : s_map)
-                    guard(reinterpret_cast<deleter_t>(deleter)((void*)&key));
-
-                s_map.clear();
+                if (!preserve) for (auto [key, deleter] : s_tracked)
+                    guard((deleter)((void*)&key));
+                s_tracked.clear();
             }
     };
 }
