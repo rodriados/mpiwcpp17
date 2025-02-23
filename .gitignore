@@ -1,5 +1,7 @@
 bin/
 build/
+build-gcc/
+build-clang/
 obj/
 dist/
 test.c

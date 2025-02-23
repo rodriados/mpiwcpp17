@@ -26,6 +26,14 @@
   #endif
 #endif
 
-#ifndef MPIWCPP17_AVOID_THIRDPARTY_REFLECTOR
-  #include <reflector.h>
+#ifndef MPIWCPP17_AVOID_INCLUDE_THIRDPARTY
+  #ifdef MPIWCPP17_OVERRIDE_REFLECTOR
+    #include MPIWCPP17_OVERRIDE_REFLECTOR
+  #elif __has_include(<reflector/api.h>)
+    #include <reflector/api.h>
+  #elif __has_include(<reflector.h>)
+    #include <reflector.h>
+  #elifndef MPIWCPP17_AVOID_THIRDPARTY_REFLECTOR
+    #define MPIWCPP17_AVOID_THIRDPARTY_REFLECTOR
+  #endif
 #endif

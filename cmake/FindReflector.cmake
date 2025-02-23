@@ -7,7 +7,7 @@ cmake_minimum_required(VERSION 3.24)
 include(FetchContent)
 
 set(REFLECTOR_REPOSITORY "https://github.com/rodriados/reflector.git")
-set(REFLECTOR_REPOSITORY_TAG "v1.0.0")
+set(REFLECTOR_REPOSITORY_TAG "v1.0.1")
 
 # Declares the remote source of the required package and allows it to be found.
 # If needed, the package will be downloaded and cached for build.
