@@ -14,7 +14,7 @@
 #include <mpiwcpp17/guard.hpp>
 
 #include <mpiwcpp17/detail/world.hpp>
-#include <mpiwcpp17/detail/tracker.hpp>
+#include <mpiwcpp17/detail/raii.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
 
@@ -90,7 +90,7 @@ MPIWCPP17_INLINE void finalize()
 {
     if (detail::world_t::finalized())
         throw exception_t("MPI is already finalized");
-    detail::tracker_t::clear();
+    detail::raii_t::clear();
     detail::world_t::finalize();
 }
 
@@ -110,8 +110,9 @@ MPIWCPP17_INLINE auto finalized() -> bool
  */
 MPIWCPP17_INLINE auto thread_level() -> support::thread_level_t
 {
-    int t; guard(MPI_Query_thread(&t));
-    return static_cast<support::thread_level_t>(t);
+    int level;
+    guard(MPI_Query_thread(&level));
+    return static_cast<support::thread_level_t>(level);
 }
 
 /**
@@ -120,7 +121,7 @@ MPIWCPP17_INLINE auto thread_level() -> support::thread_level_t
  */
 MPIWCPP17_INLINE void abort(int code = 1)
 {
-    detail::tracker_t::clear();
+    detail::raii_t::clear();
     guard(MPI_Abort(world, code));
 }
 

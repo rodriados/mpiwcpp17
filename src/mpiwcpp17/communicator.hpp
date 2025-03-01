@@ -14,14 +14,17 @@
 #include <mpiwcpp17/global.hpp>
 #include <mpiwcpp17/guard.hpp>
 
-#include <mpiwcpp17/detail/tracker.hpp>
 #include <mpiwcpp17/detail/attribute.hpp>
+#include <mpiwcpp17/detail/raii.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
 
 /**
- * The raw MPI communicator reference type.
- * @since 3.0
+ * The raw MPI communicator identifier type.
+ * This type is used to identify groups of processes that may participate in collective
+ * operations together. Is is possible to create subgroups to allow processes to
+ * perform operations with subsets of the global group of processes.
+ * @since 2.1
  */
 using communicator_t = MPI_Comm;
 
@@ -29,7 +32,9 @@ namespace communicator
 {
     /**
      * Declares communicator attribute namespace and corresponding functions.
-     * @since 3.0
+     * Attributes are identified by keys that can be used to attach and retrieve
+     * generic data from communicators.
+     * @since 2.1
      */
     MPIWCPP17_ATTRIBUTE_DECLARE(
         communicator_t
@@ -45,7 +50,8 @@ namespace communicator
      */
     MPIWCPP17_INLINE process_t rank(communicator_t comm)
     {
-        process_t rank; guard(MPI_Comm_rank(comm, &rank));
+        process_t rank;
+        guard(MPI_Comm_rank(comm, &rank));
         return rank;
     }
 
@@ -56,8 +62,9 @@ namespace communicator
      */
     MPIWCPP17_INLINE int32_t size(communicator_t comm)
     {
-        int32_t size; guard(MPI_Comm_size(comm, &size));
-        return size;
+        int32_t nproc;
+        guard(MPI_Comm_size(comm, &nproc));
+        return nproc;
     }
 
     /**
@@ -67,8 +74,9 @@ namespace communicator
      */
     MPIWCPP17_INLINE communicator_t duplicate(communicator_t comm)
     {
-        communicator_t dup; guard(MPI_Comm_dup(comm, &dup));
-        return detail::tracker_t::add(dup, &MPI_Comm_free);
+        communicator_t c;
+        guard(MPI_Comm_dup(comm, &c));
+        return detail::raii_t::attach(c, &MPI_Comm_free);
     }
 
     /**
@@ -83,8 +91,9 @@ namespace communicator
         communicator_t comm
       , int color, process_t key = process::any
     ) {
-        communicator_t newcomm; guard(MPI_Comm_split(comm, color, key, &newcomm));
-        return detail::tracker_t::add(newcomm, &MPI_Comm_free);
+        communicator_t c;
+        guard(MPI_Comm_split(comm, color, key, &c));
+        return detail::raii_t::attach(c, &MPI_Comm_free);
     }
 
     /**
@@ -100,13 +109,14 @@ namespace communicator
       , process::type_t type
       , process_t key = process::any
     ) {
-        communicator_t newcomm; guard(MPI_Comm_split_type(comm, type, key, MPI_INFO_NULL, &newcomm));
-        return detail::tracker_t::add(newcomm, &MPI_Comm_free);
+        communicator_t c;
+        guard(MPI_Comm_split_type(comm, type, key, MPI_INFO_NULL, &c));
+        return detail::raii_t::attach(c, &MPI_Comm_free);
     }
 
     /**
-     * Checks whether the wrapper communicator is valid.
-     * @param comm The communicator to check if empty.
+     * Checks if the given communicator is in a valid state.
+     * @param comm The communicator to check if in a valid state.
      * @return Is the communicator valid?
      */
     MPIWCPP17_INLINE bool empty(communicator_t comm)
@@ -115,20 +125,15 @@ namespace communicator
     }
 
     /**
-     * Verifies whether a communicator can be freed and, if so, frees it.
+     * Frees communicator resources after checking if it is not MPI-internal.
      * @param comm The communicator to be freed if possible.
      */
     MPIWCPP17_INLINE void free(communicator_t comm)
     {
-        if (!empty(comm) && !finalized()) {
-            int compare_world, compare_self;
-            guard(MPI_Comm_compare(comm, MPI_COMM_WORLD, &compare_world));
-            guard(MPI_Comm_compare(comm, MPI_COMM_SELF, &compare_self));
-            if (compare_world != MPI_IDENT && compare_self != MPI_IDENT) {
-                if (!detail::tracker_t::remove(comm))
+        if (!communicator::empty(comm) && !finalized())
+            if (comm != MPI_COMM_WORLD && comm != MPI_COMM_SELF)
+                if (!detail::raii_t::detach(comm))
                     guard(MPI_Comm_free(&comm));
-            }
-        }
     }
 }
 

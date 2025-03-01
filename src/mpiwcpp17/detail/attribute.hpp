@@ -12,7 +12,7 @@
 #include <mpiwcpp17/global.hpp>
 #include <mpiwcpp17/guard.hpp>
 
-#include <mpiwcpp17/detail/tracker.hpp>
+#include <mpiwcpp17/detail/raii.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
 
@@ -27,8 +27,7 @@ MPIWCPP17_BEGIN_NAMESPACE
 #define MPIWCPP17_ATTRIBUTE_DECLARE_CREATE(type, fcrt, fdup, fdel, ffre)            \
   MPIWCPP17_INLINE attribute_t create() {                                           \
     attribute_t attr; guard(fcrt(fdup, fdel, &attr, nullptr));                      \
-    detail::tracker_t::add(attr, &ffre);                                            \
-    return attr;                                                                    \
+    return detail::raii_t::attach(attr, &ffre);                                     \
   }
 
 /**
@@ -42,8 +41,8 @@ MPIWCPP17_BEGIN_NAMESPACE
 #define MPIWCPP17_ATTRIBUTE_DECLARE_GET(type, fget)                                 \
   template <typename T = void>                                                      \
   MPIWCPP17_INLINE std::pair<bool, T*> get(type target, attribute_t attr) {         \
-    int f; T* ptr; guard(fget(target, attr, (void*) &ptr, &f));                     \
-    return std::make_pair(f, ptr);                                                  \
+    int g; T* ptr; guard(fget(target, attr, (void*) &ptr, &g));                     \
+    return std::make_pair(g, ptr);                                                  \
   }
 
 /**
@@ -80,7 +79,7 @@ MPIWCPP17_BEGIN_NAMESPACE
  */
 #define MPIWCPP17_ATTRIBUTE_DECLARE_FREE(type, ffree)                               \
   MPIWCPP17_INLINE void free(attribute_t attr) {                                    \
-    if(!finalized() && !detail::tracker_t::remove(attr))                            \
+    if(!finalized() && !detail::raii_t::detach(attr))                               \
       guard(ffree(&attr));                                                          \
   }
 

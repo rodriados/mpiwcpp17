@@ -15,7 +15,7 @@
 #include <mpiwcpp17/functor.hpp>
 #include <mpiwcpp17/guard.hpp>
 
-#include <mpiwcpp17/detail/tracker.hpp>
+#include <mpiwcpp17/detail/raii.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
 
@@ -31,8 +31,9 @@ namespace detail::functor
         void (*callable)(void*, void*, int*, datatype_t*)
       , bool commutative = false
     ) {
-        functor_t f; guard(MPI_Op_create(callable, commutative, &f));
-        return detail::tracker_t::add(f, &MPI_Op_free);
+        functor_t f;
+        guard(MPI_Op_create(callable, commutative, &f));
+        return detail::raii_t::attach(f, &MPI_Op_free);
     }
 
     /**

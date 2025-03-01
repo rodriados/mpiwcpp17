@@ -16,16 +16,17 @@
 #include <mpiwcpp17/global.hpp>
 #include <mpiwcpp17/guard.hpp>
 
-#include <mpiwcpp17/detail/tracker.hpp>
+#include <mpiwcpp17/detail/raii.hpp>
 #include <mpiwcpp17/detail/attribute.hpp>
 #include <mpiwcpp17/thirdparty/reflector.h>
 
 MPIWCPP17_BEGIN_NAMESPACE
 
 /**
- * The type for a datatype identifier instance. An instance of a datatype identifier
- * must exist for all types that are to trasit via MPI.
- * @since 3.0
+ * The raw MPI datatype identifier type.
+ * This type is used to identify and describe a datatype, and its respective properties
+ * that might transit through MPI collective operations.
+ * @since 2.1
  */
 using datatype_t = MPI_Datatype;
 
@@ -33,7 +34,9 @@ namespace datatype
 {
     /**
      * Declares datatype attribute namespace and corresponding functions.
-     * @since 3.0
+     * Attributes are identified by keys that can be used to attach and retrieve
+     * generic data from datatypes.
+     * @since 2.1
      */
     MPIWCPP17_ATTRIBUTE_DECLARE(
         datatype_t
@@ -46,7 +49,7 @@ namespace datatype
      * The datatype identity provider for a specified type. A custom, and possibly
      * generic, provider can be specified by specializing it to the target type.
      * @param T The type to be identified for MPI operations.
-     * @since 3.0
+     * @since 2.1
      */
     template <typename T>
     struct provider_t;
@@ -62,8 +65,8 @@ namespace datatype
         static_assert(!std::is_union<T>::value, "union types cannot be used with MPI");
         static_assert(!std::is_reference<T>::value, "references cannot be used with MPI");
 
-        static datatype_t id = detail::tracker_t::add(provider_t<T>::provide(), &MPI_Type_free);
-        return id;
+        static datatype_t t = detail::raii_t::attach(provider_t<T>::provide(), &MPI_Type_free);
+        return t;
     }
 
     /**#@+
@@ -98,8 +101,9 @@ namespace datatype
      */
     MPIWCPP17_INLINE datatype_t duplicate(datatype_t type)
     {
-        datatype_t dup; guard(MPI_Type_dup(type, &dup));
-        return detail::tracker_t::add(dup, &MPI_Type_free);
+        datatype_t t;
+        guard(MPI_Type_dup(type, &t));
+        return detail::raii_t::attach(t, &MPI_Type_free);
     }
 
     /**
@@ -110,7 +114,8 @@ namespace datatype
      */
     MPIWCPP17_INLINE size_t size(datatype_t type)
     {
-        int size; guard(MPI_Type_size(type, &size));
+        int size;
+        guard(MPI_Type_size(type, &size));
         return static_cast<size_t>(size);
     }
 
@@ -122,7 +127,7 @@ namespace datatype
      */
     MPIWCPP17_INLINE void free(datatype_t type)
     {
-        if (!finalized() && !detail::tracker_t::remove(type))
+        if (!finalized() && !detail::raii_t::detach(type))
             guard(MPI_Type_free(&type));
     }
 
@@ -137,7 +142,7 @@ namespace datatype
         template <typename ...M>
         MPIWCPP17_INLINE datatype_t build_from_members(const std::array<ptrdiff_t, sizeof...(M)>& offset)
         {
-            datatype_t result;
+            datatype_t t;
             constexpr const size_t count = sizeof...(M);
 
             // Describing a struct type by acquiring a type identity and the offset
@@ -147,10 +152,10 @@ namespace datatype
             datatype_t members[count] = {identify<std::remove_extent_t<M>>()...};
             const MPI_Aint *offsets = (MPI_Aint*) offset.data();
 
-            guard(MPI_Type_create_struct(count, blocks, offsets, members, &result));
-            guard(MPI_Type_commit(&result));
+            guard(MPI_Type_create_struct(count, blocks, offsets, members, &t));
+            guard(MPI_Type_commit(&t));
 
-            return result;
+            return t;
         }
     }
 
@@ -158,7 +163,7 @@ namespace datatype
     /**
      * Provides datatype description by using the automatic reflection mechanism.
      * @param T The type to be identified for MPI operations.
-     * @since 3.0
+     * @since 2.1
      */
     template <typename T>
     struct provider_t
