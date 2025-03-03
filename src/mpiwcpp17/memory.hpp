@@ -31,30 +31,30 @@ namespace memory
 {
     /**
      * Allocates memory for message passing and RMA operations. The allocated memory
-     * may be used as any other memory region.
-     * @tparam T The type of elements to store in the allocated memory region.
+     * may be used as any other memory region not shared between different processes.
+     * @tparam T The type of the elements to store in the allocated memory region.
      * @param The number of elements or bytes to allocate memory for.
      * @return The smart pointer to the allocated memory region.
      */
     template <typename T = void>
-    MPIWCPP17_INLINE auto allocate(size_t count = 1) -> decltype(auto)
+    MPIWCPP17_INLINE auto allocate(size_t count = 1)
     {
+        T *ptr;
+
+        using element_t = std::conditional_t<std::is_void_v<T>, uint8_t, T>;
+        using memory_t  = std::conditional_t<std::is_void_v<T>, void, element_t[]>;
+
         // The memory allocated by MPI should only be freed using its corresponding
-        // function, as MPI might perform extra steps while releasing the region.
+        // free function, as MPI might perform extra steps while releasing the memory
+        // region and any related possible internal resources.
         using deleter_t = struct deleter_t {
             MPIWCPP17_INLINE void operator()(T *ptr) {
                 guard(MPI_Free_mem(ptr));
             }
         };
 
-        if constexpr (!std::is_void<T>::value) {
-            T *ptr; guard(MPI_Alloc_mem(count * sizeof(T), MPI_INFO_NULL, &ptr));
-            return std::unique_ptr<T[], deleter_t>(ptr);
-
-        } else {
-            T *ptr; guard(MPI_Alloc_mem(count, MPI_INFO_NULL, &ptr));
-            return std::unique_ptr<void, deleter_t>(ptr);
-        }
+        guard(MPI_Alloc_mem(count * sizeof(element_t), MPI_INFO_NULL, &ptr));
+        return std::unique_ptr<memory_t, deleter_t>(ptr);
     }
 }
 

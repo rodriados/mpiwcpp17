@@ -27,8 +27,8 @@ namespace detail
     class raii_t final
     {
         private:
-            using deletefn_t = int(void*);
-            using registry_t = std::unordered_map<uintptr_t, deletefn_t*>;
+            using deleter_t  = int(void*);
+            using registry_t = std::unordered_map<uintptr_t, deleter_t*>;
 
         private:
             MPIWCPP17_INLINE static auto s_registry = registry_t();
@@ -45,7 +45,7 @@ namespace detail
             template <typename T, typename F>
             MPIWCPP17_INLINE static auto attach(T object, F *deleter)
             -> std::enable_if_t<std::is_function_v<F>, T> {
-                s_registry.emplace(key(object), reinterpret_cast<deletefn_t*>(deleter));
+                s_registry.emplace(key(object), reinterpret_cast<deleter_t*>(deleter));
                 return object;
             }
 
