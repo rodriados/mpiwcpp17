@@ -25,7 +25,7 @@ MPIWCPP17_BEGIN_NAMESPACE
  * operations, but can be derived into other communicators as needed.
  * @since 1.0
  */
-MPIWCPP17_INLINE const auto world = MPI_COMM_WORLD;
+MPIWCPP17_CONSTEXPR const auto world = MPI_COMM_WORLD;
 
 /**
  * The public reference to the current process's rank within the world communicator.
@@ -110,8 +110,7 @@ MPIWCPP17_INLINE auto finalized() -> bool
  */
 MPIWCPP17_INLINE auto thread_level() -> support::thread_level_t
 {
-    int level;
-    guard(MPI_Query_thread(&level));
+    int level = MPIWCPP17_GUARD_CALL(int, MPI_Query_thread(&_));
     return static_cast<support::thread_level_t>(level);
 }
 

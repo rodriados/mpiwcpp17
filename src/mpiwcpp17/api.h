@@ -17,6 +17,7 @@
 
 #include <mpiwcpp17/error.hpp>
 #include <mpiwcpp17/exception.hpp>
+#include <mpiwcpp17/info.hpp>
 #include <mpiwcpp17/status.hpp>
 #include <mpiwcpp17/datatype.hpp>
 #include <mpiwcpp17/flag.hpp>

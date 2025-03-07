@@ -58,6 +58,15 @@ MPIWCPP17_CONSTEXPR void guard(error_t err)
   #endif
 }
 
+/*
+ * Internal macros for wrapping MPI-native function calls with the error guard.
+ * These macros are expected to be used internally and not be publicly available.
+ * @param T The return type of the wrapped call block.
+ * @param B The call block to be guarded.
+ */
+#define MPIWCPP17_GUARD_EVAL(B)     MPIWCPP17_EVAL(mpiwcpp17::guard(B))
+#define MPIWCPP17_GUARD_CALL(T, B)  MPIWCPP17_CALL(T, mpiwcpp17::guard(B))
+
 MPIWCPP17_END_NAMESPACE
 
 #undef MPIWCPP17_UNLIKELY

@@ -200,6 +200,17 @@
 #define MPIWCPP17_INLINE inline
 #define MPIWCPP17_CONSTEXPR MPIWCPP17_INLINE constexpr
 
+/*
+ * Auxiliary macros for common MPI-function patterns, that output values from input
+ * parameters. These macros transform the parameter into a returnable value.
+ * @param T The return type of the wrapped call block.
+ * @param B The call block to be wrapped in lambda.
+ */
+#define MPIWCPP17_LAMBDA_WRAP(B)  [&](){ B; }
+#define MPIWCPP17_LAMBDA_CALL(B)  ((MPIWCPP17_LAMBDA_WRAP(B))())
+#define MPIWCPP17_EVAL(B)         MPIWCPP17_LAMBDA_CALL(B)
+#define MPIWCPP17_CALL(T, B)      MPIWCPP17_LAMBDA_CALL(T _; B; return _)
+
 /**
  * Defines the namespace in which the library lives. This might be overriden if
  * the default namespace value is already in use.

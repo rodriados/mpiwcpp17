@@ -68,9 +68,7 @@ namespace detail
          */
         MPIWCPP17_INLINE static auto initialized() -> bool
         {
-            int flag;
-            guard(MPI_Initialized(&flag));
-            return (bool) flag;
+            return (bool) MPIWCPP17_GUARD_CALL(int, MPI_Initialized(&_));
         }
 
         /**
@@ -81,7 +79,7 @@ namespace detail
          */
         MPIWCPP17_INLINE static void finalize()
         {
-            guard(MPI_Finalize());
+            MPIWCPP17_GUARD_EVAL(MPI_Finalize());
         }
 
         /**
@@ -93,9 +91,7 @@ namespace detail
          */
         MPIWCPP17_INLINE static auto finalized() -> bool
         {
-            int flag;
-            guard(MPI_Finalized(&flag));
-            return (bool) flag;
+            return (bool) MPIWCPP17_GUARD_CALL(int, MPI_Finalized(&_));
         }
     };
 }
