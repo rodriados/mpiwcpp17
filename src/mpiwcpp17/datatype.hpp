@@ -30,6 +30,15 @@ MPIWCPP17_BEGIN_NAMESPACE
  */
 using datatype_t = MPI_Datatype;
 
+/*
+ * Auxiliary macros for implementing functions that wrap the creation of new datatypes.
+ * The newly created datatypes are automatically attached to RAII.
+ * @param x The datatype to be attached to RAII.
+ * @param B The call block to be wrapped.
+ */
+#define MPIWCPP17_TYPE_RAII(x)  detail::raii_t::attach(x, &MPI_Type_free)
+#define MPIWCPP17_TYPE_CALL(B)  MPIWCPP17_TYPE_RAII(MPIWCPP17_GUARD_CALL(datatype_t, B))
+
 namespace datatype
 {
     /**
@@ -65,8 +74,8 @@ namespace datatype
         static_assert(!std::is_union<T>::value, "union types cannot be used with MPI");
         static_assert(!std::is_reference<T>::value, "references cannot be used with MPI");
 
-        static datatype_t t = detail::raii_t::attach(provider_t<T>::provide(), &MPI_Type_free);
-        return t;
+        static datatype_t type = MPIWCPP17_TYPE_RAII(provider_t<T>::provide());
+        return type;
     }
 
     /**#@+
@@ -101,9 +110,7 @@ namespace datatype
      */
     MPIWCPP17_INLINE datatype_t duplicate(datatype_t type)
     {
-        datatype_t t;
-        guard(MPI_Type_dup(type, &t));
-        return detail::raii_t::attach(t, &MPI_Type_free);
+        return MPIWCPP17_TYPE_CALL(MPI_Type_dup(type, &_));
     }
 
     /**
@@ -114,9 +121,7 @@ namespace datatype
      */
     MPIWCPP17_INLINE size_t size(datatype_t type)
     {
-        int size;
-        guard(MPI_Type_size(type, &size));
-        return static_cast<size_t>(size);
+        return static_cast<size_t>(MPIWCPP17_GUARD_CALL(int, MPI_Type_size(type, &_)));
     }
 
     /**
@@ -209,5 +214,8 @@ namespace datatype
         return detail::build_from_members<R...>(offset);
     }
 }
+
+#undef MPIWCPP17_TYPE_CALL
+#undef MPIWCPP17_TYPE_RAII
 
 MPIWCPP17_END_NAMESPACE

@@ -31,8 +31,7 @@ namespace detail::functor
         void (*callable)(void*, void*, int*, datatype_t*)
       , bool commutative = false
     ) {
-        functor_t f;
-        guard(MPI_Op_create(callable, commutative, &f));
+        auto f = MPIWCPP17_GUARD_CALL(functor_t, MPI_Op_create(callable, commutative, &_));
         return detail::raii_t::attach(f, &MPI_Op_free);
     }
 
