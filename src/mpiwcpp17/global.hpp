@@ -9,7 +9,6 @@
 #include <mpi.h>
 
 #include <mpiwcpp17/environment.h>
-#include <mpiwcpp17/exception.hpp>
 #include <mpiwcpp17/support.hpp>
 #include <mpiwcpp17/guard.hpp>
 
@@ -46,33 +45,6 @@ MPIWCPP17_CONSTEXPR const auto& rank = detail::world_t::rank;
 MPIWCPP17_CONSTEXPR const auto& size = detail::world_t::size;
 
 /**
- * Initializes internal MPI machinery and processes communication.
- * @param argc The number of arguments passed to spawning processes.
- * @param argv The list of arguments passed to spawning processes.
- * @param mode The desired process thread-support level.
- * @return The thread-support level provided by MPI.
- */
-MPIWCPP17_INLINE auto initialize(
-    int *argc, char ***argv
-  , support::thread_level_t mode = support::thread_level_t::single
-) -> support::thread_level_t {
-    if (detail::world_t::initialized() || detail::world_t::finalized())
-        throw exception_t("MPI cannot be initialized");
-    return detail::world_t::initialize(argc, argv, mode);
-}
-
-/**
- * Initializes the internal MPI machinery and processes communication.
- * @param mode The desired process thread-support level.
- * @return The thread-support level provided by MPI.
- */
-MPIWCPP17_INLINE auto initialize(
-    support::thread_level_t mode = support::thread_level_t::single
-) -> support::thread_level_t {
-    return initialize(nullptr, nullptr, mode);
-}
-
-/**
  * Informs whether MPI is ready and processes communication is possible.
  * @return Is MPI already initialized?
  * @see mpi::initialize
@@ -80,18 +52,6 @@ MPIWCPP17_INLINE auto initialize(
 MPIWCPP17_INLINE auto initialized() -> bool
 {
     return detail::world_t::initialized();
-}
-
-/**
- * Finalizes MPI, cleans-up resources and disallows further process communication.
- * @see mpi::initialize
- */
-MPIWCPP17_INLINE void finalize()
-{
-    if (detail::world_t::finalized())
-        throw exception_t("MPI is already finalized");
-    detail::raii_t::clear();
-    detail::world_t::finalize();
 }
 
 /**
@@ -121,7 +81,7 @@ MPIWCPP17_INLINE auto thread_level() -> support::thread_level_t
 MPIWCPP17_INLINE void abort(int code = 1)
 {
     detail::raii_t::clear();
-    guard(MPI_Abort(world, code));
+    MPIWCPP17_GUARD_EVAL(MPI_Abort(world, code));
 }
 
 MPIWCPP17_END_NAMESPACE

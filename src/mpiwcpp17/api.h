@@ -13,7 +13,7 @@
 #include <mpiwcpp17/environment.h>
 
 #include <mpiwcpp17/global.hpp>
-#include <mpiwcpp17/initiator.hpp>
+#include <mpiwcpp17/engine.hpp>
 
 #include <mpiwcpp17/error.hpp>
 #include <mpiwcpp17/exception.hpp>
