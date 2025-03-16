@@ -33,7 +33,7 @@
     #include <reflector/api.h>
   #elif __has_include(<reflector.h>)
     #include <reflector.h>
-  #elifndef MPIWCPP17_AVOID_THIRDPARTY_REFLECTOR
+  #elif !defined(MPIWCPP17_AVOID_THIRDPARTY_REFLECTOR)
     #define MPIWCPP17_AVOID_THIRDPARTY_REFLECTOR
   #endif
 #endif

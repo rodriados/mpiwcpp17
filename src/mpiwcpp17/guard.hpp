@@ -15,6 +15,7 @@
 #include <mpiwcpp17/error.hpp>
 
 MPIWCPP17_DISABLE_GCC_WARNING_BEGIN("-Wattributes")
+MPIWCPP17_DISABLE_GCC_WARNING_BEGIN("-Wc++20-attribute-extensions")
 
 /*
  * Creates an annotation for an signalling a cold-path to be taken by an if-statement.
@@ -70,4 +71,6 @@ MPIWCPP17_CONSTEXPR void guard(error_t err)
 MPIWCPP17_END_NAMESPACE
 
 #undef MPIWCPP17_UNLIKELY
+
+MPIWCPP17_DISABLE_GCC_WARNING_END("-Wc++20-attribute-extensions")
 MPIWCPP17_DISABLE_GCC_WARNING_END("-Wattributes")

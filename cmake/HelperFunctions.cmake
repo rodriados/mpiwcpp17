@@ -9,7 +9,7 @@
 function(get_project_version var filename)
   file(READ "${filename}" contents)
   if(NOT contents MATCHES "${var} ([0-9]+)([0-9][0-9])([0-9][0-9])")
-    message(FATAL_ERROR "Cannot find SuperTuple version.")
+    message(FATAL_ERROR "Cannot find MPIwCpp17 version.")
   endif()
 
   math(EXPR VERSION_MAJOR ${CMAKE_MATCH_1})
