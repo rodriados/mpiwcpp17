@@ -39,6 +39,23 @@ namespace flag
          */
         typedef struct{} commutative_t;
     }
+
+    MPIWCPP17_INLINE namespace window
+    {
+        /**
+         * Indicates that the allocated memory for RMA operations is local to each
+         * process and cannot be accessed directly.
+         * @since 3.0
+         */
+        typedef struct{} local_t;
+
+        /**
+         * Indicates that the allocated memory for RMA operations is shared between
+         * processes and can be accessed directly by processes in the same communicator.
+         * @since 3.0
+         */
+        typedef struct{} shared_t;
+    }
 }
 
 MPIWCPP17_END_NAMESPACE

@@ -22,6 +22,7 @@
 #include <mpiwcpp17/datatype.hpp>
 #include <mpiwcpp17/flag.hpp>
 #include <mpiwcpp17/functor.hpp>
+#include <mpiwcpp17/window.hpp>
 #include <mpiwcpp17/memory.hpp>
 #include <mpiwcpp17/communicator.hpp>
 
