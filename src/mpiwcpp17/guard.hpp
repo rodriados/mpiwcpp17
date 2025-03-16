@@ -15,7 +15,6 @@
 #include <mpiwcpp17/error.hpp>
 
 MPIWCPP17_DISABLE_GCC_WARNING_BEGIN("-Wattributes")
-MPIWCPP17_DISABLE_GCC_WARNING_BEGIN("-Wc++20-attribute-extensions")
 
 /*
  * Creates an annotation for an signalling a cold-path to be taken by an if-statement.
@@ -25,7 +24,7 @@ MPIWCPP17_DISABLE_GCC_WARNING_BEGIN("-Wc++20-attribute-extensions")
  * branch predictions in exchange to a slight performance improvement when everything
  * goes as expected, which corresponds to the great majority of times.
  */
-#if defined(__has_cpp_attribute) && __has_cpp_attribute(unlikely)
+#if MPIWCPP17_CPP_DIALECT >= 2020 && defined(__has_cpp_attribute) && __has_cpp_attribute(unlikely)
   #define MPIWCPP17_UNLIKELY(condition) \
     ((condition)) [[unlikely]]
 #elif (MPIWCPP17_COMPILER == MPIWCPP17_OPT_COMPILER_GCC \
@@ -72,5 +71,4 @@ MPIWCPP17_END_NAMESPACE
 
 #undef MPIWCPP17_UNLIKELY
 
-MPIWCPP17_DISABLE_GCC_WARNING_END("-Wc++20-attribute-extensions")
 MPIWCPP17_DISABLE_GCC_WARNING_END("-Wattributes")

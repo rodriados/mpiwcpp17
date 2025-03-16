@@ -24,7 +24,7 @@ MPIWCPP17_BEGIN_NAMESPACE
  * operations, but can be derived into other communicators as needed.
  * @since 1.0
  */
-MPIWCPP17_CONSTEXPR const auto world = MPI_COMM_WORLD;
+MPIWCPP17_INLINE const auto world = MPI_COMM_WORLD;
 
 /**
  * The public reference to the current process's rank within the world communicator.

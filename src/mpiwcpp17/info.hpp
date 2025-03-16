@@ -28,7 +28,7 @@ namespace info
      * denote that the mapping is currently empty or in an invalid state.
      * @since 2.1
      */
-    MPIWCPP17_CONSTEXPR const info_t null = MPI_INFO_NULL;
+    MPIWCPP17_INLINE const info_t null = MPI_INFO_NULL;
 }
 
 MPIWCPP17_END_NAMESPACE

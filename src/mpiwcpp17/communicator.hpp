@@ -46,7 +46,7 @@ namespace communicator
      * when initializing its execution and cannot be modified in any way.
      * @since 2.1
      */
-    MPIWCPP17_CONSTEXPR const communicator_t world = mpiwcpp17::world;
+    MPIWCPP17_INLINE const communicator_t world = mpiwcpp17::world;
 
     /**
      * The invalid or empty communicator instance.
@@ -54,7 +54,7 @@ namespace communicator
      * or to denote an empty communicator.
      * @since 2.1
      */
-    MPIWCPP17_CONSTEXPR const communicator_t null = MPI_COMM_NULL;
+    MPIWCPP17_INLINE const communicator_t null = MPI_COMM_NULL;
 
     /**
      * The communicator containing only the calling process.
@@ -62,7 +62,7 @@ namespace communicator
      * not enable message communication between different processes.
      * @since 2.1
      */
-    MPIWCPP17_CONSTEXPR const communicator_t self = MPI_COMM_SELF;
+    MPIWCPP17_INLINE const communicator_t self = MPI_COMM_SELF;
 
     /**
      * Declares communicator attribute namespace and corresponding functions.

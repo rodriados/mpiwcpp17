@@ -26,7 +26,7 @@ readonly known_mpi_runners=(
 
 for mpi_runner in "${known_mpi_runners[@]}"; do
   if command -v "$mpi_runner"; then
-    eval "$mpi_runner -n $(nproc) $quoted_arguments"
+    eval "$mpi_runner -n $(nproc) --host localhost:$(nproc) $quoted_arguments"
     exit $?
   fi
 done
