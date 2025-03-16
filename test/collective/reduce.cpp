@@ -15,7 +15,7 @@ using namespace Catch;
 
 TEST_CASE("reduce values into a process", "[collective][reduce]")
 {
-    auto root = GENERATE(range(0, mpi::global::size));
+    auto root = GENERATE(range(0, mpi::size));
     auto sumUpTo = [](auto n) { return (n * (n + 1)) / 2; };
 
     /**
@@ -24,11 +24,11 @@ TEST_CASE("reduce values into a process", "[collective][reduce]")
      * @since 1.0
      */
     SECTION("a single scalar value") {
-        int value = mpi::global::rank + 1;
+        int value = mpi::rank + 1;
         auto result = mpi::reduce(&value, 1, mpi::functor::add, root);
 
-        if (root == mpi::global::rank) {
-            int expected = sumUpTo(mpi::global::size);
+        if (root == mpi::rank) {
+            int expected = sumUpTo(mpi::size);
             REQUIRE(result.count == 1);
             REQUIRE(result[0] == expected);
         } else {
@@ -46,15 +46,15 @@ TEST_CASE("reduce values into a process", "[collective][reduce]")
         std::vector<int> value (quantity);
 
         for (int i = 0; i < quantity; ++i)
-            value[i] = (mpi::global::rank + 1) * (i + 1);
+            value[i] = (mpi::rank + 1) * (i + 1);
 
         const auto f = [](auto x, auto y) { return x + y; };
         auto result = mpi::reduce(value, f, root);
 
-        if (root == mpi::global::rank) {
+        if (root == mpi::rank) {
             REQUIRE(result.count == quantity);
             for (int i = 0; i < quantity; ++i) {
-                int expected = sumUpTo(mpi::global::size) * (i + 1);
+                int expected = sumUpTo(mpi::size) * (i + 1);
                 REQUIRE(result[i] == expected);
             }
         } else {

@@ -24,8 +24,8 @@ TEST_CASE("world communicator has correct info", "[global]")
     mpi::guard(MPI_Comm_rank(MPI_COMM_WORLD, &processRank));
     mpi::guard(MPI_Comm_size(MPI_COMM_WORLD, &communicatorSize));
 
-    REQUIRE(mpi::global::rank == processRank);
-    REQUIRE(mpi::global::size == communicatorSize);
+    REQUIRE(mpi::rank == processRank);
+    REQUIRE(mpi::size == communicatorSize);
 }
 
 /**

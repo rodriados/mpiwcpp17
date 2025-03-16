@@ -17,12 +17,12 @@ TEST_CASE("gather values into all processes", "[collective][allgather]")
      * @since 1.0
      */
     SECTION("a single scalar value") {
-        int value = mpi::global::rank + 1;
+        int value = mpi::rank + 1;
         auto result = mpi::allgather(&value, 1, mpi::world, mpi::flag::uniform_t());
 
-        REQUIRE(result.count == (size_t) mpi::global::size);
+        REQUIRE(result.count == (size_t) mpi::size);
 
-        for (int i = 0; i < mpi::global::size; ++i)
+        for (int i = 0; i < mpi::size; ++i)
             REQUIRE(result[i] == (i + 1));
     }
 
@@ -36,13 +36,13 @@ TEST_CASE("gather values into all processes", "[collective][allgather]")
         std::vector<int> value (quantity);
 
         for (int i = 0; i < quantity; ++i)
-            value[i] = 10 * mpi::global::rank + i;
+            value[i] = 10 * mpi::rank + i;
 
         auto result = mpi::allgather(value, mpi::world, mpi::flag::uniform_t());
 
-        REQUIRE(result.count == (size_t) (quantity * mpi::global::size));
+        REQUIRE(result.count == (size_t) (quantity * mpi::size));
 
-        for (int i = 0, k = 0; i < mpi::global::size; ++i)
+        for (int i = 0, k = 0; i < mpi::size; ++i)
             for (int j = 0; j < quantity; ++j, ++k)
                 REQUIRE(result[k] == (10 * i + j));
     }
@@ -53,17 +53,17 @@ TEST_CASE("gather values into all processes", "[collective][allgather]")
      * @since 1.0
      */
     SECTION("a varying container of scalar values") {
-        std::vector<int> value (mpi::global::rank + 1);
+        std::vector<int> value (mpi::rank + 1);
 
-        for (int i = 0; i <= mpi::global::rank; ++i)
-            value[i] = mpi::global::rank * 10 + i;
+        for (int i = 0; i <= mpi::rank; ++i)
+            value[i] = mpi::rank * 10 + i;
 
-        auto size = mpi::global::size;
+        auto size = mpi::size;
         auto result = mpi::allgather(value, mpi::world, mpi::flag::varying_t());
 
         REQUIRE(result.count == (size_t) (size * (size + 1) / 2));
 
-        for (int i = 0, k = 0; i < mpi::global::size; ++i)
+        for (int i = 0, k = 0; i < mpi::size; ++i)
             for (int j = 0; j <= i; ++j, ++k)
                 REQUIRE(result[k] == (i * 10 + j));
     }

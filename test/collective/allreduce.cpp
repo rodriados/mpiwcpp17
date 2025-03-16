@@ -20,10 +20,10 @@ TEST_CASE("reduce values into all processes", "[collective][allreduce]")
      * @since 1.0
      */
     SECTION("a single scalar value") {
-        int value = mpi::global::rank + 1;
+        int value = mpi::rank + 1;
         int result = mpi::allreduce(&value, 1, mpi::functor::add);
 
-        int expected = sumUpTo(mpi::global::size);
+        int expected = sumUpTo(mpi::size);
         REQUIRE(result == expected);
     }
 
@@ -37,7 +37,7 @@ TEST_CASE("reduce values into all processes", "[collective][allreduce]")
         std::vector<int> value (quantity);
 
         for (int i = 0; i < quantity; ++i)
-            value[i] = (mpi::global::rank + 1) * (i + 1);
+            value[i] = (mpi::rank + 1) * (i + 1);
 
         const auto f = [](auto x, auto y) { return x + y; };
         auto result = mpi::allreduce(value, f);
@@ -45,7 +45,7 @@ TEST_CASE("reduce values into all processes", "[collective][allreduce]")
         REQUIRE(result.count == quantity);
 
         for (int i = 0; i < quantity; ++i) {
-            int expected = sumUpTo(mpi::global::size) * (i + 1);
+            int expected = sumUpTo(mpi::size) * (i + 1);
             REQUIRE(result[i] == expected);
         }
     }

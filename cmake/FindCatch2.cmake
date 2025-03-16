@@ -15,12 +15,11 @@ FetchContent_Declare(
   Catch2
     GIT_SHALLOW true
     GIT_REPOSITORY ${CATCH2_REPOSITORY}
-    GIT_TAG ${CATCH2_REPOSITORY_TAG}
-    OVERRIDE_FIND_PACKAGE)
+    GIT_TAG ${CATCH2_REPOSITORY_TAG})
 
 # Now that the package is declared, we must find and configure it so that its variables
 # and targets are made available for the parent context.
-find_package(Catch2 REQUIRED)
+FetchContent_MakeAvailable(Catch2)
 
 # Also, a helper function for automatically finding tests is provided. We must include
 # this function as well, to provide a better downstream experience.

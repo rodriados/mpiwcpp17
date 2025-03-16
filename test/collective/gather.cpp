@@ -15,7 +15,7 @@ using namespace Catch;
 
 TEST_CASE("gather values from all processes", "[collective][gather]")
 {
-    auto root = GENERATE(range(0, mpi::global::size));
+    auto root = GENERATE(range(0, mpi::size));
 
     /**
      * Tests whether a single scalar value can be gathered from all processes into
@@ -23,12 +23,12 @@ TEST_CASE("gather values from all processes", "[collective][gather]")
      * @since 1.0
      */
     SECTION("a single scalar value") {
-        int value = mpi::global::rank + 1;
+        int value = mpi::rank + 1;
         auto result = mpi::gather(&value, 1, root, mpi::world, mpi::flag::uniform_t());
 
-        if (root == mpi::global::rank) {
-            REQUIRE(result.count == (size_t) mpi::global::size);
-            for (int i = 0; i < mpi::global::size; ++i)
+        if (root == mpi::rank) {
+            REQUIRE(result.count == (size_t) mpi::size);
+            for (int i = 0; i < mpi::size; ++i)
                 REQUIRE(result[i] == (i + 1));
         } else {
             REQUIRE(result.count == 0);
@@ -45,13 +45,13 @@ TEST_CASE("gather values from all processes", "[collective][gather]")
         std::vector<int> value (quantity);
 
         for (int i = 0; i < quantity; ++i)
-            value[i] = 10 * mpi::global::rank + i;
+            value[i] = 10 * mpi::rank + i;
 
         auto result = mpi::gather(value, root, mpi::world, mpi::flag::uniform_t());
 
-        if (root == mpi::global::rank) {
-            REQUIRE(result.count == (size_t) (quantity * mpi::global::size));
-            for (int i = 0, k = 0; i < mpi::global::size; ++i)
+        if (root == mpi::rank) {
+            REQUIRE(result.count == (size_t) (quantity * mpi::size));
+            for (int i = 0, k = 0; i < mpi::size; ++i)
                 for (int j = 0; j < quantity; ++j, ++k)
                     REQUIRE(result[k] == (10 * i + j));
         } else {
@@ -65,19 +65,19 @@ TEST_CASE("gather values from all processes", "[collective][gather]")
      * @since 1.0
      */
     SECTION("a varying container of scalar values") {
-        std::vector<int> value (mpi::global::rank + 1);
+        std::vector<int> value (mpi::rank + 1);
 
-        for (int i = 0; i <= mpi::global::rank; ++i)
-            value[i] = 100 * root + mpi::global::rank * 10 + i;
+        for (int i = 0; i <= mpi::rank; ++i)
+            value[i] = 100 * root + mpi::rank * 10 + i;
 
         auto result = mpi::gather(value, root, mpi::world, mpi::flag::varying_t());
 
-        if (root == mpi::global::rank)  {
-            auto size = mpi::global::size;
+        if (root == mpi::rank)  {
+            auto size = mpi::size;
             REQUIRE(result.count == (size_t) (size * (size + 1) / 2));
-            for (int i = 0, k = 0; i < mpi::global::size; ++i)
+            for (int i = 0, k = 0; i < mpi::size; ++i)
                 for (int j = 0; j <= i; ++j, ++k)
-                    REQUIRE(result[k] == (100 * mpi::global::rank + i * 10 + j));
+                    REQUIRE(result[k] == (100 * mpi::rank + i * 10 + j));
         } else {
             REQUIRE(result.count == 0);
         }

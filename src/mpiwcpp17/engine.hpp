@@ -59,10 +59,10 @@ struct engine_t final
      */
     MPIWCPP17_INLINE ~engine_t()
     {
-        if (detail::world_t::finalized())
-            throw exception_t("MPI is already finalized");
-        detail::raii_t::clear();
-        detail::world_t::finalize();
+        if (!detail::world_t::finalized()) {
+            detail::raii_t::clear();
+            detail::world_t::finalize();
+        }
     }
 };
 

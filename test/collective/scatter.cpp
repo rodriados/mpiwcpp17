@@ -15,7 +15,7 @@ using namespace Catch;
 
 TEST_CASE("scatter values to all processes", "[collective][scatter]")
 {
-    auto root = GENERATE(range(0, mpi::global::size));
+    auto root = GENERATE(range(0, mpi::size));
 
     /**
      * Tests whether a container with the number of elements being a multiple of
@@ -24,11 +24,11 @@ TEST_CASE("scatter values to all processes", "[collective][scatter]")
      */
     SECTION("a uniform container of scalar values") {
         constexpr int quantity = 4;
-        std::vector<int> value (root == mpi::global::rank
-            ? mpi::global::size * quantity: 1);
+        std::vector<int> value (root == mpi::rank
+            ? mpi::size * quantity: 1);
 
-        if (root == mpi::global::rank)
-            for (int i = 0; i < mpi::global::size * quantity; ++i)
+        if (root == mpi::rank)
+            for (int i = 0; i < mpi::size * quantity; ++i)
                 value[i] = i;
 
         auto result = mpi::scatter(value, root, mpi::world, mpi::flag::uniform_t());
@@ -36,6 +36,6 @@ TEST_CASE("scatter values to all processes", "[collective][scatter]")
         REQUIRE(result.count == quantity);
 
         for (int i = 0; i < quantity; ++i)
-            REQUIRE(result[i] == mpi::global::rank * quantity + i);
+            REQUIRE(result[i] == mpi::rank * quantity + i);
     }
 }
