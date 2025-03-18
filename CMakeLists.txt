@@ -70,7 +70,7 @@ find_package(MPI REQUIRED)
 
 # Determine whether optional external or third-party dependencies shall be used
 # for the current project. Dependencies may be skipped if they are not needed.
-if(DEFINED MPIWCPP17_AVOID_DEPENDENCIES OR DEFINED MPIWCPP17_AVOID_THIRDPARTY)
+if(DEFINED MPIWCPP17_AVOID_THIRDPARTY)
   set(MPIWCPP17_AVOID_THIRDPARTY_REFLECTOR ON)
 endif()
 
