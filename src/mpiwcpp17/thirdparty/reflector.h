@@ -29,11 +29,11 @@
 #if !defined(MPIWCPP17_AVOID_THIRDPARTY) && !defined(MPIWCPP17_AVOID_THIRDPARTY_REFLECTOR)
   #ifdef MPIWCPP17_OVERRIDE_REFLECTOR
     #include MPIWCPP17_OVERRIDE_REFLECTOR
+  #elif __has_include(<rodriados/reflector.h>)
+    #include <rodriados/reflector.h>
   #elif __has_include(<reflector/api.h>)
     #include <reflector/api.h>
-  #elif __has_include(<reflector.h>)
+  #else
     #include <reflector.h>
-  #elif !defined(MPIWCPP17_AVOID_THIRDPARTY_REFLECTOR)
-    #define MPIWCPP17_AVOID_THIRDPARTY_REFLECTOR
   #endif
 #endif

@@ -62,11 +62,10 @@ namespace detail::window
      * @param count The number of elements or bytes to allocate memory for.
      * @param comm Communicator over which the RMA operations will be executed.
      * @param info The key-value information instance to attach to allocated memory.
-     * @param flag The window allocation flag to determine the type of allocated memory.
      * @return The new window instance and the pointer to the allocated memory.
      */
     template <typename T, typename G>
-    MPIWCPP17_INLINE auto allocate(size_t count, communicator_t comm, info_t info, G flag)
+    MPIWCPP17_INLINE auto allocate(size_t count, communicator_t comm, info_t info, G)
     {
         T *ptr;
 
