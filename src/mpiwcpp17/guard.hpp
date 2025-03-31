@@ -14,8 +14,6 @@
 #include <mpiwcpp17/exception.hpp>
 #include <mpiwcpp17/error.hpp>
 
-MPIWCPP17_DISABLE_GCC_WARNING_BEGIN("-Wattributes")
-
 /*
  * Creates an annotation for an signalling a cold-path to be taken by an if-statement.
  * As we're asserting whether a pre-condition is met or not, we should always favor
@@ -24,13 +22,16 @@ MPIWCPP17_DISABLE_GCC_WARNING_BEGIN("-Wattributes")
  * branch predictions in exchange to a slight performance improvement when everything
  * goes as expected, which corresponds to the great majority of times.
  */
-#if MPIWCPP17_CPP_DIALECT >= 2020 && defined(__has_cpp_attribute) && __has_cpp_attribute(unlikely)
+#if defined(__has_cpp_attribute) && __has_cpp_attribute(unlikely) && \
+    MPIWCPP17_COMPILER == MPIWCPP17_OPT_COMPILER_CLANG  /* GCC bug */
   #define MPIWCPP17_UNLIKELY(condition) \
     ((condition)) [[unlikely]]
+
 #elif (MPIWCPP17_COMPILER == MPIWCPP17_OPT_COMPILER_GCC \
     || MPIWCPP17_COMPILER == MPIWCPP17_OPT_COMPILER_CLANG)
   #define MPIWCPP17_UNLIKELY(condition) \
     (__builtin_expect((condition), 0))
+
 #else
   #define MPIWCPP17_UNLIKELY(condition) \
     ((condition))
@@ -48,7 +49,7 @@ MPIWCPP17_BEGIN_NAMESPACE
 template <typename E = mpiwcpp17::exception_t>
 MPIWCPP17_CONSTEXPR void guard(error_t err)
 {
-    static_assert(std::is_base_of<mpiwcpp17::exception_t, E>::value
+    static_assert(std::is_base_of_v<mpiwcpp17::exception_t, E>
       , "only mpiwcpp17 exceptions are throwable from a guard");
 
   #if !defined(MPIWCPP17_AVOID_GUARD)
@@ -68,7 +69,3 @@ MPIWCPP17_CONSTEXPR void guard(error_t err)
 #define MPIWCPP17_GUARD_CALL(T, B)  MPIWCPP17_CALL(T, mpiwcpp17::guard(B))
 
 MPIWCPP17_END_NAMESPACE
-
-#undef MPIWCPP17_UNLIKELY
-
-MPIWCPP17_DISABLE_GCC_WARNING_END("-Wattributes")
