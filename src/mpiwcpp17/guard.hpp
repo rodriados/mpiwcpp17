@@ -22,8 +22,7 @@
  * branch predictions in exchange to a slight performance improvement when everything
  * goes as expected, which corresponds to the great majority of times.
  */
-#if defined(__has_cpp_attribute) && __has_cpp_attribute(unlikely) && \
-    MPIWCPP17_COMPILER == MPIWCPP17_OPT_COMPILER_CLANG  /* GCC bug */
+#if MPIWCPP17_CPP_DIALECT >= 2020 && defined(__has_cpp_attribute) && __has_cpp_attribute(unlikely)
   #define MPIWCPP17_UNLIKELY(condition) \
     ((condition)) [[unlikely]]
 
