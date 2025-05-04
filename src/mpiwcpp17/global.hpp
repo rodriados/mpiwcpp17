@@ -9,6 +9,7 @@
 #include <mpi.h>
 
 #include <mpiwcpp17/environment.h>
+#include <mpiwcpp17/communicator.hpp>
 #include <mpiwcpp17/support.hpp>
 #include <mpiwcpp17/guard.hpp>
 
@@ -24,7 +25,7 @@ MPIWCPP17_BEGIN_NAMESPACE
  * operations, but can be derived into other communicators as needed.
  * @since 1.0
  */
-MPIWCPP17_INLINE const auto world = MPI_COMM_WORLD;
+MPIWCPP17_CONSTEXPR const auto& world = communicator::world;
 
 /**
  * The public reference to the current process's rank within the world communicator.
@@ -80,7 +81,7 @@ MPIWCPP17_INLINE auto thread_level() -> support::thread_level_t
  */
 MPIWCPP17_INLINE void abort(int code = 1)
 {
-    detail::raii_t::clear();
+    detail::raii_t::finalize();
     MPIWCPP17_GUARD_EVAL(MPI_Abort(world, code));
 }
 

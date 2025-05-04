@@ -11,12 +11,11 @@
 
 #include <mpiwcpp17/environment.h>
 #include <mpiwcpp17/process.hpp>
-#include <mpiwcpp17/global.hpp>
 #include <mpiwcpp17/guard.hpp>
 #include <mpiwcpp17/info.hpp>
 
 #include <mpiwcpp17/detail/attribute.hpp>
-#include <mpiwcpp17/detail/raii.hpp>
+#include <mpiwcpp17/detail/handle.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
 
@@ -27,16 +26,16 @@ MPIWCPP17_BEGIN_NAMESPACE
  * perform operations with subsets of the global group of processes.
  * @since 2.1
  */
-using communicator_t = MPI_Comm;
+struct communicator_t : MPIWCPP17_INHERIT_HANDLE(MPI_Comm, MPI_Comm_free);
 
 /*
  * Auxiliary macros for implementing functions that wrap the creation of new communicators.
  * The newly created communicators are automatically attached to RAII.
- * @param x The communicator to be attached to RAII.
+ * @param x The communicator to be acquired by a handle.
  * @param B The call block to be wrapped.
  */
-#define MPIWCPP17_COMM_RAII(x)  detail::raii_t::attach(x, &MPI_Comm_free)
-#define MPIWCPP17_COMM_CALL(B)  MPIWCPP17_COMM_RAII(MPIWCPP17_GUARD_CALL(communicator_t, B))
+#define MPIWCPP17_COMM_RAII(x) communicator_t ((x), true)
+#define MPIWCPP17_COMM_CALL(B) MPIWCPP17_COMM_RAII(MPIWCPP17_GUARD_CALL(MPI_Comm, B))
 
 namespace communicator
 {
@@ -46,7 +45,7 @@ namespace communicator
      * when initializing its execution and cannot be modified in any way.
      * @since 2.1
      */
-    MPIWCPP17_INLINE const communicator_t world = mpiwcpp17::world;
+    MPIWCPP17_INLINE const communicator_t world = MPI_COMM_WORLD;
 
     /**
      * The invalid or empty communicator instance.
@@ -121,7 +120,7 @@ namespace communicator
      * @param comm The communicator to check the process' rank with.
      * @return The calling process' rank within communicator.
      */
-    MPIWCPP17_INLINE process_t rank(communicator_t comm)
+    MPIWCPP17_INLINE process_t rank(const communicator_t& comm)
     {
         return MPIWCPP17_GUARD_CALL(process_t, MPI_Comm_rank(comm, &_));
     }
@@ -131,7 +130,7 @@ namespace communicator
      * @param comm The communicator to check the number of processes of.
      * @return The number of processes within given communicator.
      */
-    MPIWCPP17_INLINE int32_t size(communicator_t comm)
+    MPIWCPP17_INLINE int32_t size(const communicator_t& comm)
     {
         return MPIWCPP17_GUARD_CALL(int32_t, MPI_Comm_size(comm, &_));
     }
@@ -141,7 +140,7 @@ namespace communicator
      * @param comm The communicator to be duplicated.
      * @return The new duplicated communicator.
      */
-    MPIWCPP17_INLINE communicator_t duplicate(communicator_t comm)
+    MPIWCPP17_INLINE communicator_t duplicate(const communicator_t& comm)
     {
         return MPIWCPP17_COMM_CALL(MPI_Comm_dup(comm, &_));
     }
@@ -152,7 +151,7 @@ namespace communicator
      * @param info The key-value information to attach to new communicator.
      * @return The new duplicated communicator.
      */
-    MPIWCPP17_INLINE communicator_t duplicate(communicator_t comm, info_t info)
+    MPIWCPP17_INLINE communicator_t duplicate(const communicator_t& comm, const info_t& info)
     {
         return MPIWCPP17_COMM_CALL(MPI_Comm_dup_with_info(comm, info, &_));
     }
@@ -166,7 +165,7 @@ namespace communicator
      * @return The communicator obtained from the split.
      */
     MPIWCPP17_INLINE communicator_t split(
-        communicator_t comm
+        const communicator_t& comm
       , int color, process_t key = process::any
     ) {
         return MPIWCPP17_COMM_CALL(MPI_Comm_split(comm, color, key, &_));
@@ -181,10 +180,10 @@ namespace communicator
      * @return The communicator obtained from the split.
      */
     MPIWCPP17_INLINE communicator_t split(
-        communicator_t comm
+        const communicator_t& comm
       , process::type_t type
       , process_t key = process::any
-      , info_t info = info::null
+      , const info_t& info = info::null
     ) {
         return MPIWCPP17_COMM_CALL(MPI_Comm_split_type(comm, type, key, info, &_));
     }
@@ -195,7 +194,7 @@ namespace communicator
      * @param b The second communicator to be compared.
      * @return The likeness between the communicators.
      */
-    MPIWCPP17_INLINE likeness_t compare(communicator_t a, communicator_t b)
+    MPIWCPP17_INLINE likeness_t compare(const communicator_t& a, const communicator_t& b)
     {
         return (likeness_t) MPIWCPP17_GUARD_CALL(int, MPI_Comm_compare(a, b, &_));
     }
@@ -205,21 +204,9 @@ namespace communicator
      * @param comm The communicator to check if in a valid state.
      * @return Is the communicator valid and not empty?
      */
-    MPIWCPP17_INLINE bool empty(communicator_t comm)
+    MPIWCPP17_INLINE bool empty(const communicator_t& comm)
     {
         return comm == communicator::null;
-    }
-
-    /**
-     * Frees communicator resources after checking if it is not MPI-internal.
-     * @param comm The communicator to be freed if possible.
-     */
-    MPIWCPP17_INLINE void free(communicator_t comm)
-    {
-        if (!communicator::empty(comm) && !finalized())
-            if (comm != communicator::world && comm != communicator::self)
-                if (!detail::raii_t::detach(comm))
-                    guard(MPI_Comm_free(&comm));
     }
 }
 

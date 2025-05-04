@@ -60,7 +60,7 @@ struct engine_t final
     MPIWCPP17_INLINE ~engine_t()
     {
         if (!detail::world_t::finalized()) {
-            detail::raii_t::clear();
+            detail::raii_t::finalize();
             detail::world_t::finalize();
         }
     }

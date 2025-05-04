@@ -11,13 +11,22 @@
 
 #include <mpiwcpp17/environment.h>
 #include <mpiwcpp17/datatype.hpp>
-#include <mpiwcpp17/flag.hpp>
 #include <mpiwcpp17/functor.hpp>
+#include <mpiwcpp17/flag.hpp>
 #include <mpiwcpp17/guard.hpp>
 
 #include <mpiwcpp17/detail/raii.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
+
+/*
+ * Auxiliary macros for implementing functions that wrap the creation of new functors.
+ * The newly created functors are automatically attached to RAII.
+ * @param x The functor to be acquired by a handle.
+ * @param B The call block to be wrapped.
+ */
+#define MPIWCPP17_OP_RAII(x) functor_t ((x), true)
+#define MPIWCPP17_OP_CALL(B) MPIWCPP17_OP_RAII(MPIWCPP17_GUARD_CALL(MPI_Op, B))
 
 namespace detail::functor
 {
@@ -28,20 +37,19 @@ namespace detail::functor
      * @return The resolved functor identifier.
      */
     MPIWCPP17_INLINE functor_t build_from_callable(
-        void (*callable)(void*, void*, int*, datatype_t*)
+        void (*callable)(void*, void*, int*, datatype_t::raw_t*)
       , bool commutative = false
     ) {
-        auto f = MPIWCPP17_GUARD_CALL(functor_t, MPI_Op_create(callable, commutative, &_));
-        return detail::raii_t::attach(f, &MPI_Op_free);
+        return MPIWCPP17_OP_CALL(MPI_Op_create(callable, commutative, &_));
     }
 
     /**
      * Provides a marker for dynamically resolved functors.
      * @return The dynamic resolution marker.
      */
-    MPIWCPP17_INLINE datatype::attribute_t get_dynamic_resolution_marker()
+    MPIWCPP17_INLINE const datatype::attribute_t& get_dynamic_resolution_marker()
     {
-        static auto marker = datatype::attribute::create();
+        static auto marker = raii_t::register_handle(datatype::attribute::create());
         return marker;
     }
 
@@ -52,7 +60,7 @@ namespace detail::functor
      * @return The resolved functor identifier.
      */
     template <typename T>
-    MPIWCPP17_INLINE functor_t resolve(functor_t f)
+    MPIWCPP17_INLINE const functor_t& resolve(const functor_t& f)
     {
         return f;
     }
@@ -70,14 +78,14 @@ namespace detail::functor
             std::is_class_v<F> &&
             std::is_default_constructible_v<F> &&
             std::is_assignable_v<T&, std::invoke_result_t<F, const T&, const T&>>>>
-    MPIWCPP17_INLINE functor_t resolve(const F&)
+    MPIWCPP17_INLINE const functor_t& resolve(const F&)
     {
         // As a convenience for the caller, a static wrapper for the operator is
         // provided so that it is adapted to the function signature required by
         // MPI. The wrapper is responsible for only correctly casting the operands
         // and applying the provided operator functor.
         using static_wrapper_t = struct static_wrapper_t {
-            static void call(void *a, void *b, int *count, datatype_t*) {
+            static void call(void *a, void *b, int *count, datatype_t::raw_t*) {
                 auto f = F();
                 auto x = static_cast<T*>(a);
                 auto y = static_cast<T*>(b);
@@ -87,9 +95,11 @@ namespace detail::functor
             }
         };
 
-        static functor_t f = build_from_callable(
-            &static_wrapper_t::call
-          , std::is_base_of_v<flag::functor::commutative_t, F>);
+        static functor_t f = raii_t::register_handle(
+            build_from_callable(
+                &static_wrapper_t::call
+              , std::is_base_of_v<flag::functor::commutative_t, F>));
+
         return f;
     }
 
@@ -106,7 +116,7 @@ namespace detail::functor
       , typename = std::enable_if_t<
             !std::is_default_constructible_v<F> &&
             std::is_assignable_v<T&, std::invoke_result_t<F, const T&, const T&>>>>
-    MPIWCPP17_INLINE functor_t resolve(F& lambda)
+    MPIWCPP17_INLINE const functor_t& resolve(F& lambda)
     {
         // As a convenience for the caller, a dynamic wrapper for the operator is
         // provided when the given operator requires a non-trivial instance for
@@ -114,7 +124,7 @@ namespace detail::functor
         // adapting the operator to the function signature requested by MPI, retrieving
         // the operator and applying it to correctly-typed operands.
         using dynamic_wrapper_t = struct dynamic_wrapper_t {
-            static void call(void *a, void *b, int *count, datatype_t *marker) {
+            static void call(void *a, void *b, int *count, datatype_t::raw_t *marker) {
                 auto [ok, f] = datatype::attribute::get<F>(*marker, get_dynamic_resolution_marker());
                 auto x = static_cast<T*>(a);
                 auto y = static_cast<T*>(b);
@@ -132,9 +142,14 @@ namespace detail::functor
         // the lifetime of the relevant collective operations.
         datatype::attribute::set(type, marker, &lambda);
 
-        static functor_t f = build_from_callable(&dynamic_wrapper_t::call);
+        static functor_t f = raii_t::register_handle(
+            build_from_callable(&dynamic_wrapper_t::call));
+
         return f;
     }
 }
+
+#undef MPIWCPP17_OP_CALL
+#undef MPIWCPP17_OP_RAII
 
 MPIWCPP17_END_NAMESPACE

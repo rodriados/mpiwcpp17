@@ -9,6 +9,7 @@
 #include <mpi.h>
 
 #include <mpiwcpp17/environment.h>
+#include <mpiwcpp17/detail/handle.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
 
@@ -18,7 +19,7 @@ MPIWCPP17_BEGIN_NAMESPACE
  * information supported by some MPI functions.
  * @since 2.1
  */
-using info_t = MPI_Info;
+struct info_t : MPIWCPP17_INHERIT_HANDLE(MPI_Info, MPI_Info_free);
 
 namespace info
 {

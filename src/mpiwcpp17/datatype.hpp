@@ -9,14 +9,14 @@
 #include <mpi.h>
 
 #include <array>
-#include <cstdint>
+#include <cstddef>
 #include <utility>
 
 #include <mpiwcpp17/environment.h>
-#include <mpiwcpp17/global.hpp>
 #include <mpiwcpp17/guard.hpp>
 
 #include <mpiwcpp17/detail/raii.hpp>
+#include <mpiwcpp17/detail/handle.hpp>
 #include <mpiwcpp17/detail/attribute.hpp>
 #include <mpiwcpp17/thirdparty/reflector.h>
 
@@ -28,16 +28,16 @@ MPIWCPP17_BEGIN_NAMESPACE
  * that might transit through MPI collective operations.
  * @since 2.1
  */
-using datatype_t = MPI_Datatype;
+struct datatype_t : MPIWCPP17_INHERIT_HANDLE(MPI_Datatype, MPI_Type_free);
 
 /*
  * Auxiliary macros for implementing functions that wrap the creation of new datatypes.
  * The newly created datatypes are automatically attached to RAII.
- * @param x The datatype to be attached to RAII.
+ * @param x The datatype to be acquired by a handle.
  * @param B The call block to be wrapped.
  */
-#define MPIWCPP17_TYPE_RAII(x)  detail::raii_t::attach(x, &MPI_Type_free)
-#define MPIWCPP17_TYPE_CALL(B)  MPIWCPP17_TYPE_RAII(MPIWCPP17_GUARD_CALL(datatype_t, B))
+#define MPIWCPP17_TYPE_RAII(x)  datatype_t ((x), true)
+#define MPIWCPP17_TYPE_CALL(B)  MPIWCPP17_TYPE_RAII(MPIWCPP17_GUARD_CALL(MPI_Datatype, B))
 
 namespace datatype
 {
@@ -74,7 +74,7 @@ namespace datatype
         static_assert(!std::is_union<T>::value, "union types cannot be used with MPI");
         static_assert(!std::is_reference<T>::value, "references cannot be used with MPI");
 
-        static datatype_t type = MPIWCPP17_TYPE_RAII(provider_t<T>::provide());
+        static datatype_t type = detail::raii_t::register_handle(provider_t<T>::provide());
         return type;
     }
 
@@ -108,7 +108,7 @@ namespace datatype
      * @param type The datatype identifier to be duplicated.
      * @return A clone of the given datatype identifier.
      */
-    MPIWCPP17_INLINE datatype_t duplicate(datatype_t type)
+    MPIWCPP17_INLINE datatype_t duplicate(const datatype_t& type)
     {
         return MPIWCPP17_TYPE_CALL(MPI_Type_dup(type, &_));
     }
@@ -119,21 +119,9 @@ namespace datatype
      * @param type The type's identifier.
      * @return The concrete type's size in bytes.
      */
-    MPIWCPP17_INLINE size_t size(datatype_t type)
+    MPIWCPP17_INLINE size_t size(const datatype_t& type)
     {
-        return static_cast<size_t>(MPIWCPP17_GUARD_CALL(int, MPI_Type_size(type, &_)));
-    }
-
-    /**
-     * Frees up the resources needed for storing types' identifiers. Effectively,
-     * after destruction, these type identities are in an invalid state and must
-     * not be used.
-     * @param type The type identifier to be freed.
-     */
-    MPIWCPP17_INLINE void free(datatype_t type)
-    {
-        if (!finalized() && !detail::raii_t::detach(type))
-            guard(MPI_Type_free(&type));
+        return (size_t) MPIWCPP17_GUARD_CALL(int, MPI_Type_size(type, &_));
     }
 
     namespace detail
@@ -145,22 +133,23 @@ namespace datatype
          * @return The resulting type description identifier.
          */
         template <typename ...M>
-        MPIWCPP17_INLINE datatype_t build_from_members(const std::array<ptrdiff_t, sizeof...(M)>& offset)
-        {
-            datatype_t t;
+        MPIWCPP17_INLINE datatype_t build_from_members(
+            const std::array<ptrdiff_t, sizeof...(M)>& offset
+        ) {
+            datatype_t::raw_t t;
             constexpr const size_t count = sizeof...(M);
 
             // Describing a struct type by acquiring a type identity and the offset
             // of each of its member properties. If a property of an array type
             // has been found, than we also inform the array's element count.
             int blocks[count] = {std::max(std::extent_v<M>, 1ul)...};
-            datatype_t members[count] = {identify<std::remove_extent_t<M>>()...};
+            datatype_t::raw_t members[count] = {identify<std::remove_extent_t<M>>()...};
             const MPI_Aint *offsets = (MPI_Aint*) offset.data();
 
             guard(MPI_Type_create_struct(count, blocks, offsets, members, &t));
             guard(MPI_Type_commit(&t));
 
-            return t;
+            return MPIWCPP17_TYPE_RAII(t);
         }
     }
 
@@ -195,7 +184,8 @@ namespace datatype
         MPIWCPP17_INLINE static datatype_t provide_by_reflection(std::index_sequence<I...>)
         {
             constexpr auto offset = std::array {reflection_t::template offset<I>()...};
-            return detail::build_from_members<typename reflection_tuple_t::template element_t<I>...>(offset);
+            return detail::build_from_members<
+                typename reflection_tuple_t::template element_t<I>...>(offset);
         }
     };
   #endif

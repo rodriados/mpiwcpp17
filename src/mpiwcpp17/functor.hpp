@@ -7,18 +7,18 @@
 #pragma once
 
 #include <mpi.h>
-#include <utility>
 
 #include <mpiwcpp17/environment.h>
+#include <mpiwcpp17/detail/handle.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
 
 /**
  * The type for an operator functor instance identifier. An operator identifier
  * is needed for a functor to be used as operator for some collective operations.
- * @since 3.0
+ * @since 2.1
  */
-using functor_t = MPI_Op;
+struct functor_t : MPIWCPP17_INHERIT_HANDLE(MPI_Op, MPI_Op_free);
 
 namespace functor
 {

@@ -6,90 +6,115 @@
  */
 #pragma once
 
-#include <mpi.h>
-
+#include <stack>
+#include <cstdint>
 #include <utility>
-#include <unordered_map>
 
 #include <mpiwcpp17/environment.h>
 #include <mpiwcpp17/guard.hpp>
+
+#include <mpiwcpp17/detail/handle.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
 
 namespace detail
 {
     /**
-     * Tracks MPI objects instantiated during execution that should eventually be
-     * freed before MPI finalizes. The registry maps a generic MPI object instance
-     * to its MPI-destructor function to simulate RAII.
+     * Tracks static MPI objects instantiated during execution that should be destroyed
+     * before MPI finalizes. The registry maps a generic MPI object handle to its
+     * MPI-destructor function to achieve RAII for static object handles.
      * @since 2.1
      */
-    class raii_t final
+    class raii_t
     {
         private:
-            using deleter_t  = int(void*);
-            using registry_t = std::unordered_map<uintptr_t, deleter_t*>;
+            class registry_entry_t;
+            using registry_t = std::stack<registry_entry_t>;
 
         private:
             MPIWCPP17_INLINE static auto s_registry = registry_t();
 
         public:
             /**
-             * Attachs a generic MPI object to the RAII mechanism.
-             * @tparam T The trackable MPI object type.
-             * @tparam F The object deleter function type.
-             * @param object The object to be tracked by the RAII mechanism.
-             * @param deleter The function to use for object destruction.
-             * @return The given unmodified object.
-             */
-            template <typename T, typename F>
-            MPIWCPP17_INLINE static auto attach(T object, F *deleter)
-            -> std::enable_if_t<std::is_function_v<F>, T> {
-                s_registry.emplace(key(object), reinterpret_cast<deleter_t*>(deleter));
-                return object;
-            }
-
-            /**
-             * Detaches a generic MPI object from the RAII mechanism.
-             * @tparam T The trackable MPI object type.
-             * @param object The object to be untracked and possibly deleted.
-             * @param preserve Should the object be preserved when detaching?
-             * @return Has the object been successfully detached?
+             * Registers a generic MPI object handle to the RAII context.
+             * @tparam T The trackable MPI object handle type.
+             * @param handle The object handle to be tracked by the RAII context.
+             * @return The non-owning object handle.
              */
             template <typename T>
-            MPIWCPP17_INLINE static bool detach(T object, bool preserve = false)
+            MPIWCPP17_INLINE static T register_handle(T&& handle)
             {
-                auto entry = s_registry.extract(key(object));
-                if (!preserve && !entry.empty())
-                    guard((entry.mapped())(&object));
-                return !entry.empty();
+                s_registry.emplace(std::forward<T>(handle));
+                return std::move(handle);
             }
 
             /**
-             * Clears the tracked objects and destroys them if requested.
-             * @param preserve Should the instances be preserved when removed?
-             * @see detail::raii_t::attach
+             * Destroys all registered object handles in the RAII context, guarantees
+             * that all handles are destroyed in their opposite registration order.
+             * @see mpi::detail::raii_t::register_handle
              */
-            MPIWCPP17_INLINE static void clear(bool preserve = false)
+            MPIWCPP17_INLINE static void finalize()
             {
-                if (!preserve) for (auto [key, deleter] : s_registry)
-                    guard((deleter)((void*)&key));
-                s_registry.clear();
+                while (!s_registry.empty()) {
+                    s_registry.pop();
+                }
+            }
+    };
+
+    /**
+     * The static RAII registry entry for a handle of generic type.
+     * The entry acquires ownership of a generic handle and its deleter, attaches
+     * it to the RAII registry and destroys the handle when the registry is finalized.
+     * @since 2.1
+     */
+    class raii_t::registry_entry_t
+    {
+        private:
+            using deleter_t = int(*)(void*);
+
+        private:
+            uintmax_t m_handle;
+            deleter_t m_deleter;
+
+        public:
+            /**
+             * Instantiates a new registry entry from a generic handle.
+             * @tparam T The raw MPI object handle type.
+             * @tparam D The deleter function for the given handle type.
+             * @param handle The handle to be owned by the registry.
+             */
+            template <typename T, auto D>
+            MPIWCPP17_INLINE registry_entry_t(handle_t<T, D>&& handle) noexcept
+              : m_handle (to_generic_handle(handle.release()))
+              , m_deleter (reinterpret_cast<deleter_t>(D))
+            {}
+
+            /**
+             * Destroys the owned handle using its extracted deleter function.
+             * The deleter is expected to perform a MPI operation to release the
+             * resources owned by the handle. Therefore, the deleter call is guarded
+             * and may throw an exception if an error is detected.
+             * @see mpi::detail::raii_t::finalize
+             */
+            MPIWCPP17_INLINE ~registry_entry_t()
+            {
+                if (m_handle && m_deleter) {
+                    guard((m_deleter)(&m_handle));
+                }
             }
 
         private:
             /**
-             * Converts a generic object into a RAII-registry key.
-             * @tparam T The trackable MPI object type.
-             * @param object The object to be converted into a key.
-             * @return The corresponding key for the given object.
+             * Erases the type of a generic raw MPI object handle.
+             * @tparam T The original raw MPI object handle type.
+             * @param handle The handle to have its type erased.
              */
             template <typename T>
-            MPIWCPP17_INLINE static uintptr_t key(T object)
+            MPIWCPP17_CONSTEXPR static uintmax_t to_generic_handle(T handle) noexcept
             {
-                static_assert(sizeof(uintptr_t) >= sizeof(T)
-                  , "incompatible MPI implementation");
-                return (uintptr_t) object;
+                union handle_converter_t { T handle; uintmax_t generic; };
+                const auto converter = handle_converter_t {handle};
+                return converter.generic;
             }
     };
 }

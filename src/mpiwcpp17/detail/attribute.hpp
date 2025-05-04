@@ -9,10 +9,9 @@
 #include <utility>
 
 #include <mpiwcpp17/environment.h>
-#include <mpiwcpp17/global.hpp>
 #include <mpiwcpp17/guard.hpp>
 
-#include <mpiwcpp17/detail/raii.hpp>
+#include <mpiwcpp17/detail/handle.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
 
@@ -22,12 +21,11 @@ MPIWCPP17_BEGIN_NAMESPACE
  * @tparam fcrt The function for attribute creation.
  * @tparam fdup The function for attribute duplication.
  * @tparam fdel The function for attribute destruction.
- * @tparam ffre The function for attribute resource release.
  */
-#define MPIWCPP17_ATTRIBUTE_DECLARE_CREATE(type, fcrt, fdup, fdel, ffre)            \
-  MPIWCPP17_INLINE attribute_t create() {                                           \
-    attribute_t attr; guard(fcrt(fdup, fdel, &attr, nullptr));                      \
-    return detail::raii_t::attach(attr, &ffre);                                     \
+#define MPIWCPP17_ATTRIBUTE_DECLARE_CREATE(type, fcrt, fdup, fdel)                          \
+  MPIWCPP17_INLINE attribute_t create() {                                                   \
+    int attr; guard(fcrt(fdup, fdel, &attr, nullptr));                                      \
+    return attribute_t(attr, true);                                                         \
   }
 
 /**
@@ -38,11 +36,11 @@ MPIWCPP17_BEGIN_NAMESPACE
  * @param attr The attribute to retrieve from the given target object.
  * @return A flag of whether the attribute exists and the corresponding value.
  */
-#define MPIWCPP17_ATTRIBUTE_DECLARE_GET(type, fget)                                 \
-  template <typename T = void>                                                      \
-  MPIWCPP17_INLINE std::pair<bool, T*> get(type target, attribute_t attr) {         \
-    int g; T* ptr; guard(fget(target, attr, (void*) &ptr, &g));                     \
-    return std::make_pair(g, ptr);                                                  \
+#define MPIWCPP17_ATTRIBUTE_DECLARE_GET(type, fget)                                         \
+  template <typename T = void>                                                              \
+  MPIWCPP17_INLINE std::pair<bool, T*> get(const type& target, const attribute_t& attr) {   \
+    int g; T* ptr; guard(fget(target, attr, (void*) &ptr, &g));                             \
+    return std::make_pair(g, ptr);                                                          \
   }
 
 /**
@@ -53,10 +51,10 @@ MPIWCPP17_BEGIN_NAMESPACE
  * @param target The target object the attribute must be attached to.
  * @param value The attribute's value in relation to the given object.
  */
-#define MPIWCPP17_ATTRIBUTE_DECLARE_SET(type, fset)                                 \
-  template <typename T = void>                                                      \
-  MPIWCPP17_INLINE void set(type target, attribute_t attr, T *value) {              \
-    guard(fset(target, attr, (void*) value));                                       \
+#define MPIWCPP17_ATTRIBUTE_DECLARE_SET(type, fset)                                         \
+  template <typename T = void>                                                              \
+  MPIWCPP17_INLINE void set(const type& target, const attribute_t& attr, T *value) {        \
+    guard(fset(target, attr, (void*) value));                                               \
   }
 
 /**
@@ -66,21 +64,9 @@ MPIWCPP17_BEGIN_NAMESPACE
  * @param target The target object the attribute must be disattached from.
  * @param attr The attribute to be disattached from object.
  */
-#define MPIWCPP17_ATTRIBUTE_DECLARE_REMOVE(type, frem)                              \
-  MPIWCPP17_INLINE void remove(type target, attribute_t attr) {                     \
-    guard(frem(target, attr));                                                      \
-  }
-
-/**
- * Produces a function for attribute's resources release.
- * @tparam type The data type the attribute is associated to.
- * @tparam ffre The function for attribute resource release.
- * @param attr The attribute to be destroyed and have its resources released.
- */
-#define MPIWCPP17_ATTRIBUTE_DECLARE_FREE(type, ffree)                               \
-  MPIWCPP17_INLINE void free(attribute_t attr) {                                    \
-    if(!finalized() && !detail::raii_t::detach(attr))                               \
-      guard(ffree(&attr));                                                          \
+#define MPIWCPP17_ATTRIBUTE_DECLARE_REMOVE(type, frem)                                      \
+  MPIWCPP17_INLINE void remove(const type& target, const attribute_t& attr) {               \
+    guard(frem(target, attr));                                                              \
   }
 
 /**
@@ -95,13 +81,12 @@ MPIWCPP17_BEGIN_NAMESPACE
  * @tparam fdel The function for attribute destruction.
  */
 #define MPIWCPP17_ATTRIBUTE_DECLARE(type, fcrt, ffre, fget, fset, frem, fdup, fdel) \
-  using attribute_t = int;                                                          \
+  struct attribute_t : MPIWCPP17_INHERIT_HANDLE(int, ffre);                         \
   namespace attribute {                                                             \
-    MPIWCPP17_ATTRIBUTE_DECLARE_CREATE(type, fcrt, fdup, fdel, ffre)                \
+    MPIWCPP17_ATTRIBUTE_DECLARE_CREATE(type, fcrt, fdup, fdel)                      \
     MPIWCPP17_ATTRIBUTE_DECLARE_REMOVE(type, frem)                                  \
     MPIWCPP17_ATTRIBUTE_DECLARE_GET(type, fget)                                     \
     MPIWCPP17_ATTRIBUTE_DECLARE_SET(type, fset)                                     \
-    MPIWCPP17_ATTRIBUTE_DECLARE_FREE(type, ffre)                                    \
   }
 
 MPIWCPP17_END_NAMESPACE

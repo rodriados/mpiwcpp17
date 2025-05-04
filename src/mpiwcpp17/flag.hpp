@@ -35,7 +35,7 @@ namespace flag
         /**
          * Indicates that a functor is commutative, allowing MPI to perform optimizations
          * when executing specific collective functions.
-         * @since 3.0
+         * @since 2.1
          */
         typedef struct{} commutative_t;
     }
@@ -45,14 +45,14 @@ namespace flag
         /**
          * Indicates that the allocated memory for RMA operations is local to each
          * process and cannot be accessed directly.
-         * @since 3.0
+         * @since 2.1
          */
         typedef struct{} local_t;
 
         /**
          * Indicates that the allocated memory for RMA operations is shared between
          * processes and can be accessed directly by processes in the same communicator.
-         * @since 3.0
+         * @since 2.1
          */
         typedef struct{} shared_t;
     }
