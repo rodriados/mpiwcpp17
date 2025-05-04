@@ -13,10 +13,8 @@
 #include <memory>
 
 #include <mpiwcpp17/environment.h>
-#include <mpiwcpp17/flag.hpp>
 #include <mpiwcpp17/guard.hpp>
 #include <mpiwcpp17/global.hpp>
-#include <mpiwcpp17/process.hpp>
 #include <mpiwcpp17/communicator.hpp>
 #include <mpiwcpp17/window.hpp>
 #include <mpiwcpp17/info.hpp>
@@ -27,46 +25,51 @@ namespace memory
 {
     /**
      * Allocates speciallized memory for RMA operations. The allocated memory is
-     * not shared between processes and can not be accessed directly by other processes.
+     * not shared and thus can not be accessed directly by other processes.
      * @tparam T The type of the elements to store in the allocated memory region.
-     * @param count The number of elements or bytes to allocate memory for.
+     * @param count The number of elements or bytes to allocate memory for each process.
      * @param info The key-value information instance to attach to allocated memory.
-     * @return The smart pointer to the allocated memory.
+     * @return The smart pointer to the allocated region.
      */
     template <typename T = void>
-    MPIWCPP17_INLINE auto allocate(size_t count = 1, info_t info = info::null)
+    MPIWCPP17_INLINE auto allocate(size_t count = 1, const info_t& info = info::null)
     {
         using element_t = std::conditional_t<std::is_void_v<T>, uint8_t, T>;
-        using memory_t  = std::conditional_t<std::is_void_v<T>, void, element_t[]>;
+        using region_t  = std::conditional_t<std::is_void_v<T>, void, element_t[]>;
+        constexpr size_t size = sizeof(element_t);
 
-        auto ptr = MPIWCPP17_GUARD_CALL(T*, MPI_Alloc_mem(count * sizeof(element_t), info, &_));
-        auto d = [](T *ptr) { guard(MPI_Free_mem(ptr)); };
+        auto ptr = MPIWCPP17_GUARD_CALL(T*, MPI_Alloc_mem(count * size, info, &_));
+        auto fn  = [](T* ptr) -> void { guard(MPI_Free_mem(ptr)); };
 
-        return std::unique_ptr<memory_t, decltype(d)>(ptr, d);
+        return std::unique_ptr<region_t, decltype(fn)>(ptr, fn);
     }
 
     /**
-     * Allocates shared memory for direct message passing and RMA operations. The
-     * allocated memory is shared between processes in the same communicator and
-     * can be used for direct load and store accesses as well as for RMA operations.
-     * The use of shared memory may be restricted to processes in the same node.
+     * Allocates contiguous memory for processes in a shared-memory communicator.
+     * The allocated memory region can be accessed directly by address from processes
+     * within the same physical node. Therefore, relative addesses can be calculated
+     * from variable known by each process individually.
      * @tparam T The type of the elements to store in the allocated memory region.
-     * @param count The number of elements or bytes to allocate memory for.
+     * @param count The number of elements or bytes to allocate memory for each process.
      * @param comm Communicator allowed for RMA operations with allocated memory.
      * @param info The key-value information instance to attach to allocated memory.
-     * @return The smart pointer to the allocated memory.
+     * @return The smart pointer to the beginning of the shared memory region.
+     * @see mpi::window::allocate_shared
      */
     template <typename T = void>
-    MPIWCPP17_INLINE auto allocate_shared(size_t count = 1, communicator_t comm = world, info_t info = info::null)
-    {
+    MPIWCPP17_INLINE auto allocate_shared(
+        size_t count = 1
+      , const communicator_t& comm = world
+      , const info_t& info = info::null
+    ) {
         using element_t = std::conditional_t<std::is_void_v<T>, uint8_t, T>;
-        using memory_t  = std::conditional_t<std::is_void_v<T>, void, element_t[]>;
+        using region_t  = std::conditional_t<std::is_void_v<T>, void, element_t[]>;
 
-        auto [w, _] = detail::window::allocate<T>(count, comm, info, flag::window::shared_t());
-        auto ptr = detail::window::query<T>(w, process::root);
-        auto d = [=](auto) { window::free(w); };
+        auto [base, w] = window::allocate_shared<T>(count, comm, info);
+        auto [gptr, _] = window::query_shared<T>(w, process::root);
+        auto fn        = [w = std::move(w)](T*) -> void {};
 
-        return std::unique_ptr<memory_t, decltype(d)>(ptr, d);
+        return std::unique_ptr<region_t, decltype(fn)>(gptr, std::move(fn));
     }
 }
 

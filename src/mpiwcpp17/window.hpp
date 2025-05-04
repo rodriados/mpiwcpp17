@@ -8,6 +8,7 @@
 
 #include <mpi.h>
 
+#include <memory>
 #include <cstdint>
 #include <utility>
 
@@ -20,9 +21,8 @@
 #include <mpiwcpp17/communicator.hpp>
 #include <mpiwcpp17/info.hpp>
 
-#include <mpiwcpp17/detail/raii.hpp>
 #include <mpiwcpp17/detail/attribute.hpp>
-#include <mpiwcpp17/detail/payload.hpp>
+#include <mpiwcpp17/detail/handle.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
 
@@ -42,7 +42,7 @@ MPIWCPP17_BEGIN_NAMESPACE
  * for performing RMA operations.
  * @since 2.1
  */
-using window_t = MPI_Win;
+struct window_t : MPIWCPP17_INHERIT_HANDLE(MPI_Win, MPI_Win_free);
 
 /*
  * Auxiliary macros for implementing functions that wrap the creation of new windows.
@@ -50,50 +50,8 @@ using window_t = MPI_Win;
  * @param x The window to be attached to RAII.
  * @param B The call block to be wrapped.
  */
-#define MPIWCPP17_WIN_RAII(x)  detail::raii_t::attach(x, &MPI_Win_free)
+#define MPIWCPP17_WIN_RAII(x)  window_t((x), true)
 #define MPIWCPP17_WIN_CALL(B)  MPIWCPP17_WIN_RAII(MPIWCPP17_GUARD_CALL(window_t, B))
-
-namespace detail::window
-{
-    /**
-     * Allocates memory for RMA operations and creates a new window to manage it.
-     * @tparam T The type of the elements to store in the allocated memory region.
-     * @tparam G The memory access allocation flag type.
-     * @param count The number of elements or bytes to allocate memory for.
-     * @param comm Communicator over which the RMA operations will be executed.
-     * @param info The key-value information instance to attach to allocated memory.
-     * @return The new window instance and the pointer to the allocated memory.
-     */
-    template <typename T, typename G>
-    MPIWCPP17_INLINE auto allocate(size_t count, communicator_t comm, info_t info, G)
-    {
-        T *ptr;
-
-        using element_t = std::conditional_t<std::is_void_v<T>, uint8_t, T>;
-        constexpr const size_t size = sizeof(element_t);
-
-        auto w = MPIWCPP17_WIN_CALL((
-            std::is_same_v<flag::window::shared_t, G>
-                ? MPI_Win_allocate_shared(count * size, size, info, comm, &ptr, &_)
-                : MPI_Win_allocate(count * size, size, info, comm, &ptr, &_)));
-
-        return std::make_pair(w, ptr);
-    }
-
-    /**
-     * Queries the base pointer of a shared memory region associated with a window.
-     * @tparam T The type of the elements stored in the allocated memory region.
-     * @param win The window instance to query the shared memory region from.
-     * @param rank The rank of the process to query the shared memory region with.
-     * @return The pointer to the shared memory region associated with the process.
-     */
-    template <typename T = void>
-    MPIWCPP17_INLINE T* query(window_t win, process_t rank = process::root)
-    {
-        long size; int displ;
-        return MPIWCPP17_GUARD_CALL(T*, MPI_Win_shared_query(win, rank, &size, &displ, &_));
-    }
-}
 
 namespace window
 {
@@ -186,32 +144,71 @@ namespace window
       , shared    = MPI_LOCK_SHARED
     };
 
-    /*
-     * Forward declaration of functions.
-     */
-    MPIWCPP17_INLINE void free(window_t);
-
     /**
-     * Creates a new window to manage a newly allocated memory region.
+     * Allocates memory for each process in the communicator, managed by a new window
+     * instance enabling RMA communication. The amount of memory allocated may differ
+     * between processes and is determined individually by its own parameters.
      * @tparam T The type of the elements to store in the allocated memory region.
      * @tparam G The flag to determine the type of allocated memory.
-     * @param count The number of elements or bytes to allocate memory for.
+     * @param count The number of elements or bytes to allocate for each process.
      * @param comm Communicator allowed for RMA operations with allocated memory.
      * @param info The key-value information instance to attach to allocated memory.
-     * @return The new window instance and the smart pointer to the allocated memory.
+     * @return The allocated memory pointer and new window instance.
      */
     template <
         typename T = void
       , typename G = flag::window::local_t>
-    MPIWCPP17_INLINE auto create(size_t count = 1, communicator_t comm = world, info_t info = info::null, G flag = {})
-    {
-        using element_t = std::conditional_t<std::is_void_v<T>, uint8_t, T>;
-        using memory_t  = std::conditional_t<std::is_void_v<T>, void, element_t[]>;
+    MPIWCPP17_INLINE std::pair<T*, window_t> allocate(
+        size_t count = 1
+      , const communicator_t& comm = world
+      , const info_t& info = info::null
+      , G = {}
+    ) {
+        T *ptr;
+        constexpr size_t size = sizeof(std::conditional_t<std::is_void_v<T>, uint8_t, T>);
+        auto w = MPIWCPP17_WIN_CALL((
+            std::is_same_v<flag::window::shared_t, G>
+                ? MPI_Win_allocate_shared(count * size, size, info, comm, &ptr, &_)
+                : MPI_Win_allocate(count * size, size, info, comm, &ptr, &_)));
+        return std::make_pair(ptr, std::move(w));
+    }
 
-        auto [w, ptr] = detail::window::allocate<T>(count, comm, info, flag);
-        auto d = [=](auto) { window::free(w); };
+    /**
+     * Allocates shared memory for the processes of a shared-memory communicator.
+     * The amount of memory allocated by each process may differ but the allocated
+     * regions are guaranteed to be contiguous to the neighboring processes, according
+     * to each process' rank in the communicator.
+     * @tparam T The type of the elements to store in the allocated memory region.
+     * @param count The number of elements or bytes to allocate for each process.
+     * @param comm Communicator allowed for RMA operations with allocated memory.
+     * @param info The key-value information instance to attach to allocated memory.
+     * @return The allocated memory pointer and new window instance.
+     */
+    template <typename T = void>
+    MPIWCPP17_INLINE std::pair<T*, window_t> allocate_shared(
+        size_t count = 1
+      , const communicator_t& comm = world
+      , const info_t& info = info::null
+    ) {
+        return allocate<T, flag::window::shared_t>(count, comm, info);
+    }
 
-        return std::pair(w, std::unique_ptr<memory_t, decltype(d)>(ptr, d));
+    /**
+     * Queries the shared memory region associated with a process in the window.
+     * @tparam T The type of the elements stored in the allocated memory region.
+     * @param win The window instance of the shared memory region.
+     * @param rank The process rank to query the shared memory region of.
+     * @return The process-local address and size of the queried memory region.
+     */
+    template <typename T = void>
+    MPIWCPP17_INLINE std::pair<T*, size_t> query_shared(
+        const window_t& win
+      , process_t rank = process::root
+    ) {
+        auto query = MPIWCPP17_GUARD_CALL(
+            struct { T *ptr; MPI_Aint size; int displ; }
+          , MPI_Win_shared_query(win, rank, &_.size, &_.displ, &_.ptr));
+        return std::make_pair(query.ptr, static_cast<size_t>(query.size));
     }
 
     /**
@@ -224,8 +221,11 @@ namespace window
      * @return The new window instance that manages the specified memory region.
      */
     template <typename T = void>
-    MPIWCPP17_INLINE auto create_from(T *ptr, size_t count = 1, communicator_t comm = world, info_t info = info::null)
-    {
+    MPIWCPP17_INLINE window_t create(
+        T *ptr, size_t count = 1
+      , const communicator_t& comm = world
+      , const info_t& info = info::null
+    ) {
         constexpr size_t size = sizeof(std::conditional_t<std::is_void_v<T>, uint8_t, T>);
         return MPIWCPP17_WIN_CALL(MPI_Win_create(ptr, count * size, size, info, comm, &_));
     }
@@ -236,8 +236,10 @@ namespace window
      * @param info The key-value information instance to attach to the new window.
      * @return The new window instance that manages a memory regions attached dynamically.
      */
-    MPIWCPP17_INLINE auto create_dynamic(communicator_t comm = world, info_t info = info::null)
-    {
+    MPIWCPP17_INLINE window_t create_dynamic(
+        const communicator_t& comm = world
+      , const info_t& info = info::null
+    ) {
         return MPIWCPP17_WIN_CALL(MPI_Win_create_dynamic(info, comm, &_));
     }
 
@@ -249,10 +251,10 @@ namespace window
      * @param count The number of elements or bytes in the memory region to be attached.
      */
     template <typename T = void>
-    MPIWCPP17_INLINE void attach(window_t win, T *ptr, size_t count = 1)
+    MPIWCPP17_INLINE void attach(const window_t& win, T *ptr, size_t count = 1)
     {
         constexpr size_t size = sizeof(std::conditional_t<std::is_void_v<T>, uint8_t, T>);
-        MPIWCPP17_GUARD_EVAL(MPI_Win_attach(win, ptr, count * size));
+        guard(MPI_Win_attach(win, ptr, count * size));
     }
 
     /**
@@ -262,9 +264,9 @@ namespace window
      * @param ptr The pointer to the memory region to be detached from the window.
      */
     template <typename T = void>
-    MPIWCPP17_INLINE void detach(window_t win, T *ptr)
+    MPIWCPP17_INLINE void detach(const window_t& win, T *ptr)
     {
-        MPIWCPP17_GUARD_EVAL(MPI_Win_detach(win, ptr));
+        guard(MPI_Win_detach(win, ptr));
     }
 
     /**
@@ -275,9 +277,9 @@ namespace window
      * @param mode The window's synchronization mode.
      * @see mpi::window::mode_t
      */
-    MPIWCPP17_INLINE void fence(window_t win, mode_t mode = mode_t::none)
+    MPIWCPP17_INLINE void fence(const window_t& win, mode_t mode = mode_t::none)
     {
-        MPIWCPP17_GUARD_EVAL(MPI_Win_fence((int) mode, win));
+        guard(MPI_Win_fence((int) mode, win));
     }
 
     /**
@@ -285,9 +287,9 @@ namespace window
      * RMA operations issued on the window are completed.
      * @param win The window instance to synchronize RMA operations on.
      */
-    MPIWCPP17_INLINE void flush(window_t win)
+    MPIWCPP17_INLINE void flush(const window_t& win)
     {
-        MPIWCPP17_GUARD_EVAL(MPI_Win_flush_all(win));
+        guard(MPI_Win_flush_all(win));
     }
 
     /**
@@ -296,9 +298,9 @@ namespace window
      * @param win The window instance to synchronize RMA operations on.
      * @param rank The rank of the process to synchronize RMA operations with.
      */
-    MPIWCPP17_INLINE void flush(window_t win, process_t rank)
+    MPIWCPP17_INLINE void flush(const window_t& win, process_t rank)
     {
-        MPIWCPP17_GUARD_EVAL(MPI_Win_flush(rank, win));
+        guard(MPI_Win_flush(rank, win));
     }
 
     /**
@@ -308,9 +310,13 @@ namespace window
      * @param lock The type of lock to be acquired.
      * @param mode The window's synchronization mode.
      */
-    MPIWCPP17_INLINE void lock(window_t win, process_t rank, lock_t lock, mode_t mode = mode_t::none)
-    {
-        MPIWCPP17_GUARD_EVAL(MPI_Win_lock(lock, rank, (int) mode, win));
+    MPIWCPP17_INLINE void lock(
+        const window_t& win
+      , process_t rank
+      , lock_t lock
+      , mode_t mode = mode_t::none
+    ) {
+        guard(MPI_Win_lock(lock, rank, (int) mode, win));
     }
 
     /**
@@ -318,9 +324,9 @@ namespace window
      * @param win The window instance to acquire the lock on.
      * @param mode The window's synchronization mode.
      */
-    MPIWCPP17_INLINE void lock(window_t win, mode_t mode = mode_t::none)
+    MPIWCPP17_INLINE void lock(const window_t& win, mode_t mode = mode_t::none)
     {
-        MPIWCPP17_GUARD_EVAL(MPI_Win_lock_all((int) mode, win));
+        guard(MPI_Win_lock_all((int) mode, win));
     }
 
     /**
@@ -328,27 +334,27 @@ namespace window
      * @param win The window instance to release the lock on.
      * @param rank The rank of the process to release the lock with.
      */
-    MPIWCPP17_INLINE void unlock(window_t win, process_t rank)
+    MPIWCPP17_INLINE void unlock(const window_t& win, process_t rank)
     {
-        MPIWCPP17_GUARD_EVAL(MPI_Win_unlock(rank, win));
+        guard(MPI_Win_unlock(rank, win));
     }
 
     /**
      * Completes an RMA access epoch by unlocking access to all processes in window.
      * @param win The window instance to release the lock on.
      */
-    MPIWCPP17_INLINE void unlock(window_t win)
+    MPIWCPP17_INLINE void unlock(const window_t& win)
     {
-        MPIWCPP17_GUARD_EVAL(MPI_Win_unlock_all(win));
+        guard(MPI_Win_unlock_all(win));
     }
 
     /**
      * Synchronizes the private and public copies of the window.
      * @param win The window instance to be synchronized.
      */
-    MPIWCPP17_INLINE void sync(window_t win)
+    MPIWCPP17_INLINE void sync(const window_t& win)
     {
-        MPIWCPP17_GUARD_EVAL(MPI_Win_sync(win));
+        guard(MPI_Win_sync(win));
     }
 
     /**
@@ -357,22 +363,9 @@ namespace window
      * @param win The window instance to check for emptiness.
      * @return Is the given window empty?
      */
-    MPIWCPP17_INLINE bool empty(window_t win)
+    MPIWCPP17_INLINE bool empty(const window_t& win)
     {
         return win == window::null;
-    }
-
-    /**
-     * Frees a window and any memory region allocated by it if it is not empty.
-     * @param win The window instance to be freed.
-     * @see mpi::rma::allocate_local
-     * @see mpi::rma::allocate_shared
-     */
-    MPIWCPP17_INLINE void free(window_t win)
-    {
-        if (!window::empty(win) && !finalized())
-            if (!detail::raii_t::detach(win))
-                guard(MPI_Win_free(&win));
     }
 }
 

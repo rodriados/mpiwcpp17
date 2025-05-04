@@ -74,8 +74,7 @@ namespace status
      */
     MPIWCPP17_INLINE int32_t count(const status_t& s, const datatype_t& type)
     {
-        int count;
-        guard(MPI_Get_count(&s, type, &count));
+        auto count = MPIWCPP17_GUARD_CALL(int, MPI_Get_count(&s, type, &_));
         return count != MPI_UNDEFINED ? count : -1;
     }
 
@@ -98,9 +97,7 @@ namespace status
      */
     MPIWCPP17_INLINE bool cancelled(const status_t& s)
     {
-        int flag;
-        guard(MPI_Test_cancelled(&s, &flag));
-        return (flag != 0);
+        return MPIWCPP17_GUARD_CALL(int, MPI_Test_cancelled(&s, &_));
     }
 }
 
