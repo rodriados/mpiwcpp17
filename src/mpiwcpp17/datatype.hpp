@@ -38,6 +38,7 @@ struct datatype_t : MPIWCPP17_INHERIT_HANDLE(MPI_Datatype, MPI_Type_free);
  */
 #define MPIWCPP17_TYPE_RAII(x)  datatype_t ((x), true)
 #define MPIWCPP17_TYPE_CALL(B)  MPIWCPP17_TYPE_RAII(MPIWCPP17_GUARD_CALL(MPI_Datatype, B))
+#define MPIWCPP17_TYPE_DECLARE  MPIWCPP17_INLINE datatype_t::raw_t
 
 namespace datatype
 {
@@ -69,7 +70,7 @@ namespace datatype
      * @return The requested type's identifier.
      */
     template <typename T>
-    MPIWCPP17_INLINE datatype_t identify()
+    MPIWCPP17_TYPE_DECLARE identify()
     {
         static_assert(!std::is_union<T>::value, "union types cannot be used with MPI");
         static_assert(!std::is_reference<T>::value, "references cannot be used with MPI");
@@ -83,24 +84,24 @@ namespace datatype
      * their identities built-in within MPI and can be used directly.
      * @since 1.0
      */
-    template <> MPIWCPP17_INLINE datatype_t identify<bool>()        { return MPI_C_BOOL; }
-    template <> MPIWCPP17_INLINE datatype_t identify<short>()       { return MPI_SHORT; }
-    template <> MPIWCPP17_INLINE datatype_t identify<int>()         { return MPI_INT; }
-    template <> MPIWCPP17_INLINE datatype_t identify<long>()        { return MPI_LONG; }
-    template <> MPIWCPP17_INLINE datatype_t identify<float>()       { return MPI_FLOAT; }
-    template <> MPIWCPP17_INLINE datatype_t identify<double>()      { return MPI_DOUBLE; }
-    template <> MPIWCPP17_INLINE datatype_t identify<long long>()   { return MPI_LONG_LONG; }
-    template <> MPIWCPP17_INLINE datatype_t identify<long double>() { return MPI_LONG_DOUBLE; }
+    template <> MPIWCPP17_TYPE_DECLARE identify<bool>()        { return MPI_C_BOOL; }
+    template <> MPIWCPP17_TYPE_DECLARE identify<short>()       { return MPI_SHORT; }
+    template <> MPIWCPP17_TYPE_DECLARE identify<int>()         { return MPI_INT; }
+    template <> MPIWCPP17_TYPE_DECLARE identify<long>()        { return MPI_LONG; }
+    template <> MPIWCPP17_TYPE_DECLARE identify<float>()       { return MPI_FLOAT; }
+    template <> MPIWCPP17_TYPE_DECLARE identify<double>()      { return MPI_DOUBLE; }
+    template <> MPIWCPP17_TYPE_DECLARE identify<long long>()   { return MPI_LONG_LONG; }
+    template <> MPIWCPP17_TYPE_DECLARE identify<long double>() { return MPI_LONG_DOUBLE; }
 
-    template <> MPIWCPP17_INLINE datatype_t identify<char>()          { return MPI_CHAR; }
-    template <> MPIWCPP17_INLINE datatype_t identify<signed char>()   { return MPI_SIGNED_CHAR; }
-    template <> MPIWCPP17_INLINE datatype_t identify<unsigned char>() { return MPI_UNSIGNED_CHAR; }
-    template <> MPIWCPP17_INLINE datatype_t identify<wchar_t>()       { return MPI_WCHAR; }
+    template <> MPIWCPP17_TYPE_DECLARE identify<char>()          { return MPI_CHAR; }
+    template <> MPIWCPP17_TYPE_DECLARE identify<signed char>()   { return MPI_SIGNED_CHAR; }
+    template <> MPIWCPP17_TYPE_DECLARE identify<unsigned char>() { return MPI_UNSIGNED_CHAR; }
+    template <> MPIWCPP17_TYPE_DECLARE identify<wchar_t>()       { return MPI_WCHAR; }
 
-    template <> MPIWCPP17_INLINE datatype_t identify<unsigned short>()     { return MPI_UNSIGNED_SHORT; }
-    template <> MPIWCPP17_INLINE datatype_t identify<unsigned int>()       { return MPI_UNSIGNED; }
-    template <> MPIWCPP17_INLINE datatype_t identify<unsigned long>()      { return MPI_UNSIGNED_LONG; }
-    template <> MPIWCPP17_INLINE datatype_t identify<unsigned long long>() { return MPI_UNSIGNED_LONG_LONG; }
+    template <> MPIWCPP17_TYPE_DECLARE identify<unsigned short>()     { return MPI_UNSIGNED_SHORT; }
+    template <> MPIWCPP17_TYPE_DECLARE identify<unsigned int>()       { return MPI_UNSIGNED; }
+    template <> MPIWCPP17_TYPE_DECLARE identify<unsigned long>()      { return MPI_UNSIGNED_LONG; }
+    template <> MPIWCPP17_TYPE_DECLARE identify<unsigned long long>() { return MPI_UNSIGNED_LONG_LONG; }
     /**#@-*/
 
     /**
@@ -205,6 +206,7 @@ namespace datatype
     }
 }
 
+#undef MPIWCPP17_TYPE_DECLARE
 #undef MPIWCPP17_TYPE_CALL
 #undef MPIWCPP17_TYPE_RAII
 

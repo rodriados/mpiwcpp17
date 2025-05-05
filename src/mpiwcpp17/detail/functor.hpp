@@ -47,7 +47,7 @@ namespace detail::functor
      * Provides a marker for dynamically resolved functors.
      * @return The dynamic resolution marker.
      */
-    MPIWCPP17_INLINE const datatype::attribute_t& get_dynamic_resolution_marker()
+    MPIWCPP17_INLINE datatype::attribute_t::raw_t get_dynamic_resolution_marker()
     {
         static auto marker = raii_t::register_handle(datatype::attribute::create());
         return marker;
@@ -60,7 +60,7 @@ namespace detail::functor
      * @return The resolved functor identifier.
      */
     template <typename T>
-    MPIWCPP17_INLINE const functor_t& resolve(const functor_t& f)
+    MPIWCPP17_INLINE functor_t::raw_t resolve(const functor_t& f)
     {
         return f;
     }
@@ -78,7 +78,7 @@ namespace detail::functor
             std::is_class_v<F> &&
             std::is_default_constructible_v<F> &&
             std::is_assignable_v<T&, std::invoke_result_t<F, const T&, const T&>>>>
-    MPIWCPP17_INLINE const functor_t& resolve(const F&)
+    MPIWCPP17_INLINE functor_t::raw_t resolve(const F&)
     {
         // As a convenience for the caller, a static wrapper for the operator is
         // provided so that it is adapted to the function signature required by
@@ -116,7 +116,7 @@ namespace detail::functor
       , typename = std::enable_if_t<
             !std::is_default_constructible_v<F> &&
             std::is_assignable_v<T&, std::invoke_result_t<F, const T&, const T&>>>>
-    MPIWCPP17_INLINE const functor_t& resolve(F& lambda)
+    MPIWCPP17_INLINE functor_t::raw_t resolve(F& lambda)
     {
         // As a convenience for the caller, a dynamic wrapper for the operator is
         // provided when the given operator requires a non-trivial instance for
