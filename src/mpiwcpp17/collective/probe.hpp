@@ -18,7 +18,7 @@
 
 MPIWCPP17_BEGIN_NAMESPACE
 
-namespace collective
+inline namespace collective
 {
     /**
      * Inspects an incoming message and retrieves its status.
@@ -30,17 +30,10 @@ namespace collective
     MPIWCPP17_INLINE status_t probe(
         process_t source = process::any
       , tag_t tag = mpiwcpp17::tag::any
-      , communicator_t comm = world
+      , const communicator_t& comm = world
     ) {
-        status_t status; guard(MPI_Probe(source, tag, comm, &status));
-        return status;
+        return MPIWCPP17_GUARD_CALL(status_t, MPI_Probe(source, tag, comm, &_));
     }
 }
-
-/*
- * Exposing the above-defined collective operation into the project's root namespace,
- * allowing it be called with decreased verbosity.
- */
-using collective::probe;
 
 MPIWCPP17_END_NAMESPACE

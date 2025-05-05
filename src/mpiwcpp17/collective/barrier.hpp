@@ -15,23 +15,17 @@
 
 MPIWCPP17_BEGIN_NAMESPACE
 
-namespace collective
+inline namespace collective
 {
     /**
      * Blocks execution until all processes within the given communicator have reached
      * the barrier and are, thus, synchronized.
      * @param comm The communicator on to which operation must be performed.
      */
-    MPIWCPP17_INLINE void barrier(communicator_t comm = world)
+    MPIWCPP17_INLINE void barrier(const communicator_t& comm = world)
     {
         guard(MPI_Barrier(comm));
     }
 }
-
-/*
- * Exposing the above-defined collective operation into the project's root namespace,
- * allowing it be called with decreased verbosity.
- */
-using collective::barrier;
 
 MPIWCPP17_END_NAMESPACE
