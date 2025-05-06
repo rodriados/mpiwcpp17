@@ -12,7 +12,7 @@ MPIWCPP17_BEGIN_NAMESPACE
 
 namespace flag
 {
-    MPIWCPP17_INLINE namespace payload
+    inline namespace payload
     {
         /**
          * Guarantees that the quantity of message elements is uniform across all
@@ -30,7 +30,7 @@ namespace flag
         typedef struct{} varying_t;
     }
 
-    MPIWCPP17_INLINE namespace functor
+    inline namespace functor
     {
         /**
          * Indicates that a functor is commutative, allowing MPI to perform optimizations
@@ -38,23 +38,6 @@ namespace flag
          * @since 2.1
          */
         typedef struct{} commutative_t;
-    }
-
-    MPIWCPP17_INLINE namespace window
-    {
-        /**
-         * Indicates that the allocated memory for RMA operations is local to each
-         * process and cannot be accessed directly.
-         * @since 2.1
-         */
-        typedef struct{} local_t;
-
-        /**
-         * Indicates that the allocated memory for RMA operations is shared between
-         * processes and can be accessed directly by processes in the same communicator.
-         * @since 2.1
-         */
-        typedef struct{} shared_t;
     }
 }
 

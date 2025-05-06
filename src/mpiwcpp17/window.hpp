@@ -13,7 +13,6 @@
 #include <utility>
 
 #include <mpiwcpp17/environment.h>
-#include <mpiwcpp17/flag.hpp>
 #include <mpiwcpp17/guard.hpp>
 #include <mpiwcpp17/global.hpp>
 #include <mpiwcpp17/process.hpp>
@@ -51,7 +50,7 @@ struct window_t : MPIWCPP17_INHERIT_HANDLE(MPI_Win, MPI_Win_free);
  * @param B The call block to be wrapped.
  */
 #define MPIWCPP17_WIN_RAII(x)  window_t((x), true)
-#define MPIWCPP17_WIN_CALL(B)  MPIWCPP17_WIN_RAII(MPIWCPP17_GUARD_CALL(window_t, B))
+#define MPIWCPP17_WIN_CALL(B)  MPIWCPP17_WIN_RAII(MPIWCPP17_GUARD_CALL(MPI_Win, B))
 
 namespace window
 {
@@ -59,7 +58,7 @@ namespace window
      * The invalid or empty window instance.
      * This can be used to verify whether a window is not in a valid state or to
      * denote an empty or uninitialized window.
-     * @since 3.0
+     * @since 2.1
      */
     MPIWCPP17_INLINE const window_t null = MPI_WIN_NULL;
 
@@ -67,7 +66,7 @@ namespace window
      * Declares window attribute namespace and corresponding functions.
      * Attributes are identified by keys that can be used to attach and retrieve
      * generic data from window instances.
-     * @since 3.0
+     * @since 2.1
      */
     MPIWCPP17_ATTRIBUTE_DECLARE(
         window_t
@@ -80,42 +79,42 @@ namespace window
      * The window synchronization modes. These modes can be used to specify the type
      * of synchronization to be performed on a window when calling the corresponding
      * synchronization functions.
-     * @since 3.0
+     * @since 2.1
      */
     enum mode_t : int
     {
         /**
          * No special synchronization mode. This is the default synchronization mode
          * for all synchronization functions, no guarantees given whatsoever.
-         * @since 3.0
+         * @since 2.1
          */
         none       = 0
 
         /**
          * The mode for no preceding RMA operations. This mode indicates that no
          * RMA operations will be issued before synchronization.
-         * @since 3.0
+         * @since 2.1
          */
       , no_precede = MPI_MODE_NOPRECEDE
 
         /**
          * The mode for no preceding local stores or get calls. This mode indicates
          * that no local stores or get calls will be issued before synchronization.
-         * @since 3.0
+         * @since 2.1
          */
       , no_store   = MPI_MODE_NOSTORE
 
         /**
          * The mode for no updates by any put or accumulate calls. This mode indicates
          * that no put or accumulate calls will be performed until the next synchronization.
-         * @since 3.0
+         * @since 2.1
          */
       , no_put     = MPI_MODE_NOPUT
 
         /**
          * The mode for no succeeding RMA operations. This mode indicates that no
          * RMA operations will be issued after synchronization.
-         * @since 3.0
+         * @since 2.1
          */
       , no_succeed = MPI_MODE_NOSUCCEED
     };
@@ -123,7 +122,7 @@ namespace window
     /**
      * The window lock types. These types can be used to specify the type of lock
      * to be acquired on a window when calling the corresponding lock functions.
-     * @since 3.0
+     * @since 2.1
      */
     enum lock_t : int
     {
@@ -131,7 +130,7 @@ namespace window
          * The exclusive lock type. This lock type indicates that the calling process
          * will acquire an exclusive lock on the window, which prevents any other
          * process from performing access operations on the window.
-         * @since 3.0
+         * @since 2.1
          */
         exclusive = MPI_LOCK_EXCLUSIVE
 
@@ -139,7 +138,7 @@ namespace window
          * The shared lock type. This lock type indicates that the calling process
          * will acquire a shared lock on the window, which allows other processes
          * to perform access operations as long as they also acquire a shared lock.
-         * @since 3.0
+         * @since 2.1
          */
       , shared    = MPI_LOCK_SHARED
     };
@@ -149,28 +148,22 @@ namespace window
      * instance enabling RMA communication. The amount of memory allocated may differ
      * between processes and is determined individually by its own parameters.
      * @tparam T The type of the elements to store in the allocated memory region.
-     * @tparam G The flag to determine the type of allocated memory.
      * @param count The number of elements or bytes to allocate for each process.
      * @param comm Communicator allowed for RMA operations with allocated memory.
      * @param info The key-value information instance to attach to allocated memory.
      * @return The allocated memory pointer and new window instance.
      */
-    template <
-        typename T = void
-      , typename G = flag::window::local_t>
+    template <typename T = void>
     MPIWCPP17_INLINE std::pair<T*, window_t> allocate(
         size_t count = 1
       , const communicator_t& comm = world
       , const info_t& info = info::null
-      , G = {}
     ) {
-        T *ptr;
         constexpr size_t size = sizeof(std::conditional_t<std::is_void_v<T>, uint8_t, T>);
-        auto w = MPIWCPP17_WIN_CALL((
-            std::is_same_v<flag::window::shared_t, G>
-                ? MPI_Win_allocate_shared(count * size, size, info, comm, &ptr, &_)
-                : MPI_Win_allocate(count * size, size, info, comm, &ptr, &_)));
-        return std::make_pair(ptr, std::move(w));
+        auto result = MPIWCPP17_GUARD_CALL(
+            struct { T *ptr; window_t::raw_t w; }
+          , MPI_Win_allocate(count * size, size, info, comm, &_.ptr, &_.w));
+        return std::make_pair(result.ptr, MPIWCPP17_WIN_RAII(result.w));
     }
 
     /**
@@ -190,7 +183,11 @@ namespace window
       , const communicator_t& comm = world
       , const info_t& info = info::null
     ) {
-        return allocate<T, flag::window::shared_t>(count, comm, info);
+        constexpr size_t size = sizeof(std::conditional_t<std::is_void_v<T>, uint8_t, T>);
+        auto result = MPIWCPP17_GUARD_CALL(
+            struct { T *ptr; window_t::raw_t w; }
+          , MPI_Win_allocate_shared(count * size, size, info, comm, &_.ptr, &_.w));
+        return std::make_pair(result.ptr, MPIWCPP17_WIN_RAII(result.w));
     }
 
     /**
@@ -236,7 +233,7 @@ namespace window
      * @param info The key-value information instance to attach to the new window.
      * @return The new window instance that manages a memory regions attached dynamically.
      */
-    MPIWCPP17_INLINE window_t create_dynamic(
+    MPIWCPP17_INLINE window_t create(
         const communicator_t& comm = world
       , const info_t& info = info::null
     ) {
