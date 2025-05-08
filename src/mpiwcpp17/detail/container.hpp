@@ -6,7 +6,7 @@
  */
 #pragma once
 
-#include <memory>
+#include <utility>
 #include <mpiwcpp17/environment.h>
 
 MPIWCPP17_BEGIN_NAMESPACE
@@ -18,73 +18,75 @@ namespace detail
      * ownership of its contents, the container also acts a transparent wrapper,
      * by allowing it to be seamlessly converted to the underlying elements.
      * @tparam T The container element type.
-     * @since 3.0
+     * @since 2.1
      */
     template <typename T>
     struct container_t
     {
         typedef T element_t;
 
-        std::shared_ptr<T[]> ptr = nullptr;
-        size_t count = 0;
+        T* const ptr = nullptr;
+        size_t const count = 0;
 
-        MPIWCPP17_INLINE container_t() noexcept = default;
-        MPIWCPP17_INLINE container_t(const container_t&) noexcept = default;
-        MPIWCPP17_INLINE container_t(container_t&&) noexcept = default;
+        static_assert(
+            std::is_trivially_copyable_v<T>
+          , "only trivially copyable types can be sent via MPI");
+
+        MPIWCPP17_CONSTEXPR container_t() noexcept = default;
+        MPIWCPP17_CONSTEXPR container_t(const container_t&) noexcept = default;
+        MPIWCPP17_CONSTEXPR container_t(container_t&&) noexcept = default;
 
         /**
-         * Initializes a new container from a shared ownership pointer.
-         * @tparam U A type convertible to the container's element type.
-         * @param ptr The pointer to acquire shared ownership of.
-         * @param count The total number of elements carried within the container.
+         * Initializes a new container with a given count of elements.
+         * @param ptr The pointer wrapped by the container.
+         * @param count The total number of elements carried by the container.
          */
-        template <typename U>
-        MPIWCPP17_INLINE container_t(const std::shared_ptr<U>& ptr, size_t count) noexcept
-          : ptr (std::static_pointer_cast<T[]>(ptr))
+        MPIWCPP17_CONSTEXPR container_t(T *ptr, size_t count) noexcept
+          : ptr (ptr)
           , count (count)
         {}
 
-        MPIWCPP17_INLINE container_t& operator=(const container_t&) noexcept = default;
-        MPIWCPP17_INLINE container_t& operator=(container_t&&) noexcept = default;
+        MPIWCPP17_INLINE container_t& operator=(const container_t&) noexcept = delete;
+        MPIWCPP17_INLINE container_t& operator=(container_t&&) noexcept = delete;
 
         /**#@+
          * The container's initial iterator position.
          * @return The pointer to the first element in container.
          */
-        MPIWCPP17_INLINE       T *begin() noexcept       { return ptr.get(); }
-        MPIWCPP17_INLINE const T *begin() const noexcept { return ptr.get(); }
+        MPIWCPP17_INLINE       T *begin() noexcept       { return ptr; }
+        MPIWCPP17_INLINE const T *begin() const noexcept { return ptr; }
         /**#@-*/
 
         /**#@+
          * The container's final iterator position.
          * @return The pointer to after the last element in container.
          */
-        MPIWCPP17_INLINE       T *end() noexcept       { return count + ptr.get(); }
-        MPIWCPP17_INLINE const T *end() const noexcept { return count + ptr.get(); }
+        MPIWCPP17_INLINE       T *end() noexcept       { return ptr + count; }
+        MPIWCPP17_INLINE const T *end() const noexcept { return ptr + count; }
         /**#@-*/
-
-        /**
-         * Exposes the container's contents by an index.
-         * @param index The index of the element to be accessed.
-         * @return A reference to the element at the given index.
-         */
-        MPIWCPP17_INLINE T& operator[](ptrdiff_t index) const { return ptr[index]; }
 
         /**@+
          * Seamlessly converts the container into its first element.
          * @return The container's first element.
          */
-        MPIWCPP17_INLINE operator       T&() noexcept       { return *ptr.get(); }
-        MPIWCPP17_INLINE operator const T&() const noexcept { return *ptr.get(); }
+        MPIWCPP17_INLINE operator       T&() noexcept       { return *ptr; }
+        MPIWCPP17_INLINE operator const T&() const noexcept { return *ptr; }
         /**#@-*/
 
         /**#@+
          * Converts the container into the raw contents pointer.
          * @return The pointer to container's contents.
          */
-        MPIWCPP17_INLINE operator       T*() noexcept       { return ptr.get(); }
-        MPIWCPP17_INLINE operator const T*() const noexcept { return ptr.get(); }
+        MPIWCPP17_INLINE operator       T*() noexcept       { return ptr; }
+        MPIWCPP17_INLINE operator const T*() const noexcept { return ptr; }
         /**#@-*/
+
+        /**
+         * Exposes the container's contents by an index.
+         * @param i The index of the element to be accessed.
+         * @return A reference to the element at the given index.
+         */
+        MPIWCPP17_INLINE T& operator[](ptrdiff_t i) const noexcept { return ptr[i]; }
     };
 }
 
