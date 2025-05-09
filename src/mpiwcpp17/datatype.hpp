@@ -1,6 +1,6 @@
 /**
  * A thin C++17 wrapper for MPI.
- * @file MPI datatype descriptors and describers.
+ * @file MPI datatype descriptors and providers.
  * @author Rodrigo Siqueira <rodriados@gmail.com>
  * @copyright 2022-present Rodrigo Siqueira
  */
@@ -18,6 +18,7 @@
 #include <mpiwcpp17/detail/raii.hpp>
 #include <mpiwcpp17/detail/handle.hpp>
 #include <mpiwcpp17/detail/attribute.hpp>
+#include <mpiwcpp17/detail/datatype.hpp>
 #include <mpiwcpp17/thirdparty/reflector.h>
 
 MPIWCPP17_BEGIN_NAMESPACE
@@ -38,7 +39,6 @@ struct datatype_t : MPIWCPP17_INHERIT_HANDLE(MPI_Datatype, MPI_Type_free);
  */
 #define MPIWCPP17_TYPE_RAII(x)  datatype_t ((x), true)
 #define MPIWCPP17_TYPE_CALL(B)  MPIWCPP17_TYPE_RAII(MPIWCPP17_GUARD_CALL(MPI_Datatype, B))
-#define MPIWCPP17_TYPE_DECLARE  MPIWCPP17_INLINE datatype_t::raw_t
 
 namespace datatype
 {
@@ -70,39 +70,13 @@ namespace datatype
      * @return The requested type's identifier.
      */
     template <typename T>
-    MPIWCPP17_TYPE_DECLARE identify()
+    MPIWCPP17_INLINE datatype_t::raw_t identify()
     {
-        static_assert(!std::is_union<T>::value, "union types cannot be used with MPI");
-        static_assert(!std::is_reference<T>::value, "references cannot be used with MPI");
-
-        static datatype_t type = detail::raii_t::register_handle(provider_t<T>::provide());
-        return type;
+        static_assert(!std::is_union_v<T>, "union types cannot be used with MPI");
+        static_assert(!std::is_reference_v<T>, "references cannot be used with MPI");
+        static_assert(!std::is_pointer_v<T>, "pointers cannot be used with MPI");
+        return detail::datatype::mapper_t::get<std::remove_cv_t<T>>();
     }
-
-    /**#@+
-     * Specializations for identifiers of built-in types. These native types have
-     * their identities built-in within MPI and can be used directly.
-     * @since 1.0
-     */
-    template <> MPIWCPP17_TYPE_DECLARE identify<bool>()        { return MPI_C_BOOL; }
-    template <> MPIWCPP17_TYPE_DECLARE identify<short>()       { return MPI_SHORT; }
-    template <> MPIWCPP17_TYPE_DECLARE identify<int>()         { return MPI_INT; }
-    template <> MPIWCPP17_TYPE_DECLARE identify<long>()        { return MPI_LONG; }
-    template <> MPIWCPP17_TYPE_DECLARE identify<float>()       { return MPI_FLOAT; }
-    template <> MPIWCPP17_TYPE_DECLARE identify<double>()      { return MPI_DOUBLE; }
-    template <> MPIWCPP17_TYPE_DECLARE identify<long long>()   { return MPI_LONG_LONG; }
-    template <> MPIWCPP17_TYPE_DECLARE identify<long double>() { return MPI_LONG_DOUBLE; }
-
-    template <> MPIWCPP17_TYPE_DECLARE identify<char>()          { return MPI_CHAR; }
-    template <> MPIWCPP17_TYPE_DECLARE identify<signed char>()   { return MPI_SIGNED_CHAR; }
-    template <> MPIWCPP17_TYPE_DECLARE identify<unsigned char>() { return MPI_UNSIGNED_CHAR; }
-    template <> MPIWCPP17_TYPE_DECLARE identify<wchar_t>()       { return MPI_WCHAR; }
-
-    template <> MPIWCPP17_TYPE_DECLARE identify<unsigned short>()     { return MPI_UNSIGNED_SHORT; }
-    template <> MPIWCPP17_TYPE_DECLARE identify<unsigned int>()       { return MPI_UNSIGNED; }
-    template <> MPIWCPP17_TYPE_DECLARE identify<unsigned long>()      { return MPI_UNSIGNED_LONG; }
-    template <> MPIWCPP17_TYPE_DECLARE identify<unsigned long long>() { return MPI_UNSIGNED_LONG_LONG; }
-    /**#@-*/
 
     /**
      * Duplicates the identifier of a given datatype identifier instance.
@@ -125,39 +99,10 @@ namespace datatype
         return (size_t) MPIWCPP17_GUARD_CALL(int, MPI_Type_size(type, &_));
     }
 
-    namespace detail
-    {
-        /**
-         * Describes a type from its internal member properties' types.
-         * @tparam M The list of member properties' types.
-         * @param offset The list of member properties' offsets.
-         * @return The resulting type description identifier.
-         */
-        template <typename ...M>
-        MPIWCPP17_INLINE datatype_t build_from_members(
-            const std::array<ptrdiff_t, sizeof...(M)>& offset
-        ) {
-            datatype_t::raw_t t;
-            constexpr const size_t count = sizeof...(M);
-
-            // Describing a struct type by acquiring a type identity and the offset
-            // of each of its member properties. If a property of an array type
-            // has been found, than we also inform the array's element count.
-            int blocks[count] = {std::max(std::extent_v<M>, 1ul)...};
-            datatype_t::raw_t members[count] = {identify<std::remove_extent_t<M>>()...};
-            const MPI_Aint *offsets = (MPI_Aint*) offset.data();
-
-            guard(MPI_Type_create_struct(count, blocks, offsets, members, &t));
-            guard(MPI_Type_commit(&t));
-
-            return MPIWCPP17_TYPE_RAII(t);
-        }
-    }
-
   #ifndef MPIWCPP17_AVOID_THIRDPARTY_REFLECTOR
     /**
-     * Provides datatype description by using the automatic reflection mechanism.
-     * @param T The type to be identified for MPI operations.
+     * Provides MPI datatype identities by using the automatic reflection mechanism.
+     * @param T The payload type to be identified for MPI operations.
      * @since 2.1
      */
     template <typename T>
@@ -167,8 +112,8 @@ namespace datatype
         using reflection_tuple_t = typename reflection_t::reflection_tuple_t;
 
         /**
-         * Provides a datatype description for the target type via reflection.
-         * @return The target datatype descriptor identifier.
+         * Provides a MPI datatype identity for the target payload type via reflection.
+         * @return The MPI datatype identifier for the given payload type.
          */
         MPIWCPP17_INLINE static datatype_t provide()
         {
@@ -176,37 +121,60 @@ namespace datatype
         }
 
         /**
-         * Provides the properties' description of a MPI-enabled datatype by using
-         * member-wise reflection over the specified type.
-         * @tparam I The indexes of properties within the type.
-         * @return The target datatype descriptor identifier.
+         * Describes the member properties to MPI-enable the target payload type
+         * by using member-wise reflection to automatically build the new identity.
+         * @tparam I The indexes of member properties within the type.
+         * @return The MPI datatype identifier for the given payload type.
          */
         template <size_t ...I>
         MPIWCPP17_INLINE static datatype_t provide_by_reflection(std::index_sequence<I...>)
         {
-            constexpr auto offset = std::array {reflection_t::template offset<I>()...};
-            return detail::build_from_members<
-                typename reflection_tuple_t::template element_t<I>...>(offset);
+            return detail::datatype::identify_from_memory_layout(std::array {
+                std::make_tuple(
+                    identify<std::tuple_element_t<I, reflection_tuple_t>>()
+                  , /* reflection always normalizes array types */ 1UL
+                  , reflection_t::template offset<I>())...
+            });
         }
     };
   #endif
 
     /**
-     * Provides the properties' description of a MPI-enabled datatype.
-     * @tparam T The datatype to be described.
-     * @tparam R The properties' types of the target datatype.
-     * @param member The target type member properties' pointers.
-     * @return The target datatype identifier instance.
+     * Provides the member properties to MPI-enable a payload type.
+     * @tparam T The payload type to be described.
+     * @tparam R The member property types of the given payload type.
+     * @param member The payload type member property pointers.
+     * @return The MPI datatype identifier for the given payload type.
      */
     template <typename T, typename ...R>
     MPIWCPP17_INLINE datatype_t provide(R T::*... member)
     {
-        const auto offset = std::array {(((char*)&(((T*)0x80)->*member)) - ((char*)0x80))...};
-        return detail::build_from_members<R...>(offset);
+        return detail::datatype::identify_from_memory_layout(std::array {
+            std::make_tuple(
+                identify<std::remove_extent_t<R>>()
+              , std::max(std::extent_v<R>, 1UL)
+              , reinterpret_cast<ptrdiff_t>(
+                    std::addressof(reinterpret_cast<T*>(0)->*member)))...
+        });
     }
 }
 
-#undef MPIWCPP17_TYPE_DECLARE
+/**
+ * Generic mapping specialization for types with explicit memory layout providers.
+ * If the payload type is not yet mapped to a MPI datatype identity, then a new datatype
+ * identity is created from a known memory layout provider.
+ * @tparam T The payload type to be mapped to a MPI datatype identity.
+ * @return The MPI datatype identity for the given payload type.
+ * @since 2.1
+ */
+template <typename T>
+MPIWCPP17_INLINE datatype_t::raw_t detail::datatype::mapper_t::get()
+{
+    static datatype_t t = detail::raii_t::register_handle(
+        mpiwcpp17::datatype::provider_t<T>::provide());
+    return t;
+}
+
 #undef MPIWCPP17_TYPE_CALL
 #undef MPIWCPP17_TYPE_RAII
 
