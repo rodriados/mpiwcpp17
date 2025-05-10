@@ -1,6 +1,6 @@
 /**
  * A thin C++17 wrapper for MPI.
- * @file The MPI probe collective operation.
+ * @file The MPI probe operation.
  * @author Rodrigo Siqueira <rodriados@gmail.com>
  * @copyright 2022-present Rodrigo Siqueira
  */
@@ -18,7 +18,7 @@
 
 MPIWCPP17_BEGIN_NAMESPACE
 
-inline namespace collective
+inline namespace operation
 {
     /**
      * Inspects an incoming message and retrieves its status.
@@ -28,8 +28,8 @@ inline namespace collective
      * @return The inspected message status.
      */
     MPIWCPP17_INLINE status_t probe(
-        process_t source = process::any
-      , tag_t tag = mpiwcpp17::tag::any
+        const process_t source = process::any
+      , const tag_t tag = mpiwcpp17::tag::any
       , const communicator_t& comm = world
     ) {
         return MPIWCPP17_GUARD_CALL(status_t, MPI_Probe(source, tag, comm, &_));

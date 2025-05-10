@@ -7,14 +7,13 @@
 #pragma once
 
 #include <mpi.h>
-
 #include <mpiwcpp17/environment.h>
 
 MPIWCPP17_BEGIN_NAMESPACE
 
 /**
  * The identification or disambiguation value of a reception operation.
- * @since 3.0
+ * @since 2.0
  */
 using tag_t = decltype(MPI_ANY_TAG);
 
