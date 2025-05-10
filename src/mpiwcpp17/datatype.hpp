@@ -72,7 +72,6 @@ namespace datatype
     template <typename T>
     MPIWCPP17_INLINE datatype_t::raw_t identify()
     {
-        static_assert(!std::is_union_v<T>, "union types cannot be used with MPI");
         static_assert(!std::is_reference_v<T>, "references cannot be used with MPI");
         static_assert(!std::is_pointer_v<T>, "pointers cannot be used with MPI");
         return detail::datatype::mapper_t::get<std::remove_cv_t<T>>();

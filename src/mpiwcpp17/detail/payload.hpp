@@ -6,10 +6,10 @@
  */
 #pragma once
 
-#include <utility>
 #include <array>
 #include <memory>
 #include <variant>
+#include <utility>
 #include <iterator>
 #include <algorithm>
 
@@ -87,8 +87,16 @@ namespace detail
          * @param ptr The pointer to wrap as input.
          * @param count The total number of elements to carry as input.
          */
-        MPIWCPP17_CONSTEXPR payload_in_t(T *ptr, size_t count) noexcept
+        MPIWCPP17_CONSTEXPR payload_in_t(T *ptr, size_t count = 1) noexcept
           : container_t<T> (ptr, count)
+        {}
+
+        /**
+         * Initializes a new input from a pair of pointer and element count.
+         * @param input The pair containing a pointer and respective element count.
+         */
+        MPIWCPP17_CONSTEXPR payload_in_t(const std::pair<T*, size_t>& input) noexcept
+          : payload_in_t (input.first, input.second)
         {}
 
         MPIWCPP17_INLINE payload_in_t& operator=(const payload_in_t&) = default;
@@ -161,42 +169,58 @@ namespace detail::payload
                 ::iterator_category>>> = true;
 
     /**
-     * Creates a new input payload from a container of contiguous elements.
+     * Tentatively transforms a container of contiguous elements into an input payload.
      * @tparam C The type of contiguous memory container to be wrapped.
      * @param container The container instance to be wrapped.
-     * @return The new input payload instance initialized from the container.
+     * @return The buffer pointer and count of given container.
      */
-    template <typename C, typename = std::enable_if_t<is_contiguous_iterable_v<C>>>
-    MPIWCPP17_INLINE auto to_input(C& container)
-    {
-        return payload_in_t(
+    template <typename C>
+    MPIWCPP17_INLINE auto to_tentative_input(
+        C& container
+      , std::enable_if_t<is_contiguous_iterable_v<C>>* = nullptr
+    ) {
+        return std::make_pair(
             std::addressof(*std::begin(container))
-          , std::distance(std::begin(container), std::end(container))
+          , (size_t) std::distance(std::begin(container), std::end(container))
         );
     }
 
     /**
-     * Creates a new input from a plain data variable.
-     * @tparam T The variable type for the payload.
-     * @param data The variable to be carried by the payload.
-     * @return The new input payload instance.
+     * Tentatively transforms a plain data object into an input payload.
+     * @tparam T The input object type for the payload.
+     * @param data The object to be carried by the payload.
+     * @return The pointer and count of the given data object.
      */
-    template <typename T, typename = std::enable_if_t<!is_contiguous_iterable_v<T>>>
-    MPIWCPP17_INLINE payload_in_t<T> to_input(T& data) noexcept
-    {
-        return payload_in_t<T>(&data, 1);
+    template <typename T>
+    MPIWCPP17_INLINE auto to_tentative_input(
+        T& data
+      , std::enable_if_t<!is_contiguous_iterable_v<T>>* = nullptr
+    ) noexcept {
+        return std::make_pair(&data, 1);
     }
 
     /**
-     * Creates a new input from an output payload.
-     * @tparam T The element type of the payload.
-     * @param output The output payload to convert to an input.
-     * @return The new input payload instance.
+     * Tentatively transforms an output payload into an input payload.
+     * @tparam T The output payload element type.
+     * @param output The output payload to convert into input.
+     * @return The pointer and count of the given output payload.
      */
     template <typename T>
-    MPIWCPP17_INLINE payload_in_t<T> to_input(const payload_out_t<T>& output) noexcept
+    MPIWCPP17_INLINE auto to_tentative_input(const payload_out_t<T>& output) noexcept
     {
-        return payload_in_t<T>(output, output.count);
+        return std::make_pair(output, output.count);
+    }
+
+    /**
+     * Creates a new input payload from a generic object.
+     * @tparam G The generic type to create an input from.
+     * @param input The generic object to convert into an input payload.
+     * @return The new input payload instance.
+     */
+    template <typename G>
+    MPIWCPP17_INLINE auto to_input(G&& input)
+    {
+        return payload_in_t(to_tentative_input(std::forward<G>(input)));
     }
 
     /**
@@ -206,9 +230,9 @@ namespace detail::payload
      * @return The new output payload instance.
      */
     template <typename T>
-    MPIWCPP17_INLINE payload_out_t<T> create_output(size_t count)
+    MPIWCPP17_INLINE auto create_output(size_t count)
     {
-        return payload_out_t<T>(count);
+        return payload_out_t<std::remove_cv_t<T>>(count);
     }
 
     /**

@@ -7,110 +7,93 @@
 #pragma once
 
 #include <mpi.h>
-#include <utility>
 
 #include <mpiwcpp17/environment.h>
 #include <mpiwcpp17/communicator.hpp>
-#include <mpiwcpp17/datatype.hpp>
 #include <mpiwcpp17/process.hpp>
 #include <mpiwcpp17/global.hpp>
-#include <mpiwcpp17/guard.hpp>
 
 #include <mpiwcpp17/detail/payload.hpp>
+#include <mpiwcpp17/detail/collective/broadcast.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
 
-namespace detail::collective
+inline namespace collective
 {
     /**
-     * Performs an in-place broadcast operation.
-     * @tparam T The message's contents type.
-     * @param msg The message to be broadcast in-place to all processes.
-     * @param count The total number of elements to be broadcast.
-     * @param root The operation's root process.
-     * @param comm The communicator this operation applies to.
+     * Broadcasts a message in-place to all processes.
+     * @tparam T The message payload type.
+     * @param data The message data to broadcast.
+     * @param count The number of elements to broadcast.
+     * @param root The operation root process.
+     * @param comm The communicator the operation applies to.
      */
     template <typename T>
-    MPIWCPP17_INLINE void broadcast_replace(
-        T *msg
-      , size_t count
-      , process_t root
-      , communicator_t comm
+    MPIWCPP17_INLINE void broadcast_inplace(
+        T *data, size_t count
+      , const process_t root = process::root
+      , const communicator_t& comm = world
     ) {
-        auto type = datatype::identify<T>();
-        guard(MPI_Bcast(msg, count, type, root, comm));
+        auto msg = detail::payload_in_t(data, count);
+        detail::collective::broadcast_inplace(msg, root, comm);
     }
 
     /**
-     * Broadcasts a message to all processes connected to a communicator.
-     * @tparam T The message's contents type.
-     * @param msg The message payload to be broadcast to all processes.
-     * @param root The operation's root process.
-     * @param comm The communicator this operation applies to.
-     * @return The message that has been broadcast.
+     * Broadcasts a message in-place to all processes.
+     * @tparam T The message payload type.
+     * @param data The message data to broadcast.
+     * @param root The operation root process.
+     * @param comm The communicator the operation applies to.
      */
     template <typename T>
-    MPIWCPP17_INLINE detail::payload_out_t<T> broadcast(
-        const detail::payload_in_t<T>& msg
-      , process_t root
-      , communicator_t comm
+    MPIWCPP17_INLINE void broadcast_inplace(
+        T& data
+      , const process_t root = process::root
+      , const communicator_t& comm = world
     ) {
-        auto out = (root == communicator::rank(comm))
-            ? payload::copy_to_output(msg)
-            : payload::create_output<T>(msg.count);
-        broadcast_replace((T*) out, out.count, root, comm);
-        return out;
+        auto msg = detail::payload::to_input(data);
+        detail::collective::broadcast_inplace(msg, root, comm);
     }
-}
 
-namespace collective
-{
     /**
-     * Broadcasts a generic message to all processes connected to a communicator.
-     * @tparam T The message's contents type.
-     * @param data The message to be broadcast to all processes.
-     * @param count The number of elements to be broadcast.
-     * @param root The operation's root process.
-     * @param comm The communicator this operation applies to.
-     * @return The message that has been broadcast.
+     * Broadcasts a message to all processes.
+     * @tparam T The message payload type.
+     * @param data The message data to broadcast.
+     * @param count The number of elements to broadcast.
+     * @param root The operation root process.
+     * @param comm The communicator the operation applies to.
+     * @return The resulting broadcast message.
      */
     template <typename T>
     MPIWCPP17_INLINE auto broadcast(
-        T *data
-      , size_t count
-      , process_t root = process::root
-      , communicator_t comm = world
+        T *data, size_t count
+      , const process_t root = process::root
+      , const communicator_t& comm = world
     ) {
+        broadcast_inplace(count, root, comm);
         auto msg = detail::payload_in_t(data, count);
-        detail::collective::broadcast_replace(&msg.count, 1, root, comm);
         return detail::collective::broadcast(msg, root, comm);
     }
 
     /**
-     * Broadcasts elements to all processes connected to a communicator.
-     * @tparam T The type of the elements to be broadcast.
-     * @param data The elements to be broadcast to all processes.
-     * @param root The operation's root process.
-     * @param comm The communicator this operation applies to.
-     * @return The message that has been broadcast.
+     * Broadcasts a message to all processes.
+     * @tparam T The message payload type.
+     * @param data The message data to broadcast.
+     * @param root The operation root process.
+     * @param comm The communicator the operation applies to.
+     * @return The resulting broadcast message.
      */
     template <typename T>
     MPIWCPP17_INLINE auto broadcast(
         T& data
-      , process_t root = process::root
-      , communicator_t comm = world
+      , const process_t root = process::root
+      , const communicator_t& comm = world
     ) {
         auto msg = detail::payload::to_input(data);
         if constexpr (detail::payload::is_contiguous_iterable_v<T>)
-            detail::collective::broadcast_replace(&msg.count, 1, root, comm);
+            return broadcast(msg.ptr, msg.count, root, comm);
         return detail::collective::broadcast(msg, root, comm);
     }
 }
-
-/*
- * Exposing the above-defined collective operation into the project's root namespace,
- * allowing it be called with decreased verbosity.
- */
-using collective::broadcast;
 
 MPIWCPP17_END_NAMESPACE
