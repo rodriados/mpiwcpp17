@@ -1,6 +1,6 @@
 /**
  * A thin C++17 wrapper for MPI.
- * @file The MPI broadcast collective implementation detail.
+ * @file The MPI broadcast operation implementation detail.
  * @author Rodrigo Siqueira <rodriados@gmail.com>
  * @copyright 2025-present Rodrigo Siqueira
  */
@@ -18,7 +18,7 @@
 
 MPIWCPP17_BEGIN_NAMESPACE
 
-namespace detail::collective
+namespace detail::operation
 {
     namespace datatype = mpiwcpp17::datatype;
 
@@ -47,7 +47,7 @@ namespace detail::collective
      * @param comm The communicator the operation applies to.
      * @return The resulting broadcast message.
      */
-    template <typename T, typename Q = std::remove_cv_t<T>>
+    template <typename T>
     MPIWCPP17_INLINE auto broadcast(
         const payload_in_t<T>& msg
       , const process_t root
@@ -56,7 +56,7 @@ namespace detail::collective
         auto out = (root == communicator::rank(comm))
           ? payload::copy_to_output(msg)
           : payload::create_output<T>(msg.count);
-        broadcast_inplace<Q>(out, root, comm);
+        broadcast_inplace(out, root, comm);
         return out;
     }
 }

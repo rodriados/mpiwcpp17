@@ -15,7 +15,7 @@
 
 using namespace Catch;
 
-TEST_CASE("broadcast values between processes", "[collective][broadcast]")
+TEST_CASE("broadcast values between processes", "[operation][broadcast]")
 {
     auto root = GENERATE(range(0, mpi::size));
 
@@ -26,8 +26,7 @@ TEST_CASE("broadcast values between processes", "[collective][broadcast]")
      */
     SECTION("a single scalar value") {
         int value = (root == mpi::rank)
-            ? (mpi::rank + 1) * 2
-            : 0;
+          ? (mpi::rank + 1) * 2 : 0;
 
         int result = mpi::broadcast(&value, 1, root);
 
@@ -61,8 +60,8 @@ TEST_CASE("broadcast values between processes", "[collective][broadcast]")
      */
     SECTION("a single default-copyable structure instance") {
         point_t<int> value = (root == mpi::rank)
-            ? point_t<int> {mpi::rank + 1, mpi::rank + 2}
-            : point_t<int> {0, 0};
+          ? point_t<int> {mpi::rank + 1, mpi::rank + 2}
+          : point_t<int> {0, 0};
 
         point_t<int> result = mpi::broadcast(&value, 1, root);
 

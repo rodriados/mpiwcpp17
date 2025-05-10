@@ -14,11 +14,11 @@
 #include <mpiwcpp17/global.hpp>
 
 #include <mpiwcpp17/detail/payload.hpp>
-#include <mpiwcpp17/detail/collective/broadcast.hpp>
+#include <mpiwcpp17/detail/operation/broadcast.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
 
-inline namespace collective
+inline namespace operation
 {
     /**
      * Broadcasts a message in-place to all processes.
@@ -35,7 +35,7 @@ inline namespace collective
       , const communicator_t& comm = world
     ) {
         auto msg = detail::payload_in_t(data, count);
-        detail::collective::broadcast_inplace(msg, root, comm);
+        detail::operation::broadcast_inplace(msg, root, comm);
     }
 
     /**
@@ -52,7 +52,7 @@ inline namespace collective
       , const communicator_t& comm = world
     ) {
         auto msg = detail::payload::to_input(data);
-        detail::collective::broadcast_inplace(msg, root, comm);
+        detail::operation::broadcast_inplace(msg, root, comm);
     }
 
     /**
@@ -70,9 +70,9 @@ inline namespace collective
       , const process_t root = process::root
       , const communicator_t& comm = world
     ) {
-        broadcast_inplace(count, root, comm);
+        broadcast_inplace(&count, 1, root, comm);
         auto msg = detail::payload_in_t(data, count);
-        return detail::collective::broadcast(msg, root, comm);
+        return detail::operation::broadcast(msg, root, comm);
     }
 
     /**
@@ -92,7 +92,7 @@ inline namespace collective
         auto msg = detail::payload::to_input(data);
         if constexpr (detail::payload::is_contiguous_iterable_v<T>)
             return broadcast(msg.ptr, msg.count, root, comm);
-        return detail::collective::broadcast(msg, root, comm);
+        return detail::operation::broadcast(msg, root, comm);
     }
 }
 
