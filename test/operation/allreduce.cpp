@@ -10,7 +10,7 @@
 #include <mpiwcpp17/api.h>
 #include <catch2/catch_test_macros.hpp>
 
-TEST_CASE("reduce values into all processes", "[collective][allreduce]")
+TEST_CASE("reduce values into all processes", "[operation][allreduce]")
 {
     auto sumUpTo = [](auto n) { return (n * (n + 1)) / 2; };
 
