@@ -13,7 +13,7 @@
 
 using namespace Catch;
 
-TEST_CASE("reduce values into a process", "[collective][reduce]")
+TEST_CASE("reduce values into a process", "[operation][reduce]")
 {
     auto root = GENERATE(range(0, mpi::size));
     auto sumUpTo = [](auto n) { return (n * (n + 1)) / 2; };

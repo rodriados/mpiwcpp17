@@ -30,6 +30,8 @@ MPIWCPP17_BEGIN_NAMESPACE
 
 namespace detail::functor
 {
+    namespace datatype = mpiwcpp17::datatype;
+
     /**
      * Builds a MPI operator functor from a callable.
      * @param callable The callable to create a MPI operator functor from.
@@ -81,9 +83,9 @@ namespace detail::functor
     MPIWCPP17_INLINE functor_t::raw_t resolve(const F&)
     {
         // As a convenience for the caller, a static wrapper for the operator is
-        // provided so that it is adapted to the function signature required by
-        // MPI. The wrapper is responsible for only correctly casting the operands
-        // and applying the provided operator functor.
+        // provided so that it is adapted to the function signature required by MPI.
+        // The wrapper is responsible for only correctly casting the operands and
+        // applying the provided operator functor.
         using static_wrapper_t = struct static_wrapper_t {
             static void call(void *a, void *b, int *count, datatype_t::raw_t*) {
                 auto f = F();
@@ -134,12 +136,12 @@ namespace detail::functor
             }
         };
 
-        auto marker = get_dynamic_resolution_marker();
         auto type = datatype::identify<T>();
+        auto marker = get_dynamic_resolution_marker();
 
         // Attention! The lambda reference is not owned by the wrapper, therefore
-        // the caller is responsible for guaranteeing that it exists throughout
-        // the lifetime of the relevant collective operations.
+        // the caller is responsible for guaranteeing that it exists throughout the
+        // lifetime of the operation under execution.
         datatype::attribute::set(type, marker, &lambda);
 
         static functor_t f = raii_t::register_handle(

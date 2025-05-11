@@ -15,7 +15,7 @@
 
 MPIWCPP17_BEGIN_NAMESPACE
 
-inline namespace collective
+inline namespace operation
 {
     /**
      * Blocks execution until all processes within the given communicator have reached

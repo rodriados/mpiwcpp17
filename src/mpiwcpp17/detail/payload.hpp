@@ -196,7 +196,7 @@ namespace detail::payload
         T& data
       , std::enable_if_t<!is_contiguous_iterable_v<T>>* = nullptr
     ) noexcept {
-        return std::make_pair(&data, 1);
+        return std::make_pair(&data, size_t(1));
     }
 
     /**
