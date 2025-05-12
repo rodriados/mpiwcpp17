@@ -12,7 +12,7 @@
 #include <mpiwcpp17/environment.h>
 #include <mpiwcpp17/datatype.hpp>
 #include <mpiwcpp17/functor.hpp>
-#include <mpiwcpp17/flag.hpp>
+#include <mpiwcpp17/policy.hpp>
 #include <mpiwcpp17/guard.hpp>
 
 #include <mpiwcpp17/detail/raii.hpp>
@@ -100,7 +100,7 @@ namespace detail::functor
         static functor_t f = raii_t::register_handle(
             build_from_callable(
                 &static_wrapper_t::call
-              , std::is_base_of_v<flag::functor::commutative_t, F>));
+              , std::is_base_of_v<policy::commutative_t, F>));
 
         return f;
     }

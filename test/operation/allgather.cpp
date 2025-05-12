@@ -10,7 +10,7 @@
 #include <mpiwcpp17/api.h>
 #include <catch2/catch_test_macros.hpp>
 
-TEST_CASE("gather values into all processes", "[collective][allgather]")
+TEST_CASE("gather values into all processes", "[operation][allgather]")
 {
     /**
      * Tests whether a single scalar value can be gathered into all processes.
@@ -18,7 +18,7 @@ TEST_CASE("gather values into all processes", "[collective][allgather]")
      */
     SECTION("a single scalar value") {
         int value = mpi::rank + 1;
-        auto result = mpi::allgather(&value, 1, mpi::world, mpi::flag::uniform_t());
+        auto result = mpi::allgather(&value, 1, mpi::world, mpi::policy::uniform);
 
         REQUIRE(result.count == (size_t) mpi::size);
 
@@ -38,7 +38,7 @@ TEST_CASE("gather values into all processes", "[collective][allgather]")
         for (int i = 0; i < quantity; ++i)
             value[i] = 10 * mpi::rank + i;
 
-        auto result = mpi::allgather(value, mpi::world, mpi::flag::uniform_t());
+        auto result = mpi::allgather(value, mpi::world, mpi::policy::uniform);
 
         REQUIRE(result.count == (size_t) (quantity * mpi::size));
 
@@ -59,7 +59,7 @@ TEST_CASE("gather values into all processes", "[collective][allgather]")
             value[i] = mpi::rank * 10 + i;
 
         auto size = mpi::size;
-        auto result = mpi::allgather(value, mpi::world, mpi::flag::varying_t());
+        auto result = mpi::allgather(value, mpi::world, mpi::policy::varying);
 
         REQUIRE(result.count == (size_t) (size * (size + 1) / 2));
 

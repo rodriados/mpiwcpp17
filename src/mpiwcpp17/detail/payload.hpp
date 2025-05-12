@@ -1,6 +1,6 @@
 /**
  * A thin C++17 wrapper for MPI.
- * @file MPI type-independent message payload for collective operations.
+ * @file MPI type-independent message payload for operations.
  * @author Rodrigo Siqueira <rodriados@gmail.com>
  * @copyright 2022-present Rodrigo Siqueira
  */
@@ -21,9 +21,9 @@ MPIWCPP17_BEGIN_NAMESPACE
 namespace detail
 {
     /**
-     * A generic storage buffer for payload data to transit through MPI collective
-     * operations. The buffer makes the best effort to carry as many elements as
-     * possible inplace, avoiding unnecessary memory allocation.
+     * A generic storage buffer for payload data to transit through MPI operations.
+     * The buffer makes the best effort to carry as many elements as possible in-place,
+     * avoiding unnecessary memory allocation.
      * @tparam T The payload message buffer type.
      * @tparam N The number of buffer elements to carry inplace.
      * @since 2.1
@@ -69,9 +69,10 @@ namespace detail
     };
 
     /**
-     * A message payload of input data to send through a MPI collective operation.
-     * In practice, the input payload wraps an outgoing message in a neutral context
-     * for transmission and does not own the message buffer.
+     * A message payload of input data to send through a MPI operation. In practice,
+     * the input payload wraps an outgoing message in a neutral context for transmission
+     * and does not own the message buffer. The user is responsible in guaranteeing
+     * that the object lifetime lasts longer than the payload.
      * @tparam The payload message buffer type.
      * @since 2.0
      */
@@ -99,13 +100,34 @@ namespace detail
           : payload_in_t (input.first, input.second)
         {}
 
+        /**
+         * Implicitly converts a foreign typed container into an input payload for
+         * in-place operations. All MPI operations are inplace, so only input payloads
+         * can directly interact with native functions.
+         * @tparam U The foreign container buffer type.
+         * @param container The container to be converted.
+         */
+        template <typename U>
+        MPIWCPP17_CONSTEXPR payload_in_t(const container_t<U>& container) noexcept
+          : payload_in_t (container.ptr, container.count)
+        {}
+
         MPIWCPP17_INLINE payload_in_t& operator=(const payload_in_t&) = default;
         MPIWCPP17_INLINE payload_in_t& operator=(payload_in_t&&) = default;
     };
 
     /**
-     * A message payload of output data received through a MPI collective operation.
-     * In practice, this serves as an ownership data container for incoming messages.
+     * A message payload of const-qualified input data for const-exclusive parameters
+     * of a MPI operation. This payload serves as a tool for automatically aliasing
+     * other payload containers to constness when required.
+     * @since 2.1
+     */
+    template <typename T>
+    using payload_const_t = payload_in_t<const T>;
+
+    /**
+     * A message payload of output data received through a MPI operation. In practice,
+     * this serves as an ownership data container for incoming messages.
      * @tparam T The payload message buffer type.
      * @since 2.0
      */
@@ -135,18 +157,6 @@ namespace detail
 
         MPIWCPP17_INLINE payload_out_t& operator=(const payload_out_t&) = delete;
         MPIWCPP17_INLINE payload_out_t& operator=(payload_out_t&&) = delete;
-
-        /**
-         * Implicitly converts an output payload into an input payload for inplace
-         * operations. All MPI operations are inplace, so only input payloads can
-         * directly interact with native functions. Input payloads, on the other
-         * hand, do not own their buffers, therefore we must create it from output.
-         * @return The implicitly converted input payload.
-         */
-        MPIWCPP17_INLINE operator payload_in_t<T>() const noexcept
-        {
-            return payload_in_t(this->ptr, this->count);
-        }
     };
 }
 
@@ -197,18 +207,6 @@ namespace detail::payload
       , std::enable_if_t<!is_contiguous_iterable_v<T>>* = nullptr
     ) noexcept {
         return std::make_pair(&data, size_t(1));
-    }
-
-    /**
-     * Tentatively transforms an output payload into an input payload.
-     * @tparam T The output payload element type.
-     * @param output The output payload to convert into input.
-     * @return The pointer and count of the given output payload.
-     */
-    template <typename T>
-    MPIWCPP17_INLINE auto to_tentative_input(const payload_out_t<T>& output) noexcept
-    {
-        return std::make_pair(output, output.count);
     }
 
     /**

@@ -20,7 +20,7 @@
 #include <mpiwcpp17/status.hpp>
 #include <mpiwcpp17/info.hpp>
 #include <mpiwcpp17/datatype.hpp>
-#include <mpiwcpp17/flag.hpp>
+#include <mpiwcpp17/policy.hpp>
 #include <mpiwcpp17/functor.hpp>
 #include <mpiwcpp17/window.hpp>
 #include <mpiwcpp17/memory.hpp>
