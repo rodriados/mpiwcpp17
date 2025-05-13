@@ -21,8 +21,6 @@ MPIWCPP17_BEGIN_NAMESPACE
 
 namespace detail::operation
 {
-    namespace datatype = mpiwcpp17::datatype;
-
     /**
      * Reduces a message in-place to a process.
      * @tparam T The message payload type.
@@ -39,7 +37,7 @@ namespace detail::operation
       , const process_t root
       , const communicator_t& comm
     ) {
-        auto type = datatype::identify<T>();
+        auto type = mpiwcpp17::datatype::identify<T>();
         auto f = functor::resolve<T>(lambda);
         MPIWCPP17_GUARD_EVAL(
             (root == communicator::rank(comm))
@@ -64,7 +62,7 @@ namespace detail::operation
       , const process_t root
       , const communicator_t& comm
     ) {
-        auto type = datatype::identify<T>();
+        auto type = mpiwcpp17::datatype::identify<T>();
         auto f = functor::resolve<T>(lambda);
         auto out = (root == communicator::rank(comm))
           ? payload::create_output<T>(msg.count)

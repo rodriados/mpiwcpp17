@@ -21,8 +21,6 @@ MPIWCPP17_BEGIN_NAMESPACE
 
 namespace detail::operation
 {
-    namespace datatype = mpiwcpp17::datatype;
-
     /**
      * Sends a message to a process.
      * @tparam T The message payload type.
@@ -38,7 +36,7 @@ namespace detail::operation
       , const tag_t tag
       , const communicator_t& comm
     ) {
-        auto type = datatype::identify<T>();
+        auto type = mpiwcpp17::datatype::identify<T>();
         auto mtag = tag >= 0 ? tag : mpiwcpp17::tag::ub;
         guard(MPI_Send(msg.ptr, msg.count, type, dest, mtag, comm));
     }

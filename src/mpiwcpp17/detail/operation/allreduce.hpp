@@ -20,8 +20,6 @@ MPIWCPP17_BEGIN_NAMESPACE
 
 namespace detail::operation
 {
-    namespace datatype = mpiwcpp17::datatype;
-
     /**
      * Reduces a message in-place to all processes.
      * @tparam T The message payload type.
@@ -36,7 +34,7 @@ namespace detail::operation
       , const F& lambda
       , const communicator_t& comm
     ) {
-        auto type = datatype::identify<T>();
+        auto type = mpiwcpp17::datatype::identify<T>();
         auto f = functor::resolve<T>(lambda);
         guard(MPI_Allreduce(MPI_IN_PLACE, msg.ptr, msg.count, type, f, comm));
     }
@@ -57,7 +55,7 @@ namespace detail::operation
       , const F& lambda
       , const communicator_t& comm
     ) {
-        auto type = datatype::identify<T>();
+        auto type = mpiwcpp17::datatype::identify<T>();
         auto f = functor::resolve<T>(lambda);
         auto out = payload::create_output<T>(msg.count);
         guard(MPI_Allreduce(msg.ptr, out.ptr, msg.count, type, f, comm));

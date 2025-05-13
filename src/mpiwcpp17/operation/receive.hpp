@@ -23,6 +23,25 @@ MPIWCPP17_BEGIN_NAMESPACE
 inline namespace operation
 {
     /**
+     * Receives a message from a process.
+     * @tparam T The message payload type.
+     * @param source The message source process.
+     * @param tag The message identification tag.
+     * @param comm The communicator this operation applies to.
+     * @return The resulting operation status and received message.
+     */
+    template <typename T>
+    MPIWCPP17_INLINE auto receive(
+        const process_t source = process::any
+      , const tag_t tag = mpiwcpp17::tag::any
+      , const communicator_t& comm = world
+    ) {
+        auto status = operation::probe(source, tag, comm);
+        auto count  = mpiwcpp17::status::count<T>(status);
+        return detail::operation::receive<T>(count, source, tag, comm);
+    }
+
+    /**
      * Receives a message in-place from a process.
      * @tparam T The message payload type.
      * @param data The message data to receive.
@@ -61,25 +80,6 @@ inline namespace operation
     ) {
         auto msg = detail::payload::to_input(data);
         return detail::operation::receive_inplace(msg, source, tag, comm);
-    }
-
-    /**
-     * Receives a message from a process.
-     * @tparam T The message payload type.
-     * @param source The message source process.
-     * @param tag The message identification tag.
-     * @param comm The communicator this operation applies to.
-     * @return The resulting operation status and received message.
-     */
-    template <typename T>
-    MPIWCPP17_INLINE auto receive(
-        const process_t source = process::any
-      , const tag_t tag = mpiwcpp17::tag::any
-      , const communicator_t& comm = world
-    ) {
-        auto status = operation::probe(source, tag, comm);
-        auto count  = mpiwcpp17::status::count<T>(status);
-        return detail::operation::receive<T>(count, source, tag, comm);
     }
 }
 

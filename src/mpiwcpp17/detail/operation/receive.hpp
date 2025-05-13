@@ -23,8 +23,6 @@ MPIWCPP17_BEGIN_NAMESPACE
 
 namespace detail::operation
 {
-    namespace datatype = mpiwcpp17::datatype;
-
     /**
      * Receives a message in-place from a process.
      * @tparam T The message payload type.
@@ -41,7 +39,7 @@ namespace detail::operation
       , const tag_t tag
       , const communicator_t& comm
     ) {
-        auto type = datatype::identify<T>();
+        auto type = mpiwcpp17::datatype::identify<T>();
         return MPIWCPP17_GUARD_CALL(
             status_t
           , MPI_Recv(msg.ptr, msg.count, type, source, tag, comm, &_)
