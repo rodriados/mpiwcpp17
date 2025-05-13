@@ -23,22 +23,84 @@ MPIWCPP17_BEGIN_NAMESPACE
 inline namespace operation
 {
     /**
-     * Gathers a non-uniform message in-place to all processes.
+     * Gathers a message to all processes.
+     * @tparam P The behavior policy guarantee.
      * @tparam T The message payload type.
      * @param data The message data to gather.
-     * @param count The number of elements to gather by process.
-     * @param displ The displacement of each process message.
+     * @param count The number of elements to gather.
      * @param comm The communicator the operation applies to.
+     * @param policy The behavior policy guarantee.
+     * @return The resulting gathered message.
+     */
+    template <typename P = policy::automatic_t, typename T>
+    MPIWCPP17_INLINE auto allgather(
+        T *data, size_t count
+      , const communicator_t& comm = world
+      , const P policy = {}
+    ) {
+        auto msg = detail::payload_in_t(data, count);
+        return detail::operation::allgather(msg, comm, policy);
+    }
+
+    /**
+     * Gathers a message to all processes.
+     * @tparam P The behavior policy guarantee.
+     * @tparam T The message payload type.
+     * @param data The message data to gather.
+     * @param comm The communicator the operation applies to.
+     * @param policy The behavior policy guarantee.
+     * @return The resulting gathered message.
+     */
+    template <typename P = policy::automatic_t, typename T>
+    MPIWCPP17_INLINE auto allgather(
+        T& data
+      , const communicator_t& comm = world
+      , const P policy = {}
+    ) {
+        auto msg = detail::payload::to_input(data);
+        return detail::operation::allgather(msg, comm, policy);
+    }
+
+    /**
+     * Gathers a non-uniform message to all processes.
+     * @tparam T The message payload type.
+     * @param data The message data to gather.
+     * @param counts The number of elements to gather by process.
+     * @param displs The displacement of each process message.
+     * @param comm The communicator the operation applies to.
+     * @return The resulting gathered message.
      */
     template <typename T>
-    MPIWCPP17_INLINE void allgather_inplace(
+    MPIWCPP17_INLINE auto allgather(
         T *data
-      , const detail::iterable_t<int>& count
-      , const detail::iterable_t<int>& displ
+      , const detail::capture_t<int>& counts
+      , const detail::capture_t<int>& displs
       , const communicator_t& comm = world
     ) {
         auto msg = detail::payload_in_t(data, 0);
-        detail::operation::allgatherv_inplace(msg, count, displ, comm);
+        auto total = std::accumulate(counts.begin(), counts.end(), 0);
+        return detail::operation::allgatherv(msg, counts, displs, total, comm);
+    }
+
+    /**
+     * Gathers a non-uniform message to all processes.
+     * @tparam T The message payload type.
+     * @param data The message data to gather.
+     * @param counts The number of elements to gather by process.
+     * @param displs The displacement of each process message.
+     * @param comm The communicator the operation applies to.
+     * @return The resulting gathered message.
+     */
+    template <typename T>
+    MPIWCPP17_INLINE auto allgather(
+        T& data
+      , const detail::capture_t<int>& counts
+      , const detail::capture_t<int>& displs
+      , const communicator_t& comm = world
+    ) {
+        auto msg = detail::payload::to_input(data);
+        auto total = std::accumulate(counts.begin(), counts.end(), 0);
+        return detail::operation::allgatherv(msg, counts, displs, total, comm);
     }
 
     /**
@@ -58,84 +120,22 @@ inline namespace operation
     }
 
     /**
-     * Gathers a non-uniform message to all processes.
+     * Gathers a non-uniform message in-place to all processes.
      * @tparam T The message payload type.
      * @param data The message data to gather.
-     * @param count The number of elements to gather by process.
-     * @param displ The displacement of each process message.
+     * @param counts The number of elements to gather by process.
+     * @param displs The displacement of each process message.
      * @param comm The communicator the operation applies to.
-     * @return The resulting gathered message.
      */
     template <typename T>
-    MPIWCPP17_INLINE auto allgather(
+    MPIWCPP17_INLINE void allgather_inplace(
         T *data
-      , const detail::iterable_t<int>& count
-      , const detail::iterable_t<int>& displ
+      , const detail::capture_t<int>& counts
+      , const detail::capture_t<int>& displs
       , const communicator_t& comm = world
     ) {
         auto msg = detail::payload_in_t(data, 0);
-        auto total = std::accumulate(count.begin(), count.end(), 0);
-        return detail::operation::allgatherv(msg, count, displ, total, comm);
-    }
-
-    /**
-     * Gathers a non-uniform message to all processes.
-     * @tparam T The message payload type.
-     * @param data The message data to gather.
-     * @param count The number of elements to gather by process.
-     * @param displ The displacement of each process message.
-     * @param comm The communicator the operation applies to.
-     * @return The resulting gathered message.
-     */
-    template <typename T>
-    MPIWCPP17_INLINE auto allgather(
-        T& data
-      , const detail::iterable_t<int>& count
-      , const detail::iterable_t<int>& displ
-      , const communicator_t& comm = world
-    ) {
-        auto msg = detail::payload::to_input(data);
-        auto total = std::accumulate(count.begin(), count.end(), 0);
-        return detail::operation::allgatherv(msg, count, displ, total, comm);
-    }
-
-    /**
-     * Gathers a message to all processes.
-     * @tparam P The behavior policy guarantee.
-     * @tparam T The message payload type.
-     * @param data The message data to gather.
-     * @param count The number of elements to gather.
-     * @param comm The communicator the operation applies to.
-     * @param policy The behavior policy guarantee.
-     * @return The resulting gathered message.
-     */
-    template <typename P = policy::automatic_t, typename T>
-    MPIWCPP17_INLINE auto allgather(
-        T *data, size_t count
-      , const communicator_t& comm = world
-      , const P& policy = {}
-    ) {
-        auto msg = detail::payload_in_t(data, count);
-        return detail::operation::allgather(msg, comm, policy);
-    }
-
-    /**
-     * Gathers a message to all processes.
-     * @tparam P The behavior policy guarantee.
-     * @tparam T The message payload type.
-     * @param data The message data to gather.
-     * @param comm The communicator the operation applies to.
-     * @param policy The behavior policy guarantee.
-     * @return The resulting gathered message.
-     */
-    template <typename P = policy::automatic_t, typename T>
-    MPIWCPP17_INLINE auto allgather(
-        T& data
-      , const communicator_t& comm = world
-      , const P& policy = {}
-    ) {
-        auto msg = detail::payload::to_input(data);
-        return detail::operation::allgather(msg, comm, policy);
+        detail::operation::allgatherv_inplace(msg, counts, displs, comm);
     }
 }
 

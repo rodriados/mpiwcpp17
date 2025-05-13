@@ -22,25 +22,23 @@ MPIWCPP17_BEGIN_NAMESPACE
 
 namespace detail::operation
 {
-    namespace datatype = mpiwcpp17::datatype;
-
     /**
      * Gathers a non-uniform message in-place to all processes.
      * @tparam T The message payload type.
      * @param msg The message to gather in-place.
-     * @param count The number of elements to gather by process.
-     * @param displ The displacement of each process message.
+     * @param counts The number of elements to gather by process.
+     * @param displs The displacement of each process message.
      * @param comm The communicator the operation applies to.
      */
     template <typename T>
     MPIWCPP17_INLINE void allgatherv_inplace(
         const payload_in_t<T>& msg
-      , const payload_const_t<int>& count
-      , const payload_const_t<int>& displ
+      , const payload_const_t<int>& counts
+      , const payload_const_t<int>& displs
       , const communicator_t& comm
     ) {
-        auto type = datatype::identify<T>();
-        guard(MPI_Allgatherv(MPI_IN_PLACE, 0, type, msg.ptr, count, displ, type, comm));
+        auto type = mpiwcpp17::datatype::identify<T>();
+        guard(MPI_Allgatherv(MPI_IN_PLACE, 0, type, msg.ptr, counts, displs, type, comm));
     }
 
     /**
@@ -54,7 +52,7 @@ namespace detail::operation
         const payload_in_t<T>& msg
       , const communicator_t& comm
     ) {
-        auto type = datatype::identify<T>();
+        auto type = mpiwcpp17::datatype::identify<T>();
         guard(MPI_Allgather(MPI_IN_PLACE, 0, type, msg.ptr, msg.count, type, comm));
     }
 
@@ -62,8 +60,8 @@ namespace detail::operation
      * Gathers a non-uniform message to all processes.
      * @tparam T The message payload type.
      * @param msg The message to gather.
-     * @param count The number of elements to gather by process.
-     * @param displ The displacement of each process message.
+     * @param counts The number of elements to gather by process.
+     * @param displs The displacement of each process message.
      * @param total The total number of elements to allocate.
      * @param comm The communicator the operation applies to.
      * @return The resulting gathered message.
@@ -71,15 +69,15 @@ namespace detail::operation
     template <typename T>
     MPIWCPP17_INLINE auto allgatherv(
         const payload_in_t<T>& msg
-      , const payload_const_t<int>& count
-      , const payload_const_t<int>& displ
+      , const payload_const_t<int>& counts
+      , const payload_const_t<int>& displs
       , const size_t total
       , const communicator_t& comm
     ) {
-        auto type = datatype::identify<T>();
+        auto type = mpiwcpp17::datatype::identify<T>();
         auto out = payload::create_output<T>(total);
-        auto msglen = msg.count ? msg.count : count[communicator::rank(comm)];
-        guard(MPI_Allgatherv(msg.ptr, msglen, type, out, count, displ, type, comm));
+        auto count = msg.count ? msg.count : counts[communicator::rank(comm)];
+        guard(MPI_Allgatherv(msg.ptr, count, type, out, counts, displs, type, comm));
         return out;
     }
 
@@ -94,9 +92,9 @@ namespace detail::operation
     MPIWCPP17_INLINE auto allgather(
         const payload_in_t<T>& msg
       , const communicator_t& comm
-      , const policy::uniform_t&
+      , const policy::uniform_t
     ) {
-        auto type = datatype::identify<T>();
+        auto type = mpiwcpp17::datatype::identify<T>();
         auto out = payload::create_output<T>(msg.count * communicator::size(comm));
         guard(MPI_Allgather(msg.ptr, msg.count, type, out.ptr, msg.count, type, comm));
         return out;
@@ -113,17 +111,18 @@ namespace detail::operation
     MPIWCPP17_INLINE auto allgather(
         const payload_in_t<T>& msg
       , const communicator_t& comm
-      , const policy::varying_t&
+      , const policy::varying_t
     ) {
-        int total  = 0;
-        int mcount = static_cast<int>(msg.count);
-        int size   = communicator::size(comm);
+        int total = 0;
+        int count = static_cast<int>(msg.count);
+        int size  = communicator::size(comm);
 
-        auto count = allgather<int>({&mcount, 1}, comm, policy::uniform);
-        auto displ = payload::create_output<int>(size);
-        for (int j = 0; j < size; total += count[j++])
-            displ[j] = total;
-        return allgatherv(msg, count, displ, total, comm);
+        auto counts = allgather<int>(&count, comm, policy::uniform);
+        auto displs = payload::create_output<int>(size);
+        for (int j = 0; j < size; total += counts[j++])
+            displs[j] = total;
+
+        return allgatherv(msg, counts, displs, total, comm);
     }
 
     /**
@@ -137,7 +136,7 @@ namespace detail::operation
     MPIWCPP17_INLINE auto allgather(
         const payload_in_t<T>& msg
       , const communicator_t& comm
-      , const policy::automatic_t&
+      , const policy::automatic_t
     ) {
         int64_t count[2] = {
             +int64_t(msg.count)

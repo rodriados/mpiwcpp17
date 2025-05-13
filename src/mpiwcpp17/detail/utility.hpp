@@ -14,14 +14,14 @@ MPIWCPP17_BEGIN_NAMESPACE
 namespace detail
 {
     /**
-     * Auxiliary iterable argument receptor.
-     * This type sole purpose is to enable generic iterable types to be seamlessly
-     * used as input payload types when calling an operation function.
-     * @tparam T The type of argument to receive.
+     * Generic iterable element capture.
+     * This type captures a generic iterable passed as a function argument, so they
+     * can be seamlessly used as input payload for a MPI operation call.
+     * @tparam T The iterable element type to capture.
      * @since 2.1
      */
     template <typename T>
-    struct iterable_t : public payload_const_t<T>
+    struct capture_t : public payload_const_t<T>
     {
         using payload_const_t<T>::payload_const_t;
 
@@ -31,7 +31,7 @@ namespace detail
          * @param container The generic container instance.
          */
         template <typename C>
-        MPIWCPP17_INLINE iterable_t(C&& container)
+        MPIWCPP17_INLINE capture_t(C&& container)
           : payload_const_t<T> (payload::to_tentative_input(std::forward<C>(container)))
         {}
 
@@ -41,7 +41,7 @@ namespace detail
          * @param list The initializer list to create a payload from.
          */
         template <typename U>
-        MPIWCPP17_INLINE iterable_t(const std::initializer_list<U>& list)
+        MPIWCPP17_INLINE capture_t(const std::initializer_list<U>& list)
           : payload_const_t<T> (payload::to_tentative_input(list))
         {}
     };
