@@ -69,8 +69,8 @@ namespace detail
          * Seamlessly converts the container into its first element.
          * @return The container's first element.
          */
-        MPIWCPP17_INLINE operator       T&() noexcept       { return *ptr; }
-        MPIWCPP17_INLINE operator const T&() const noexcept { return *ptr; }
+        MPIWCPP17_INLINE operator       T&() noexcept       { return first(); }
+        MPIWCPP17_INLINE operator const T&() const noexcept { return first(); }
         /**#@-*/
 
         /**#@+
@@ -81,12 +81,37 @@ namespace detail
         MPIWCPP17_INLINE operator const T*() const noexcept { return ptr; }
         /**#@-*/
 
+        /**#@+
+         * Explicitly converts the container into a boolean value. The container
+         * is considered truthy if the number of elements is not zero.
+         * @return Does the container hold any content?
+         */
+        MPIWCPP17_INLINE explicit operator bool() noexcept       { return count; }
+        MPIWCPP17_INLINE explicit operator bool() const noexcept { return count; }
+        /**#@-*/
+
         /**
          * Exposes the container's contents by an index.
          * @param i The index of the element to be accessed.
          * @return A reference to the element at the given index.
          */
         MPIWCPP17_INLINE T& operator[](ptrdiff_t i) const noexcept { return ptr[i]; }
+
+        /**#@+
+         * Exposes the container's first element.
+         * @return The container's first element.
+         */
+        MPIWCPP17_INLINE       T& first() noexcept       { return ptr[0]; }
+        MPIWCPP17_INLINE const T& first() const noexcept { return ptr[0]; }
+        /**#@-*/
+
+        /**#@+
+         * Exposes the container's last element.
+         * @return The container's last element.
+         */
+        MPIWCPP17_INLINE       T& last() noexcept       { return ptr[count - 1]; }
+        MPIWCPP17_INLINE const T& last() const noexcept { return ptr[count - 1]; }
+        /**#@-*/
     };
 }
 

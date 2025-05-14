@@ -89,7 +89,16 @@ namespace detail
          * @param count The total number of elements to carry as input.
          */
         MPIWCPP17_CONSTEXPR payload_in_t(T *ptr, size_t count = 1) noexcept
-          : container_t<T> (ptr, count)
+          : container_t<T> (ptr, ptr ? count : 0)
+        {}
+
+        /**
+         * Initializes a new input payload with a null pointer.
+         * As the null pointer might have a different type, we need to specialize
+         * to constructor to accomodate when we cannot deduce the pointer type.
+         */
+        MPIWCPP17_CONSTEXPR payload_in_t(std::nullptr_t, size_t = 0) noexcept
+          : container_t<T> (nullptr, 0)
         {}
 
         /**

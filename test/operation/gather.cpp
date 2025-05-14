@@ -13,7 +13,7 @@
 
 using namespace Catch;
 
-TEST_CASE("gather values from all processes", "[collective][gather]")
+TEST_CASE("gather values from all processes", "[operation][gather]")
 {
     auto root = GENERATE(range(0, mpi::size));
 
@@ -24,7 +24,7 @@ TEST_CASE("gather values from all processes", "[collective][gather]")
      */
     SECTION("a single scalar value") {
         int value = mpi::rank + 1;
-        auto result = mpi::gather(&value, 1, root, mpi::world, mpi::flag::uniform_t());
+        auto result = mpi::gather(&value, 1, root, mpi::world, mpi::policy::uniform);
 
         if (root == mpi::rank) {
             REQUIRE(result.count == (size_t) mpi::size);
@@ -47,7 +47,7 @@ TEST_CASE("gather values from all processes", "[collective][gather]")
         for (int i = 0; i < quantity; ++i)
             value[i] = 10 * mpi::rank + i;
 
-        auto result = mpi::gather(value, root, mpi::world, mpi::flag::uniform_t());
+        auto result = mpi::gather(value, root, mpi::world, mpi::policy::uniform);
 
         if (root == mpi::rank) {
             REQUIRE(result.count == (size_t) (quantity * mpi::size));
@@ -70,7 +70,7 @@ TEST_CASE("gather values from all processes", "[collective][gather]")
         for (int i = 0; i <= mpi::rank; ++i)
             value[i] = 100 * root + mpi::rank * 10 + i;
 
-        auto result = mpi::gather(value, root, mpi::world, mpi::flag::varying_t());
+        auto result = mpi::gather(value, root, mpi::world, mpi::policy::varying);
 
         if (root == mpi::rank)  {
             auto size = mpi::size;
