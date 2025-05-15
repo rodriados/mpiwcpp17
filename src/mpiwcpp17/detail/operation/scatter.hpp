@@ -129,22 +129,20 @@ namespace detail::operation
       , const communicator_t& comm
       , const policy::varying_t
     ) {
-        size_t count = msg.count;
         size_t rank  = communicator::rank(comm);
         size_t size  = communicator::size(comm);
-        broadcast_inplace<size_t>(&count, root, comm);
 
-        size_t quotient  = count / size;
-        size_t remainder = count % size;
+        size_t quotient  = msg.count / size;
+        size_t remainder = msg.count % size;
 
         if (remainder == 0)
-            return scatter<T>({msg.ptr, count}, root, comm, policy::uniform);
+            return scatter(msg, root, comm, policy::uniform);
 
         auto total   = quotient + (remainder > rank);
         bool is_root = rank == static_cast<size_t>(root);
 
-        auto counts  = payload::create_output<int>(is_root ? size : 0);
-        auto displs  = payload::create_output<int>(is_root ? size : 0);
+        auto counts  = payload::create_output<int>(is_root * size);
+        auto displs  = payload::create_output<int>(is_root * size);
 
         if (is_root) for (size_t j = 0; j < size; ++j) {
             counts[j] = quotient + (remainder > j);

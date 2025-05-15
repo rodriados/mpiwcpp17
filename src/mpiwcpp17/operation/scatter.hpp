@@ -17,6 +17,7 @@
 #include <mpiwcpp17/detail/payload.hpp>
 #include <mpiwcpp17/detail/utility.hpp>
 #include <mpiwcpp17/detail/operation/scatter.hpp>
+#include <mpiwcpp17/operation/broadcast.hpp>
 
 MPIWCPP17_BEGIN_NAMESPACE
 
@@ -40,6 +41,7 @@ inline namespace operation
       , const communicator_t& comm = world
       , const P policy = {}
     ) {
+        broadcast_inplace(count, root, comm);
         auto msg = detail::payload_in_t(data, count);
         return detail::operation::scatter(msg, root, comm, policy);
     }
@@ -61,8 +63,8 @@ inline namespace operation
       , const communicator_t& comm = world
       , const P policy = {}
     ) {
-        auto msg = detail::payload::to_input(data);
-        return detail::operation::scatter(msg, root, comm, policy);
+        auto [ptr, count] = detail::payload::to_tentative_input(data);
+        return scatter(ptr, count, root, comm, policy);
     }
 
     /**

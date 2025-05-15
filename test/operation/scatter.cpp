@@ -24,8 +24,9 @@ TEST_CASE("scatter values to all processes", "[operation][scatter]")
      */
     SECTION("a uniform container of scalar values") {
         constexpr int quantity = 4;
-        std::vector<int> value (root == mpi::rank
-            ? mpi::size * quantity : 1);
+        std::vector<int> value (
+            root == mpi::rank
+              ? mpi::size * quantity : 0);
 
         if (root == mpi::rank)
             for (int i = 0; i < mpi::size * quantity; ++i)
