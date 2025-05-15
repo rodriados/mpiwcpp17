@@ -89,7 +89,7 @@ namespace detail
          * @param count The total number of elements to carry as input.
          */
         MPIWCPP17_CONSTEXPR payload_in_t(T *ptr, size_t count = 1) noexcept
-          : container_t<T> (ptr, ptr ? count : 0)
+          : container_t<T> (ptr, count)
         {}
 
         /**

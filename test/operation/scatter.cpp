@@ -13,7 +13,7 @@
 
 using namespace Catch;
 
-TEST_CASE("scatter values to all processes", "[collective][scatter]")
+TEST_CASE("scatter values to all processes", "[operation][scatter]")
 {
     auto root = GENERATE(range(0, mpi::size));
 
@@ -25,13 +25,13 @@ TEST_CASE("scatter values to all processes", "[collective][scatter]")
     SECTION("a uniform container of scalar values") {
         constexpr int quantity = 4;
         std::vector<int> value (root == mpi::rank
-            ? mpi::size * quantity: 1);
+            ? mpi::size * quantity : 1);
 
         if (root == mpi::rank)
             for (int i = 0; i < mpi::size * quantity; ++i)
                 value[i] = i;
 
-        auto result = mpi::scatter(value, root, mpi::world, mpi::flag::uniform_t());
+        auto result = mpi::scatter(value, root, mpi::world, mpi::policy::uniform);
 
         REQUIRE(result.count == quantity);
 
