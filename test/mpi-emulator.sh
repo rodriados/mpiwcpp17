@@ -1,32 +1,31 @@
-#!/bin/bash
+#!/bin/env bash
 # A thin C++17 wrapper for MPI.
 # @file The MPI emulator script for running tests with MPI.
 # @author Rodrigo Siqueira <rodriados@gmail.com>
 # @copyright 2025-present Rodrigo Siqueira
-readonly quoted_arguments=$(printf '%q ' "$@")
-
-# If the purpose of the current execution is to list the tests available, then we
-# must simply pass the arguments over, run them and bail out.
-for arg in $quoted_arguments; do
-  if [ "$arg" = "--list-tests" ]; then
-    eval "$quoted_arguments"
-    exit 0
-  fi
-done
-
-# Finds the MPI executable if installed on the system and runs the request test.
-# Although there are many name possibilities for the MPI runner, only `mpiexec`
-# is guaranteed to behave as described in the standard.
-readonly known_mpi_runners=(
+readonly QUOTED_ARGUMENTS=$(printf '%q ' "$@")
+readonly KNOWN_MPI_RUNNERS=(
   "mpiexec" "mpiexec.hydra" "mpiexec.mpd"
   "mpirun"
   "lamexec"
   "srun"
 )
 
-for mpi_runner in "${known_mpi_runners[@]}"; do
-  if command -v "$mpi_runner"; then
-    eval "$mpi_runner -n 4 --host localhost:4 $quoted_arguments"
+# If the purpose of the current execution is to list the tests available, then we
+# must simply pass the arguments over, run them and bail out.
+for arg in $QUOTED_ARGUMENTS; do
+  if [ "$arg" = "--list-tests" ]; then
+    eval "$QUOTED_ARGUMENTS"
+    exit 0
+  fi
+done
+
+# Finds the MPI executable if installed on the system and runs the requested test.
+# Although there are many name possibilities for the MPI runner, only `mpiexec`
+# is guaranteed to behave as described in the standard.
+for mpirunner in "${KNOWN_MPI_RUNNERS[@]}"; do
+  if command -v "$mpirunner"; then
+    eval "$mpirunner -n 4 --host localhost:4 $QUOTED_ARGUMENTS"
     exit $?
   fi
 done
