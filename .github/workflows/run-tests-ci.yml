@@ -29,3 +29,10 @@ jobs:
           USE_MPI_EMULATOR: local
           USE_MPI_PROCESSES: 4
         run: ctest --test-dir build --output-on-failure
+
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+        timeout-minutes: 15
+        if: ${{ failure() }}
+        with:
+          limit-access-to-actor: true
