@@ -15,10 +15,9 @@ fi
 
 # If the purpose of the current execution is not to run a test, then we must simply
 # forward the execution to whatever it was. This enables tests to be listed.
-if [[ ! -n "$SHOULD_ENABLE_MPI_EMULATOR" ]]; then
-  if [[ ! -n "$CTEST_INTERACTIVE_DEBUG_MODE" ]]; then
-    exec "$@"
-  fi
+if [[ ! -n "$SHOULD_ENABLE_MPI_EMULATOR" ||
+      ! -n "$CTEST_INTERACTIVE_DEBUG_MODE" ]]; then
+  exec "$@"
 fi
 
 # Forward execution to the selected MPI emulator. If the required environment variable

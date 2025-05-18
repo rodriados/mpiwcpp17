@@ -7,7 +7,7 @@ cmake_minimum_required(VERSION 3.24)
 include(FetchContent)
 
 set(CATCH2_REPOSITORY "https://github.com/catchorg/Catch2.git")
-set(CATCH2_REPOSITORY_TAG "v3.9.1")
+set(CATCH2_REPOSITORY_TAG "v3.14.0")
 
 # Declares the remote source of the required package and allows it to be found.
 # If needed, the package will be downloaded and cached for build.
