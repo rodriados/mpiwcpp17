@@ -27,5 +27,4 @@ set_target_properties(
 catch_discover_tests(
   MPIwCpp17Test
     EXTRA_ARGS --order decl
-    DISCOVERY_MODE PRE_TEST
     PROPERTIES ENVIRONMENT "SHOULD_ENABLE_MPI_EMULATOR=1")

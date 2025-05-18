@@ -1,4 +1,4 @@
-#!/bin/env bash
+#!/usr/bin/env bash
 # A thin C++17 wrapper for MPI.
 # @file The MPI emulator selector to enable tests to run with MPI.
 # @author Rodrigo Siqueira <rodriados@gmail.com>
