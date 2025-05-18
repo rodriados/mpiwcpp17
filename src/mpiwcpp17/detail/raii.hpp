@@ -32,7 +32,7 @@ namespace detail
             using registry_t = std::stack<registry_entry_t>;
 
         private:
-            MPIWCPP17_INLINE static auto s_registry = registry_t();
+            static registry_t s_registry;
 
         public:
             /**
@@ -42,23 +42,14 @@ namespace detail
              * @return The non-owning object handle.
              */
             template <typename T>
-            MPIWCPP17_INLINE static T register_handle(T&& handle)
-            {
-                s_registry.emplace(std::forward<T>(handle));
-                return std::move(handle);
-            }
+            MPIWCPP17_INLINE static T register_handle(T&&);
 
             /**
              * Destroys all registered object handles in the RAII context, guarantees
              * that all handles are destroyed in their opposite registration order.
              * @see mpi::detail::raii_t::register_handle
              */
-            MPIWCPP17_INLINE static void finalize()
-            {
-                while (!s_registry.empty()) {
-                    s_registry.pop();
-                }
-            }
+            MPIWCPP17_INLINE static void finalize();
     };
 
     /**
@@ -84,10 +75,7 @@ namespace detail
              * @param handle The handle to be owned by the registry.
              */
             template <typename T, auto D>
-            MPIWCPP17_INLINE registry_entry_t(handle_t<T, D>&& handle) noexcept
-              : m_handle (to_generic_handle(handle.release()))
-              , m_deleter (reinterpret_cast<deleter_t>(D))
-            {}
+            MPIWCPP17_INLINE registry_entry_t(handle_t<T, D>&&) noexcept;
 
             /**
              * Destroys the owned handle using its extracted deleter function.
@@ -96,12 +84,7 @@ namespace detail
              * and may throw an exception if an error is detected.
              * @see mpi::detail::raii_t::finalize
              */
-            MPIWCPP17_INLINE ~registry_entry_t()
-            {
-                if (m_handle && m_deleter) {
-                    guard((m_deleter)(&m_handle));
-                }
-            }
+            MPIWCPP17_INLINE ~registry_entry_t();
 
         private:
             /**
@@ -110,13 +93,80 @@ namespace detail
              * @param handle The handle to have its type erased.
              */
             template <typename T>
-            MPIWCPP17_CONSTEXPR static uintmax_t to_generic_handle(T handle) noexcept
-            {
-                union handle_converter_t { T handle; uintmax_t generic; };
-                const auto converter = handle_converter_t {handle};
-                return converter.generic;
-            }
+            MPIWCPP17_CONSTEXPR static uintmax_t to_type_erased_handle(T) noexcept;
     };
+
+    /*
+     * Initialization of RAII's internal stack registry.
+     * Handles are kept in the stack throughout MPI execution and destroyed in the
+     * opposite order that they are created.
+     */
+    MPIWCPP17_INLINE raii_t::registry_t raii_t::s_registry;
+
+    /**
+     * Registers a generic MPI object handle to the RAII context.
+     * @tparam T The trackable MPI object handle type.
+     * @param handle The object handle to be tracked by the RAII context.
+     * @return The non-owning object handle.
+     */
+    template <typename T>
+    MPIWCPP17_INLINE T raii_t::register_handle(T&& handle)
+    {
+        s_registry.emplace(std::forward<T>(handle));
+        return std::move(handle);
+    }
+
+    /**
+     * Instantiates a new registry entry from a generic handle.
+     * @tparam T The raw MPI object handle type.
+     * @tparam D The deleter function for the given handle type.
+     * @param handle The handle to be owned by the registry.
+     */
+    template <typename T, auto D>
+    MPIWCPP17_INLINE raii_t::registry_entry_t::registry_entry_t(handle_t<T, D>&& handle) noexcept
+      : m_handle (to_type_erased_handle(handle.release()))
+      , m_deleter (reinterpret_cast<deleter_t>(D))
+    {}
+
+    /**
+     * Destroys all registered object handles in the RAII context, guarantees
+     * that all handles are destroyed in their opposite registration order.
+     * @see mpi::detail::raii_t::register_handle
+     */
+    MPIWCPP17_INLINE void raii_t::finalize()
+    {
+        while (!s_registry.empty()) {
+            s_registry.pop();
+        }
+    }
+
+    /**
+     * Destroys the owned handle using its extracted deleter function.
+     * The deleter is expected to perform a MPI operation to release the
+     * resources owned by the handle. Therefore, the deleter call is guarded
+     * and may throw an exception if an error is detected.
+     * @see mpi::detail::raii_t::finalize
+     */
+    MPIWCPP17_INLINE raii_t::registry_entry_t::~registry_entry_t()
+    {
+        if (m_handle && m_deleter) {
+            guard((m_deleter)(&m_handle));
+        }
+    }
+
+    /**
+     * Erases the type of a generic raw MPI object handle.
+     * @tparam T The original raw MPI object handle type.
+     * @param handle The handle to have its type erased.
+     */
+    template <typename T>
+    MPIWCPP17_CONSTEXPR uintmax_t raii_t::registry_entry_t::to_type_erased_handle(
+        T handle
+    ) noexcept {
+        union type_eraser_t { T handle; uintmax_t erased; };
+        const auto converter = type_eraser_t {handle};
+        return converter.erased;
+    }
 }
 
 MPIWCPP17_END_NAMESPACE

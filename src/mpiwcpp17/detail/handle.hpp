@@ -161,19 +161,20 @@ namespace detail
 }
 
 /*
- * Helper macro to quickly create inherited handle types. The inherited type does
+ * Helper macros to quickly create inherited handle types. The inherited type does
  * not expose some methods that may be used internally by the framework.
  * @tparam T The raw MPI type wrapped by the handle.
  * @tparam D The deleter function for the wrapped MPI type.
  */
-#define MPIWCPP17_INHERIT_HANDLE(T, D)          \
-  public detail::handle_t<T, D> {               \
-    private:                                    \
-      using super_t = detail::handle_t<T, D>;   \
-      using super_t::release;                   \
-    public:                                     \
-      using super_t::handle_t;                  \
-      using super_t::operator=;                 \
+#define MPIWCPP17_HANDLE(T, D) detail::handle_t<T, D>
+#define MPIWCPP17_INHERIT_HANDLE(T, D)                  \
+  public MPIWCPP17_HANDLE(T, D) {                       \
+    private:                                            \
+      using super_t = MPIWCPP17_HANDLE(T, D);           \
+      using super_t::release;                           \
+    public:                                             \
+      using super_t::handle_t;                          \
+      using super_t::operator=;                         \
   }
 
 MPIWCPP17_END_NAMESPACE
