@@ -1,6 +1,6 @@
 services:
   test:
-    image: mpi-node
+    image: mpinode
     networks:
       - mpinet
     volumes:

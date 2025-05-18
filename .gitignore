@@ -10,8 +10,6 @@ test.cpp
 test[1-9].cpp
 run
 runtest
-hostfile
-node_id_rsa
 *.gcda
 *.gcno
 *.info

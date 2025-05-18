@@ -1,22 +1,13 @@
-name: run-tests-ci
+name: run-tests-docker
 
 on: [push, pull_request]
 
 jobs:
-  test-runner:
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-        mpi: [mpich, openmpi]
-      fail-fast: false
-    runs-on: ${{ matrix.os }}
+  test-docker-runner:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: jwlawson/actions-setup-cmake@v1
-
-      - uses: mpi4py/setup-mpi@v1
-        with:
-          mpi: ${{ matrix.mpi }}
 
       - name: Configure project with CMake
         run: cmake -S . -B build -DBUILD_TESTING=ON -G Ninja
@@ -24,8 +15,14 @@ jobs:
       - name: Build project
         run: cmake --build build
 
-      - name: Run tests locally
+      - name: Prepare Docker image
+        run: docker build -t mpinode support
+
+      - name: Initialize MPI Docker cluster
+        run: docker compose --file support/docker-compose.yml --project-directory . up -d
+
+      - name: Run tests on MPI Docker cluster
         env:
-          USE_MPI_EMULATOR: local
+          USE_MPI_EMULATOR: docker
           USE_MPI_PROCESSES: 4
         run: ctest --test-dir build --output-on-failure

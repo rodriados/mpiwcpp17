@@ -24,4 +24,7 @@ set_target_properties(
 
 # Automatically discovers the tests found on the repository and allows them to be
 # called from and linked to ctest.
-catch_discover_tests(MPIwCpp17Test DISCOVERY_MODE "PRE_TEST" EXTRA_ARGS --order decl)
+catch_discover_tests(
+  MPIwCpp17Test
+    EXTRA_ARGS --order decl
+    PROPERTIES ENVIRONMENT "SHOULD_ENABLE_MPI_EMULATOR=1")

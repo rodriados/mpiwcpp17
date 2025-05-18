@@ -19,5 +19,6 @@ COPY sshconfig /home/${USER}/.ssh/config
 RUN chown ${USER}:${USER} /home/${USER}/.ssh/config
 
 RUN mkdir /var/run/sshd
+WORKDIR /home/${USER}
 
 CMD ["/usr/sbin/sshd", "-D"]
