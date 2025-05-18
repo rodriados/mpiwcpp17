@@ -18,7 +18,7 @@ readonly KNOWN_MPI_RUNNERS=(
 # is guaranteed to behave as described in the standard.
 for mpirunner in "${KNOWN_MPI_RUNNERS[@]}"; do
   if command -v "$mpirunner"; then
-    exec $mpirunner -n $USE_MPI_PROCESSES -- "$@"
+    exec $mpirunner -n $USE_MPI_PROCESSES "$@"
   fi
 done
 
