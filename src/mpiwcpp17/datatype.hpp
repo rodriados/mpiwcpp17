@@ -8,7 +8,6 @@
 
 #include <mpi.h>
 
-#include <array>
 #include <cstddef>
 #include <utility>
 
@@ -114,7 +113,7 @@ namespace datatype
          * Provides a MPI datatype identity for the target payload type via reflection.
          * @return The MPI datatype identifier for the given payload type.
          */
-        MPIWCPP17_INLINE static datatype_t provide()
+        MPIWCPP17_INLINE static datatype_t::raw_t provide()
         {
             return provide_by_reflection(std::make_index_sequence<reflection_t::count>());
         }
@@ -126,14 +125,16 @@ namespace datatype
          * @return The MPI datatype identifier for the given payload type.
          */
         template <size_t ...I>
-        MPIWCPP17_INLINE static datatype_t provide_by_reflection(std::index_sequence<I...>)
+        MPIWCPP17_INLINE static datatype_t& provide_by_reflection(std::index_sequence<I...>)
         {
-            return detail::datatype::identify_from_memory_layout(std::array {
-                std::make_tuple(
-                    identify<std::tuple_element_t<I, reflection_tuple_t>>()
-                  , /* reflection always normalizes array types */ 1UL
-                  , reflection_t::template offset<I>())...
-            });
+            static datatype_t t = detail::raii_t::register_handle(
+                MPIWCPP17_TYPE_RAII(detail::datatype::map_from_memory_layout({
+                    detail::datatype::member_description_t(
+                        identify<std::tuple_element_t<I, reflection_tuple_t>>()
+                      , /* reflection always flattens array types */ 1UL
+                      , reflection_t::template offset<I>())...
+                })));
+            return t;
         }
     };
   #endif
@@ -146,15 +147,17 @@ namespace datatype
      * @return The MPI datatype identifier for the given payload type.
      */
     template <typename T, typename ...R>
-    MPIWCPP17_INLINE datatype_t provide(R T::*... member)
+    MPIWCPP17_INLINE datatype_t::raw_t provide(R T::*... member)
     {
-        return detail::datatype::identify_from_memory_layout(std::array {
-            std::make_tuple(
-                identify<std::remove_extent_t<R>>()
-              , std::max(std::extent_v<R>, 1UL)
-              , reinterpret_cast<ptrdiff_t>(
-                    std::addressof(reinterpret_cast<T*>(0)->*member)))...
-        });
+        static datatype_t t = detail::raii_t::register_handle(
+            MPIWCPP17_TYPE_RAII(detail::datatype::map_from_memory_layout({
+                detail::datatype::member_description_t(
+                    identify<std::remove_extent_t<R>>()
+                  , std::max(std::extent_v<R>, 1UL)
+                  , reinterpret_cast<ptrdiff_t>(
+                        std::addressof(reinterpret_cast<T*>(0)->*member)))...
+            })));
+        return t;
     }
 }
 
@@ -169,9 +172,7 @@ namespace datatype
 template <typename T>
 MPIWCPP17_INLINE datatype_t::raw_t detail::datatype::mapper_t::get()
 {
-    static datatype_t t = detail::raii_t::register_handle(
-        mpiwcpp17::datatype::provider_t<T>::provide());
-    return t;
+    return mpiwcpp17::datatype::provider_t<T>::provide();
 }
 
 #undef MPIWCPP17_TYPE_CALL

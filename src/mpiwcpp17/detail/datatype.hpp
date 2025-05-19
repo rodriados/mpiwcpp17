@@ -8,7 +8,6 @@
 
 #include <mpi.h>
 
-#include <array>
 #include <utility>
 #include <cstddef>
 
@@ -66,6 +65,14 @@ namespace detail::datatype
     /**#@-*/
 
     /**
+     * Helper for describing the memory layout of a property member of a type to
+     * be mapped for use with MPI operations. To map a type member, it is required
+     * to provide the member type, its extent count and memory offset.
+     * @since 2.1
+     */
+    using member_description_t = std::tuple<MPI_Datatype, size_t, ptrdiff_t>;
+
+    /**
      * Builds a new MPI datatype identity from the raw memory layout description
      * of the member properties within a generic payload type.
      * @tparam N The number of member properties within the payload type.
@@ -73,9 +80,8 @@ namespace detail::datatype
      * @return The new datatype identity for the described payload type.
      */
     template <size_t N>
-    MPIWCPP17_INLINE MPI_Datatype identify_from_memory_layout(
-        const std::array<std::tuple<MPI_Datatype, size_t, ptrdiff_t>, N>& layout
-    ) {
+    MPIWCPP17_INLINE auto map_from_memory_layout(const member_description_t (&layout)[N])
+    {
         int counts[N];
         MPI_Aint offsets[N];
         MPI_Datatype t, types[N];

@@ -22,13 +22,14 @@ struct point_t
 /**
  * Provides a datatype descriptor identifier for the fixture point structure.
  * @tparam T The point's dimensions' type.
- * @since 3.0
+ * @since 2.1
  */
 template <typename T>
 struct mpi::datatype::provider_t<point_t<T>> {
-    inline static mpi::datatype_t provide() {
+    inline static auto provide() {
         return mpi::datatype::provide(
             &point_t<T>::x
-          , &point_t<T>::y);
+          , &point_t<T>::y
+        );
     }
 };
